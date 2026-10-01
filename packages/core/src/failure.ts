@@ -1,3 +1,5 @@
+import type { FailedReport } from './report/types.js';
+
 // Codes are stable and never reused for another cause (report-format.md § Failures).
 export type FailureCode =
   | 'USAGE_ERROR'
@@ -47,7 +49,7 @@ export function renderFailureText(failure: LintFailure): string {
 
 // The failed report document. It never carries run, findings or summary.
 export function renderFailureJson(failure: LintFailure): string {
-  const document = {
+  const document: FailedReport = {
     schemaVersion: 1,
     status: 'failed',
     failure: {

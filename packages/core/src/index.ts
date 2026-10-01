@@ -1,2 +1,31 @@
-// Public library API. Placeholder until the plugin contract (core-plan §5.2) is implemented.
-export type Severity = 'error' | 'warning' | 'info';
+// Public library API.
+export type {
+  CompletedReport,
+  ConfigFinding,
+  ConfigLocation,
+  ConfigurationLocation,
+  Edit,
+  ExpressionExcerpt,
+  FailedReport,
+  FailureRecord,
+  Finding,
+  JsonLocation,
+  JsonStringTarget,
+  OffsetRange,
+  PackageVersion,
+  QuestionnaireFinding,
+  QuestionnaireLocation,
+  RelatedLocation,
+  Report,
+  ResourceIdentity,
+  RunCompat,
+  RunMetadata,
+  Severity,
+  SmartFormsVersions,
+  SourceLocation,
+  SourceMapResult,
+  SourceTarget,
+  Suggestion,
+  Summary,
+} from './report/types.js';
+export type { FailureCode } from './failure.js';
