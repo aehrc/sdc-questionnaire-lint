@@ -12,6 +12,7 @@ export type {
   LocalResource,
   QuestionnaireDocument,
   RuleContext,
+  RuleDocs,
   RuleFinding,
   Scope,
 } from './plugins/types.js';

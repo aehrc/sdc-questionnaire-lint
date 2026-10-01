@@ -56,11 +56,22 @@ export interface RuleContext {
   report(finding: RuleFinding): void;
 }
 
+// Bundled documentation printed by sdc-lint explain <rule-id>, so it works offline. Each field is
+// plain text; the template follows linter-design-guidelines.md § 5.
+export interface RuleDocs {
+  checks: string;
+  why: string;
+  exampleMessage: string;
+  fix: string;
+  limitations: string;
+}
+
 export interface LintRule {
   meta: {
     description: string;
     defaultSeverity: Severity;
     docsUrl?: string;
+    docs?: RuleDocs;
   };
   // Runs synchronously, once per Questionnaire; must not mutate input or access the network.
   check(ctx: RuleContext): void;

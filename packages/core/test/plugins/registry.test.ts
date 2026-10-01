@@ -87,6 +87,14 @@ describe('buildRegistry', () => {
     });
   });
 
+  it("keeps a rule's bundled docs and lists every namespace", () => {
+    const docs = { checks: 'c', why: 'w', exampleMessage: 'e', fix: 'f', limitations: 'l' };
+    const documented = { ...rule, meta: { ...rule.meta, docs } };
+    const registry = buildRegistry(config({ plugins: [plugin('docs', { rule: documented })] }));
+    expect(registry.rules.find((registered) => registered.id === 'docs/rule')?.docs).toEqual(docs);
+    expect(registry.namespaces).toEqual(['docs', 'lint', 'sdc']);
+  });
+
   it('lets config turn lint/stale-suppression off', () => {
     const registry = buildRegistry(config({ rules: { 'lint/stale-suppression': 'off' } }));
     expect(registry.rules[0]).toMatchObject({ effectiveSeverity: 'off', enabled: false });
@@ -138,6 +146,23 @@ describe('buildRegistry', () => {
       'the rule has no check function',
     ],
     [
+      'rule docs that are not an object',
+      plugin('x', { r: { ...rule, meta: { ...rule.meta, docs: 'text' } } }),
+      '/plugins/0/rules/r/meta/docs',
+      'the rule docs are not an object',
+    ],
+    [
+      'rule docs missing a section',
+      plugin('x', {
+        r: {
+          ...rule,
+          meta: { ...rule.meta, docs: { checks: 'c', why: 'w', exampleMessage: 'e', fix: 'f' } },
+        },
+      }),
+      '/plugins/0/rules/r/meta/docs/limitations',
+      'the rule docs have no limitations text',
+    ],
+    [
       'a plugin named lint',
       plugin('lint'),
       '/plugins/0/meta/name',
@@ -179,6 +204,14 @@ describe('buildRegistry', () => {
         help: 'a rule with a similar name exists: test/finding-per-item',
       }),
     );
+  });
+
+  it('prefers a similar rule ID over the unregistered-namespace help', () => {
+    expect(() =>
+      buildRegistry(
+        config({ plugins: [plugin('test', { rule })], rules: { 'tests/rule': 'off' } }),
+      ),
+    ).toThrow(expect.objectContaining({ help: 'a rule with a similar name exists: test/rule' }));
   });
 
   it('explains an unknown rule from an unregistered namespace', () => {

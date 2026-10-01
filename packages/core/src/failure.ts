@@ -49,6 +49,16 @@ export function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+// A caught value as a failure to report: a LintFailure as is, anything else as INTERNAL_ERROR.
+export function asLintFailure(error: unknown): LintFailure {
+  if (error instanceof LintFailure) return error;
+  return new LintFailure({
+    code: 'INTERNAL_ERROR',
+    message: `unexpected error: ${describeError(error)}`,
+    help: 'this is a bug in sdc-questionnaire-lint; report it with the command you ran',
+  });
+}
+
 export function renderFailureText(failure: LintFailure): string {
   return `error: ${failure.message}\nhelp: ${failure.help}\n`;
 }

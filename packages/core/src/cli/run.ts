@@ -1,10 +1,11 @@
 import pkg from '../../package.json' with { type: 'json' };
-import { describeError, LintFailure, renderFailureJson, renderFailureText } from '../failure.js';
+import { asLintFailure, LintFailure, renderFailureJson, renderFailureText } from '../failure.js';
 import { lint } from '../lint.js';
 import { formatJsonReport } from '../report/json.js';
 import { formatTextReport } from '../report/text.js';
 import { type ParsedArgs, parseCliArgs } from './args.js';
 import { colourEnabled } from './colour.js';
+import { runExplain } from './explain.js';
 import { helpText } from './help.js';
 import { guardStdout } from './output-guard.js';
 
@@ -47,14 +48,7 @@ async function runLint(args: Extract<ParsedArgs, { kind: 'lint' }>, io: CliIo): 
     );
     return report.summary.errors > 0 ? 1 : 0;
   } catch (error) {
-    const failure =
-      error instanceof LintFailure
-        ? error
-        : new LintFailure({
-            code: 'INTERNAL_ERROR',
-            message: `unexpected error: ${describeError(error)}`,
-            help: 'this is a bug in sdc-questionnaire-lint; report it with the command you ran',
-          });
+    const failure = asLintFailure(error);
     if (args.format === 'json') io.stdout.write(renderFailureJson(failure));
     io.stderr.write(renderFailureText(failure));
     return 2;
@@ -83,9 +77,9 @@ async function execute(argv: readonly string[], io: CliIo): Promise<0 | 1 | 2> {
       return 0;
     case 'lint':
       return runLint(args, io);
-    // explain prints short usage until it is implemented.
-    case 'no-command':
     case 'explain':
+      return runExplain(args, io);
+    case 'no-command':
       io.stderr.write(shortUsage);
       return 2;
   }

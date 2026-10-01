@@ -3,7 +3,7 @@ import { configInvalid, isObject } from '../config/validate.js';
 import type { PackageVersion } from '../report/types.js';
 import { closestName } from '../suggest.js';
 import { lintPlugin, sdcPlugin } from './builtin.js';
-import type { LintPlugin, LintRule, Severity } from './types.js';
+import type { LintPlugin, LintRule, RuleDocs, Severity } from './types.js';
 
 export interface RegisteredRule {
   // namespace/key, such as sdc/undefined-variable.
@@ -14,6 +14,7 @@ export interface RegisteredRule {
   effectiveSeverity: Severity | 'off';
   enabled: boolean;
   docsUrl?: string;
+  docs?: RuleDocs;
   rule: LintRule;
 }
 
@@ -22,7 +23,11 @@ export interface Registry {
   plugins: PackageVersion[];
   // Every registered rule, including rules configured off, sorted by ID.
   rules: RegisteredRule[];
+  // Every registered namespace, including lint and plugins without rules.
+  namespaces: string[];
 }
+
+const docsFields = ['checks', 'why', 'exampleMessage', 'fix', 'limitations'] as const;
 
 // Namespaces and rule keys share the report schema's rule ID syntax.
 const namePattern = /^[a-z][a-z0-9-]*$/;
@@ -104,6 +109,24 @@ function checkPlugin(value: unknown, index: number, display: string): LintPlugin
         'set meta.defaultSeverity to error, warning or info',
       );
     }
+    if (ruleMeta.docs !== undefined) {
+      const docs = isObject(ruleMeta.docs)
+        ? ruleMeta.docs
+        : fail(
+            [...ruleAt, 'meta', 'docs'],
+            'the rule docs are not an object',
+            `give docs the fields ${docsFields.join(', ')}`,
+          );
+      for (const field of docsFields) {
+        if (typeof docs[field] !== 'string' || docs[field] === '') {
+          fail(
+            [...ruleAt, 'meta', 'docs', field],
+            `the rule docs have no ${field} text`,
+            `give docs the fields ${docsFields.join(', ')}`,
+          );
+        }
+      }
+    }
     if (typeof rule.check !== 'function') {
       fail(
         [...ruleAt, 'check'],
@@ -156,6 +179,7 @@ export function buildRegistry(loaded: LoadedConfig | null): Registry {
         effectiveSeverity: rule.meta.defaultSeverity,
         enabled: true,
         ...(rule.meta.docsUrl === undefined ? {} : { docsUrl: rule.meta.docsUrl }),
+        ...(rule.meta.docs === undefined ? {} : { docs: rule.meta.docs }),
         rule,
       });
     }
@@ -164,13 +188,11 @@ export function buildRegistry(loaded: LoadedConfig | null): Registry {
   for (const [id, setting] of Object.entries(config.rules ?? {})) {
     const registered = byId.get(id);
     if (registered === undefined) {
-      const namespace = id.split('/')[0] ?? id;
-      const similar = closestName(id, byId.keys());
-      const help = !plugins.some((plugin) => plugin.meta.name === namespace)
-        ? `the plugin providing ${namespace}/ rules must be listed in plugins in an .mjs config`
-        : similar === undefined
-          ? 'run sdc-lint explain to list the registered rules'
-          : `a rule with a similar name exists: ${similar}`;
+      const help = unknownRuleHelp(
+        id,
+        [...byId.keys()],
+        plugins.map((plugin) => plugin.meta.name),
+      );
       throw configInvalid(display, ['rules', id], `unknown rule ${id}`, help);
     }
     registered.effectiveSeverity = setting;
@@ -183,5 +205,22 @@ export function buildRegistry(loaded: LoadedConfig | null): Registry {
       .map((plugin) => ({ name: plugin.meta.name, version: plugin.meta.version }))
       .sort((a, b) => compareStrings(a.name, b.name)),
     rules: [...byId.values()].sort((a, b) => compareStrings(a.id, b.id)),
+    namespaces: plugins.map((plugin) => plugin.meta.name).sort(compareStrings),
   };
+}
+
+// Help for an unknown rule ID, shared by config errors and explain: a similar registered ID, else
+// the plugin that must be listed for an unregistered namespace, else the rule list.
+export function unknownRuleHelp(
+  id: string,
+  ruleIds: readonly string[],
+  namespaces: readonly string[],
+): string {
+  const similar = closestName(id, ruleIds);
+  if (similar !== undefined) return `a rule with a similar name exists: ${similar}`;
+  const namespace = id.includes('/') ? id.slice(0, id.indexOf('/')) : id;
+  if (!namespaces.includes(namespace)) {
+    return `the plugin providing ${namespace}/ rules must be listed in plugins in an .mjs config`;
+  }
+  return 'run sdc-lint explain to list the registered rules';
 }
