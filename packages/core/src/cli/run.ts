@@ -1,6 +1,7 @@
 import pkg from '../../package.json' with { type: 'json' };
 import { LintFailure, renderFailureJson, renderFailureText } from '../failure.js';
 import { parseCliArgs } from './args.js';
+import { helpText } from './help.js';
 
 export interface CliIo {
   cwd: string;
@@ -30,9 +31,11 @@ export function runCli(argv: readonly string[], io: CliIo): Promise<0 | 1 | 2> {
       io.stderr.write(renderFailureText(failure));
       return Promise.resolve(2);
     }
-    // help, lint and explain print short usage until they are implemented.
-    case 'no-command':
     case 'help':
+      io.stdout.write(helpText(args.command));
+      return Promise.resolve(0);
+    // lint and explain print short usage until they are implemented.
+    case 'no-command':
     case 'lint':
     case 'explain':
       io.stderr.write(shortUsage);
