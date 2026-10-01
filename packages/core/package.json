@@ -1,0 +1,29 @@
+{
+  "name": "sdc-questionnaire-lint",
+  "version": "0.1.0",
+  "description": "Static checks for FHIRPath and x-fhir-query expressions in FHIR SDC Questionnaires",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "sdc-lint": "./dist/cli.js",
+    "sdc-questionnaire-lint": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "fhirpath": "4.10.1"
+  }
+}
