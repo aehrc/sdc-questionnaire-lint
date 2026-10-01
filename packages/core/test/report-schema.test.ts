@@ -1,21 +1,8 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { Ajv2020 } from 'ajv/dist/2020.js';
-import addFormatsPlugin from 'ajv-formats';
+import { readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { docsDir, readJson, validateReportSchema as validate } from './support/report.js';
 
-// ajv-formats is CommonJS; under NodeNext its default export is the module object.
-const addFormats = addFormatsPlugin.default;
-
-const docs = new URL('../../../docs/', import.meta.url);
-const examplesDir = new URL('examples/reports/', docs);
-
-function readJson(url: URL): unknown {
-  return JSON.parse(readFileSync(url, 'utf8'));
-}
-
-const ajv = new Ajv2020({ allErrors: true });
-addFormats(ajv);
-const validate = ajv.compile(readJson(new URL('schemas/lint-report.schema.json', docs)) as object);
+const examplesDir = new URL('examples/reports/', docsDir);
 
 const examples = readdirSync(examplesDir).filter((file) => file.endsWith('.json'));
 
