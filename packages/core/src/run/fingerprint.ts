@@ -42,6 +42,8 @@ export function configFingerprint(ruleId: string, entry: SuppressionEntry): stri
     entry.file,
     entry.linkId ?? null,
     entry.extensionUrl ?? null,
+    entry.declaration ?? null,
+    entry.resource ?? null,
     entry.pointer ?? null,
   ]);
 }

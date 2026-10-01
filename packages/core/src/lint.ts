@@ -1,8 +1,10 @@
+import { realpath } from 'node:fs/promises';
 import pkg from '../package.json' with { type: 'json' };
 import { selectConfig } from './config/discover.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { collectInputs } from './inputs/collect.js';
+import { displayPath } from './inputs/paths.js';
 import { buildRegistry } from './plugins/registry.js';
 import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
@@ -39,7 +41,18 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     sushiIndex: runPaths.sushiIndex,
   });
 
-  const results = runRules({ documents: inputs.documents, rules: registry.rules, sourceMap });
+  // Fingerprints name files relative to the config directory, or the working directory without a
+  // config, so running from another directory keeps them.
+  const fingerprintBase = await realpath(loaded?.dir ?? cwd);
+  const fingerprintFiles = new Map(
+    inputs.inputFiles.map((file) => [file.display, displayPath(file.path, fingerprintBase)]),
+  );
+  const results = runRules({
+    documents: inputs.documents,
+    rules: registry.rules,
+    sourceMap,
+    fingerprintFiles,
+  });
   const { findings, suppressedFindings, suppressions } = await applySuppressions({
     cwd,
     loaded,

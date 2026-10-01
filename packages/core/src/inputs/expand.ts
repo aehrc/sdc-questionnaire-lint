@@ -31,14 +31,30 @@ function relativeHelp(entry: InputEntry): string {
     : 'check the path; it is relative to the current directory';
 }
 
-// Splits an absolute pattern into the static directory to crawl and the glob below it.
-function splitPattern(absolute: string): { base: string; pattern: string } {
-  const segments = (path.sep === '\\' ? absolute.replaceAll('\\', '/') : absolute).split('/');
+// Splits an entry into the directory it names before anything the user wrote, and the rest. Only
+// the rest can hold a glob, so a working directory named "My (copy)" stays literal.
+function typedPart(entry: InputEntry): { fixed: string; typed: string } {
+  const relative = path.relative(entry.base, entry.absolute);
+  // On another Windows drive nothing is relative to the base.
+  if (path.isAbsolute(relative)) {
+    const { root } = path.parse(entry.absolute);
+    return { fixed: root, typed: entry.absolute.slice(root.length).replaceAll('\\', '/') };
+  }
+  const segments = relative === '' ? [] : relative.split(path.sep);
+  let up = 0;
+  while (segments[up] === '..') up++;
+  return {
+    fixed: path.resolve(entry.base, ...segments.slice(0, up)),
+    typed: segments.slice(up).join('/'),
+  };
+}
+
+// Splits a typed pattern into the static directory to crawl and the glob below it.
+function splitPattern(fixed: string, typed: string): { base: string; pattern: string } {
+  const segments = typed.split('/');
   const found = segments.findIndex((segment) => isDynamicPattern(segment));
   const dynamic = found === -1 ? segments.length - 1 : found;
-  // A bare drive such as C: would mean the drive's current directory, so add the root.
-  const joined = segments.slice(0, dynamic).join('/');
-  const base = joined === '' ? '/' : joined.endsWith(':') ? `${joined}/` : joined;
+  const base = path.join(fixed, ...segments.slice(0, dynamic));
   const pattern = segments.slice(dynamic).join('/');
   // A leading ! would negate the pattern; negation is outside the contract.
   return { base, pattern: pattern.startsWith('!') ? `\\${pattern}` : pattern };
@@ -107,8 +123,9 @@ async function expandEntry(entry: InputEntry): Promise<string[]> {
     }
     return files;
   }
-  if (isDynamicPattern(entry.absolute)) {
-    const { base, pattern } = splitPattern(entry.absolute);
+  const { fixed, typed } = typedPart(entry);
+  if (isDynamicPattern(typed)) {
+    const { base, pattern } = splitPattern(fixed, typed);
     const files = await crawl(base, pattern, entry.display);
     if (files.length === 0) {
       throw new LintFailure({

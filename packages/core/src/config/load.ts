@@ -28,7 +28,8 @@ async function readJsonConfig(selected: SelectedConfig): Promise<unknown> {
     );
   }
   try {
-    return parseJson(text);
+    // Tolerate a byte order mark, which JSON.parse rejects.
+    return parseJson(text.startsWith('\uFEFF') ? text.slice(1) : text);
   } catch (error) {
     throw invalid(
       selected,

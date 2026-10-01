@@ -6,7 +6,12 @@ import { type EntryOrigin, type InputEntry } from '../../src/inputs/select.js';
 import { tempTree } from '../support/tmp.js';
 
 function entries(cwd: string, paths: string[], origin: EntryOrigin = 'cli'): InputEntry[] {
-  return paths.map((display) => ({ origin, absolute: path.resolve(cwd, display), display }));
+  return paths.map((display) => ({
+    origin,
+    absolute: path.resolve(cwd, display),
+    base: cwd,
+    display,
+  }));
 }
 
 async function expand(cwd: string, paths: string[], origin?: EntryOrigin): Promise<string[]> {
@@ -80,7 +85,12 @@ describe('expandEntries', () => {
   it('expands an absolute glob', async () => {
     const cwd = await tempTree(tree);
     const files = await expandEntries([
-      { origin: 'cli', absolute: path.join(cwd, 'resources', '*-A.json'), display: 'x' },
+      {
+        origin: 'cli',
+        absolute: path.join(cwd, 'resources', '*-A.json'),
+        base: path.parse(cwd).root,
+        display: 'x',
+      },
     ]);
     expect(files).toEqual([path.join(cwd, 'resources', 'Questionnaire-A.json')]);
   });
@@ -93,6 +103,23 @@ describe('expandEntries', () => {
       message: 'input missing.json does not exist',
       help: 'check the path; it is relative to the current directory',
     });
+  });
+
+  it('treats glob characters in the working directory as literal', async () => {
+    const root = await tempTree({ 'My (copy) [1]/resources/Questionnaire-A.json': '{}' });
+    const cwd = path.join(root, 'My (copy) [1]');
+    await expect(expand(cwd, ['missing.json'])).rejects.toMatchObject({
+      code: 'INPUT_NOT_FOUND',
+      path: 'missing.json',
+    });
+    expect(await expand(cwd, ['resources/*.json'])).toEqual(['resources/Questionnaire-A.json']);
+  });
+
+  it('expands a glob that leaves the working directory', async () => {
+    const root = await tempTree({ 'a (b)/x.json': '{}', 'other/Questionnaire-A.json': '{}' });
+    expect(await expand(path.join(root, 'a (b)'), ['../other/*.json'])).toEqual([
+      '../other/Questionnaire-A.json',
+    ]);
   });
 
   it('points a missing config entry at the config directory', async () => {

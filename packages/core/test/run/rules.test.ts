@@ -130,6 +130,18 @@ describe('runRules', () => {
     expect(finding?.expression).toEqual({ text: '%given.first()' });
   });
 
+  it.each([
+    ['a negative start', { startOffset: -1, endOffset: 3 }],
+    ['a fractional offset', { startOffset: 0.5, endOffset: 3 }],
+    ['a non-number', { startOffset: '0', endOffset: 3 }],
+  ])('drops a range with %s', (_name, range) => {
+    const [finding] = run(
+      reporting(() => [{ message: 'm', pointer: calculatedPointer(0), range } as RuleFinding]),
+      [document({ item: [item('name')] })],
+    );
+    expect(finding?.expression).toEqual({ text: '%given.first()' });
+  });
+
   it('applies a configured severity, and a finding-specific severity over it', () => {
     const plugin = reporting(() => [
       { message: 'Default.' },
@@ -253,5 +265,19 @@ describe('fingerprints', () => {
     expect(configFingerprint('lint/stale-suppression', entry)).not.toBe(
       configFingerprint('lint/stale-suppression', other),
     );
+  });
+
+  it('tell stale suppressions apart by declaration and resource', () => {
+    const entry = { rule: 'sdc/x', file: 'B.json', reason: 'Why.' };
+    const values = new Set(
+      [
+        entry,
+        { ...entry, declaration: 'given' },
+        { ...entry, declaration: 'family' },
+        { ...entry, resource: 'Questionnaire/A' },
+        { ...entry, resource: 'Questionnaire/B' },
+      ].map((selector) => configFingerprint('lint/stale-suppression', selector)),
+    );
+    expect(values.size).toBe(5);
   });
 });

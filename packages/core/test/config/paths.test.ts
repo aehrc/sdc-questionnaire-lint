@@ -21,6 +21,7 @@ describe('resolveRunPaths', () => {
       ],
     });
     expect(resolveRunPaths({ cwd, config })).toEqual({
+      base: path.join(cwd, 'ig'),
       configFiles: [
         path.join(cwd, 'ig', 'fsh-generated', 'resources'),
         path.join(cwd, 'ig', 'extra', 'Questionnaire-*.json'),
@@ -49,6 +50,7 @@ describe('resolveRunPaths', () => {
 
   it('uses the working directory without a config', () => {
     expect(resolveRunPaths({ cwd, config: null })).toEqual({
+      base: cwd,
       fshDirectories: [path.join(cwd, 'input', 'fsh')],
       fshSourceLookup: 'enabled',
       suppressionFiles: [],

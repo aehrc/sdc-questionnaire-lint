@@ -2,7 +2,12 @@ import { describeError, LintFailure } from '../failure.js';
 import { isWithin, parsePointer } from '../json-pointer.js';
 import type { RegisteredRule } from '../plugins/registry.js';
 import type { QuestionnaireDocument, RuleContext, RuleFinding } from '../plugins/types.js';
-import type { QuestionnaireFinding, ResourceIdentity, Severity } from '../report/types.js';
+import type {
+  OffsetRange,
+  QuestionnaireFinding,
+  ResourceIdentity,
+  Severity,
+} from '../report/types.js';
 import { questionnaireFingerprint } from './fingerprint.js';
 import { identifySite, type SiteIdentity } from './site.js';
 import type { SourceMap } from './source-map.js';
@@ -22,6 +27,16 @@ function resourceIdentity(document: QuestionnaireDocument): ResourceIdentity {
     ...(typeof id === 'string' && id !== '' ? { id } : {}),
     pointer: document.resourcePointer,
   };
+}
+
+function fitsText({ startOffset, endOffset }: OffsetRange, text: string): boolean {
+  return (
+    Number.isInteger(startOffset) &&
+    Number.isInteger(endOffset) &&
+    startOffset >= 0 &&
+    startOffset <= endOffset &&
+    endOffset <= text.length
+  );
 }
 
 function crash(
@@ -44,6 +59,7 @@ function toFinding(
   document: QuestionnaireDocument,
   reported: RuleFinding,
   sourceMap: SourceMap,
+  fingerprintFile: string,
 ): RuleResult {
   if (typeof reported.message !== 'string' || reported.message === '') {
     throw crash(rule, document, 'it reported a finding without a message');
@@ -66,10 +82,7 @@ function toFinding(
   // An expression string at the pointer becomes the excerpt; a range must fit inside it.
   const text = typeof site.value === 'string' ? site.value : undefined;
   const range =
-    reported.range !== undefined &&
-    text !== undefined &&
-    reported.range.startOffset <= reported.range.endOffset &&
-    reported.range.endOffset <= text.length
+    reported.range !== undefined && text !== undefined && fitsText(reported.range, text)
       ? reported.range
       : undefined;
   const severity: Severity =
@@ -94,7 +107,12 @@ function toFinding(
     ...(text === undefined
       ? {}
       : { expression: { text, ...(range === undefined ? {} : { range }) } }),
-    fingerprint: questionnaireFingerprint({ ruleId: rule.id, file: document.file, resource, site }),
+    fingerprint: questionnaireFingerprint({
+      ruleId: rule.id,
+      file: fingerprintFile,
+      resource,
+      site,
+    }),
   };
   return { finding, site };
 }
@@ -105,15 +123,19 @@ export function runRules({
   documents,
   rules,
   sourceMap,
+  fingerprintFiles,
 }: {
   documents: readonly QuestionnaireDocument[];
   rules: readonly RegisteredRule[];
   sourceMap: SourceMap;
+  // Each display path's file as fingerprints name it; the display path when absent.
+  fingerprintFiles?: ReadonlyMap<string, string>;
 }): RuleResult[] {
   const results: RuleResult[] = [];
   // The lint namespace reports while suppressions are assessed, not per Questionnaire.
   const enabled = rules.filter((rule) => rule.enabled && rule.plugin !== 'lint');
   for (const document of documents) {
+    const fingerprintFile = fingerprintFiles?.get(document.file) ?? document.file;
     for (const rule of enabled) {
       const reported: RuleResult[] = [];
       const context: RuleContext = {
@@ -123,7 +145,7 @@ export function runRules({
         scopeAt: () => ({ available: false, names: [] }),
         options: undefined,
         report: (finding) => {
-          reported.push(toFinding(rule, document, finding, sourceMap));
+          reported.push(toFinding(rule, document, finding, sourceMap, fingerprintFile));
         },
       };
       try {

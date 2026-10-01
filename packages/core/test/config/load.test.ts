@@ -24,6 +24,11 @@ describe('loading a JSON config', () => {
     });
   });
 
+  it('tolerates a byte order mark', async () => {
+    const cwd = await tempTree({ 'c.json': '\uFEFF{ "files": ["a.json"] }' });
+    expect(await load(cwd, 'c.json')).toMatchObject({ config: { files: ['a.json'] } });
+  });
+
   it('fails on malformed JSON with the line and column', async () => {
     const cwd = await tempTree({ 'c.json': '{\n  "files": [,]\n}' });
     await expect(load(cwd, 'c.json')).rejects.toMatchObject({

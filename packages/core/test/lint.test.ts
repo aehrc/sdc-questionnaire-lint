@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { lint } from '../src/index.js';
@@ -56,6 +57,18 @@ describe('lint', () => {
     });
     expect(report.run.selection).toBe('targeted');
     expect(report.summary.questionnaires).toBe(1);
+  });
+
+  it('keeps fingerprints when run from another directory with the same config', async () => {
+    const inside = await lint({ cwd: pluginRun, configPath: 'info.config.mjs' });
+    const outside = await lint({
+      cwd: path.dirname(pluginRun),
+      configPath: 'plugin-run/info.config.mjs',
+    });
+    expect(inside.findings.length).toBeGreaterThan(0);
+    expect(outside.findings.map((finding) => finding.fingerprint)).toEqual(
+      inside.findings.map((finding) => finding.fingerprint),
+    );
   });
 
   it('fails with a LintFailure for an invalid config', async () => {

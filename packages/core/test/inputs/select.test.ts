@@ -4,9 +4,11 @@ import type { RunPaths } from '../../src/config/paths.js';
 import { selectInputs } from '../../src/inputs/select.js';
 
 const cwd = path.resolve('/work');
+const ig = path.join(cwd, 'ig');
 
 function runPaths(configFiles?: string[]): RunPaths {
   return {
+    base: path.join(cwd, 'ig'),
     ...(configFiles === undefined ? {} : { configFiles }),
     fshDirectories: [],
     fshSourceLookup: 'enabled',
@@ -26,10 +28,11 @@ describe('selectInputs', () => {
     expect(selected).toEqual({
       selection: 'targeted',
       entries: [
-        { origin: 'cli', absolute: path.join(cwd, 'a.json'), display: 'a.json' },
+        { origin: 'cli', absolute: path.join(cwd, 'a.json'), base: cwd, display: 'a.json' },
         {
           origin: 'cli',
           absolute: path.join(cwd, 'resources', '*.json'),
+          base: cwd,
           display: 'resources/*.json',
         },
       ],
@@ -48,8 +51,8 @@ describe('selectInputs', () => {
     expect(selectInputs({ cwd, cliPaths: [], runPaths: runPaths(files) })).toEqual({
       selection: 'full',
       entries: [
-        { origin: 'config', absolute: files[0], display: 'ig/resources' },
-        { origin: 'config', absolute: files[1], display: 'ig/extra/*.json' },
+        { origin: 'config', absolute: files[0], base: ig, display: 'ig/resources' },
+        { origin: 'config', absolute: files[1], base: ig, display: 'ig/extra/*.json' },
       ],
     });
   });
@@ -61,6 +64,7 @@ describe('selectInputs', () => {
         {
           origin: 'default',
           absolute: path.join(cwd, 'ig', 'fsh-generated', 'resources'),
+          base: ig,
           display: 'ig/fsh-generated/resources',
         },
       ],

@@ -9,6 +9,8 @@ export interface InputEntry {
   origin: EntryOrigin;
   // Absolute path or glob pattern.
   absolute: string;
+  // The directory the entry was resolved against; glob characters in it are literal.
+  base: string;
   // The entry relative to the working directory, for messages.
   display: string;
 }
@@ -32,6 +34,7 @@ export function selectInputs({
   const entry = (origin: EntryOrigin, absolute: string): InputEntry => ({
     origin,
     absolute,
+    base: origin === 'cli' ? cwd : runPaths.base,
     display: displayPath(absolute, cwd),
   });
   if (cliPaths.length > 0) {

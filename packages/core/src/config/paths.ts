@@ -8,6 +8,8 @@ export const defaultSushiIndex = 'fsh-generated/data/fsh-index.json';
 // Absolute paths for everything the config or the defaults name (cli.md § Configuration and path
 // bases). CLI input paths are not resolved here: they are always relative to the working directory.
 export interface RunPaths {
+  // The directory config values and defaults resolve against: the config's, or the working one.
+  base: string;
   // Config files entries, resolved against the config directory. Patterns keep their glob syntax.
   configFiles?: string[];
   // Directories to search for FSH, before checking which exist.
@@ -33,6 +35,7 @@ export function resolveRunPaths({
   const fsh = values.source?.fsh ?? defaultFshDirectories;
   const resolve = (value: string): string => path.resolve(base, value);
   return {
+    base,
     ...(values.files === undefined ? {} : { configFiles: values.files.map(resolve) }),
     fshDirectories: fsh.map(resolve),
     fshSourceLookup: fsh.length === 0 ? 'omitted' : 'enabled',
