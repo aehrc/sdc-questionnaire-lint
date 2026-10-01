@@ -1,3 +1,4 @@
+import { formatJsonReport } from './report/json.js';
 import type { FailedReport } from './report/types.js';
 
 // Codes are stable and never reused for another cause (report-format.md § Failures).
@@ -60,5 +61,5 @@ export function renderFailureJson(failure: LintFailure): string {
       help: failure.help,
     },
   };
-  return `${JSON.stringify(document, null, 2)}\n`;
+  return formatJsonReport(document);
 }
