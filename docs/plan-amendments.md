@@ -1,0 +1,42 @@
+# Plan amendments
+
+Decisions that override [core-plan.md](core-plan.md). The plan is a dated copy of a Google Doc and its body still carries the older text. Later decisions below take precedence over earlier decisions on the same point.
+
+Where the plan and [linter-design-guidelines.md](linter-design-guidelines.md) differ on a point not listed here, ask before choosing.
+
+## From the plan's comment threads
+
+- **§2.3, §6.2 compat (C1):** the default is `"smart-forms": "latest"`, a single value meaning the newest versions in the installed plugin's matrix. Exact per-component versions stay optional.
+- **§8.2 rollout (C4):** the lint job is report-only first and becomes a required check only after the trial. The paragraph requiring fixes "before merging the integration" is superseded.
+- **§8.1, §8.3 `lint:watch` (C5):** removed. Authors run `npm run lint`, which runs SUSHI then the linter.
+- **§9 SmartFormsQuestionnaire profile (C6):** removed.
+
+## From reconciling the plan with the design guidelines (2026-10-01)
+
+- **§4.1 `sdc/shadowed-declaration`:** default severity is `info`, because SDC allows redefining a variable in a descendant item.
+- **§7.4 fix hints:** `message` states the problem only. The fix goes in a separate `help` field, phrased as an assertion: `help: a variable with a similar name exists: %patientName`. The plan's "Did you mean …?" example is superseded.
+- **§6.3, §7.3 stale suppressions:** a suppression that matches nothing is a warning locally and an error under `--strict-suppressions`, which CI uses. The flag is added to the CLI.
+
+## From the CLI design session (2026-10-01)
+
+- **§7.3 CLI, and guidelines §4 output modes:** superseded by [cli.md](cli.md). The first version has `lint` and `explain` commands and `--format text|json`.
+- **§6 config:** a `files` field supplies the default paths for `lint`. The config is discovered in the current directory only.
+- **`--strict-suppressions`:** deferred until the blocking CI stage. Until then a stale suppression is a warning, reported as `lint/stale-suppression`.
+- **§5.2 namespaces:** `lint` is reserved for findings about the linter's own configuration; plugins may not use it.
+
+## From the CLI DX and agent review (2026-10-01)
+
+- **§6.3 suppression assessment:** explicit CLI paths make a targeted run. Suppressions outside its selected files are not assessed. A full run uses config/default inputs and also detects confirmed deleted files named by suppressions. Existing targets outside that selection remain not assessed. For an existing site, lack of a finding establishes staleness only when the suppressed rule could complete the applicable check. See [cli.md](cli.md#stale-suppressions) for the full assessment contract.
+- **§3.1, §6 input selection:** CLI paths, config `files`, and default inputs are precedence levels, not fallback attempts. Each missing selected path or unmatched glob/directory selection fails the run. Deduplicate canonical input files; exclude `.git`, `node_modules` and directory-symlink traversal from recursive discovery.
+- **§6 path bases:** CLI paths and `--config` are relative to the working directory. Paths inside a config and implicit input/source defaults are relative to the selected config's directory, or the working directory when no config is used. Report paths are relative to the working directory. `files` is a non-empty array; `source.fsh` is an array, with `[]` omitting source lookup.
+- **§7.3 failures:** once a valid JSON-format lint invocation is recognized, handled failures emit a versioned `status: "failed"` document with a stable failure code and exit 2. Completed analysis uses `status: "completed"`, including exit 1. Partial findings are discarded on failure. Human-readable failure text remains on stderr.
+- **§7.2, §7.4 machine contract:** [report-format.md](report-format.md) and its [JSON Schema](schemas/lint-report.schema.json) define the report and finding records, with [complete examples](examples/reports/README.md). Source mapping retains the plan's nested `location` union. Configuration findings use a config entry pointer rather than an invented Questionnaire site. Suggestions carry explicit edit targets and expected old text; this does not add autofix.
+- **§7.4 fallback locations:** unmapped text findings include resource identity, resource/site JSON Pointers, the available expression excerpt and the source-mapping reason. Item text and linkId are context, not the sole locator.
+- **§7.4 coverage:** reports include the linter and plugin versions, resolved compatibility versions, files read/skipped, expressions analysed/unchecked, suppressed findings and suppression assessment counts. Available FSH sources are an array. Info-only runs are not described as having zero findings.
+- **§7.3 command ergonomics:** `--show-info` changes text visibility only. `--config` is shared by `lint` and `explain`; the latter lists registered rules, including configured-off rules, with default/effective severity and enabled status. Top-level and command-level `--help`/`--version` succeed without loading config, plugins or inputs.
+- **§8.1 automation:** the [CLI recipe](cli.md#author-and-automation-recipes) runs SUSHI before linting, separates build logs from JSON, retains reports from nonzero lint exits and preserves the linter's exit status. A build failure stops before a new lint report is produced.
+
+## From the CLI naming decision (2026-10-01)
+
+- **§2.1, §7.3 executable names:** the npm package is `sdc-questionnaire-lint`; its primary executable is `sdc-lint`. Both `sdc-lint` and the `sdc-questionnaire-lint` executable alias ship in v1 and use the same implementation. This supersedes deferring a short alias. Help, usage examples and IG scripts use `sdc-lint`.
+- **§6, §7.4 package identity:** config filenames, library imports, plugin package names and the report's `run.tool.name` retain `sdc-questionnaire-lint`. Choosing an executable name does not change report content or behavior.

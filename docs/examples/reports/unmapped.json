@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "status": "completed",
+  "run": {
+    "tool": {
+      "name": "sdc-questionnaire-lint",
+      "version": "0.1.0"
+    },
+    "plugins": [
+      {
+        "name": "sdc",
+        "version": "0.1.0"
+      }
+    ],
+    "compat": {},
+    "selection": "full"
+  },
+  "findings": [
+    {
+      "kind": "questionnaire",
+      "ruleId": "sdc/undefined-variable",
+      "severity": "error",
+      "message": "Questionnaire/Example uses %patientNmae, which is not defined. Its variable cannot be calculated.",
+      "help": "A variable with a similar name exists: %patientName.",
+      "note": "FSH sources were not found; this is a compiled JSON location.",
+      "jsonLocation": {
+        "file": "fsh-generated/resources/Bundle-Example.json",
+        "pointer": "/entry/0/resource/extension/0/valueExpression/expression",
+        "resource": {
+          "resourceType": "Questionnaire",
+          "id": "Example",
+          "pointer": "/entry/0/resource"
+        }
+      },
+      "sourceLocation": {
+        "status": "unmapped",
+        "reason": "source-unavailable"
+      },
+      "expression": {
+        "text": "%patientNmae.exists()",
+        "range": {
+          "startOffset": 0,
+          "endOffset": 12
+        }
+      },
+      "suggestions": [
+        {
+          "description": "Use %patientName in the maintained source for this expression.",
+          "applicability": "maybe-incorrect",
+          "edits": [
+            {
+              "target": {
+                "kind": "json-string",
+                "file": "fsh-generated/resources/Bundle-Example.json",
+                "pointer": "/entry/0/resource/extension/0/valueExpression/expression",
+                "startOffset": 0,
+                "endOffset": 12
+              },
+              "oldText": "%patientNmae",
+              "replacement": "%patientName"
+            }
+          ]
+        }
+      ],
+      "fingerprint": "example:undefined-variable:Example:root-variable:patientNmae"
+    }
+  ],
+  "summary": {
+    "files": {
+      "read": 1,
+      "skipped": 0
+    },
+    "questionnaires": 1,
+    "expressions": {
+      "analysed": 1,
+      "unchecked": 0
+    },
+    "errors": 1,
+    "warnings": 0,
+    "info": 0,
+    "suppressedFindings": 0,
+    "suppressions": {
+      "applied": 0,
+      "stale": 0,
+      "notAssessed": 0
+    },
+    "config": null,
+    "fshSources": [],
+    "fshSourceLookup": "enabled"
+  }
+}

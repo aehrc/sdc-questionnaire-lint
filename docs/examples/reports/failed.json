@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "status": "failed",
+  "failure": {
+    "code": "INPUT_NOT_FOUND",
+    "path": "missing.json",
+    "message": "Input file does not exist.",
+    "help": "Check the supplied path."
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "status": "completed",
+  "run": {
+    "tool": {
+      "name": "sdc-questionnaire-lint",
+      "version": "0.1.0"
+    },
+    "plugins": [
+      {
+        "name": "sdc",
+        "version": "0.1.0"
+      }
+    ],
+    "compat": {},
+    "selection": "full"
+  },
+  "findings": [
+    {
+      "kind": "config",
+      "ruleId": "lint/stale-suppression",
+      "severity": "warning",
+      "message": "A suppression targets fsh-generated/resources/Questionnaire-Deleted.json, which no longer exists.",
+      "help": "Remove this suppression from the configuration.",
+      "configLocation": {
+        "file": "sdc-questionnaire-lint.config.mjs",
+        "pointer": "/suppress/0"
+      },
+      "fingerprint": "example:stale-suppression:Deleted:patient-name:sdc/undefined-variable"
+    }
+  ],
+  "summary": {
+    "files": {
+      "read": 1,
+      "skipped": 0
+    },
+    "questionnaires": 1,
+    "expressions": {
+      "analysed": 1,
+      "unchecked": 0
+    },
+    "errors": 0,
+    "warnings": 1,
+    "info": 0,
+    "suppressedFindings": 0,
+    "suppressions": {
+      "applied": 0,
+      "stale": 1,
+      "notAssessed": 0
+    },
+    "config": "sdc-questionnaire-lint.config.mjs",
+    "fshSources": [
+      "input/fsh"
+    ],
+    "fshSourceLookup": "enabled"
+  }
+}

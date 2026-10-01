@@ -1,0 +1,860 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdc-questionnaire-lint:lint-report:1",
+  "title": "sdc-questionnaire-lint JSON report, version 1",
+  "description": "Completed analysis or handled execution failure. See ../report-format.md for semantic constraints and evolution rules.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/completedReport"
+    },
+    {
+      "$ref": "#/$defs/failedReport"
+    }
+  ],
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pointer": {
+      "type": "string",
+      "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+    },
+    "ruleId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$"
+    },
+    "severity": {
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "packageVersion": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "version": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ]
+    },
+    "sourceRange": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "$ref": "#/$defs/text"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endColumn": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "file",
+        "line",
+        "column",
+        "endLine",
+        "endColumn"
+      ]
+    },
+    "offsetRange": {
+      "type": "object",
+      "properties": {
+        "startOffset": {
+          "$ref": "#/$defs/count"
+        },
+        "endOffset": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "required": [
+        "startOffset",
+        "endOffset"
+      ]
+    },
+    "resource": {
+      "type": "object",
+      "properties": {
+        "resourceType": {
+          "$ref": "#/$defs/text"
+        },
+        "id": {
+          "$ref": "#/$defs/text"
+        },
+        "pointer": {
+          "$ref": "#/$defs/pointer"
+        }
+      },
+      "required": [
+        "resourceType",
+        "pointer"
+      ]
+    },
+    "jsonLocation": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "$ref": "#/$defs/text"
+        },
+        "pointer": {
+          "$ref": "#/$defs/pointer"
+        },
+        "resource": {
+          "$ref": "#/$defs/resource"
+        },
+        "linkId": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "required": [
+        "file",
+        "pointer",
+        "resource"
+      ]
+    },
+    "configLocation": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "$ref": "#/$defs/text"
+        },
+        "pointer": {
+          "$ref": "#/$defs/pointer"
+        }
+      },
+      "required": [
+        "file",
+        "pointer"
+      ]
+    },
+    "mappedSource": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "mapped"
+        },
+        "confidence": {
+          "enum": [
+            "exact",
+            "anchored"
+          ]
+        },
+        "location": {
+          "$ref": "#/$defs/sourceRange"
+        }
+      },
+      "required": [
+        "status",
+        "confidence",
+        "location"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "reason"
+            ]
+          }
+        ]
+      }
+    },
+    "unmappedSource": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "unmapped"
+        },
+        "reason": {
+          "enum": [
+            "ambiguous",
+            "multiline",
+            "not-found",
+            "source-unavailable"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "reason"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "location"
+            ]
+          },
+          {
+            "required": [
+              "confidence"
+            ]
+          },
+          {
+            "required": [
+              "file"
+            ]
+          },
+          {
+            "required": [
+              "line"
+            ]
+          },
+          {
+            "required": [
+              "column"
+            ]
+          },
+          {
+            "required": [
+              "endLine"
+            ]
+          },
+          {
+            "required": [
+              "endColumn"
+            ]
+          }
+        ]
+      }
+    },
+    "sourceLocation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/mappedSource"
+        },
+        {
+          "$ref": "#/$defs/unmappedSource"
+        }
+      ]
+    },
+    "questionnaireLocation": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "questionnaire"
+        },
+        "jsonLocation": {
+          "$ref": "#/$defs/jsonLocation"
+        },
+        "sourceLocation": {
+          "$ref": "#/$defs/sourceLocation"
+        }
+      },
+      "required": [
+        "kind",
+        "jsonLocation",
+        "sourceLocation"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "configLocation"
+            ]
+          }
+        ]
+      }
+    },
+    "configurationLocation": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "config"
+        },
+        "configLocation": {
+          "$ref": "#/$defs/configLocation"
+        }
+      },
+      "required": [
+        "kind",
+        "configLocation"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "jsonLocation"
+            ]
+          },
+          {
+            "required": [
+              "sourceLocation"
+            ]
+          }
+        ]
+      }
+    },
+    "relatedLocation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/questionnaireLocation"
+        },
+        {
+          "$ref": "#/$defs/configurationLocation"
+        }
+      ],
+      "properties": {
+        "message": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "expression": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "range": {
+          "$ref": "#/$defs/offsetRange"
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "sourceTarget": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/sourceRange"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "source"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "jsonStringTarget": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "json-string"
+        },
+        "file": {
+          "$ref": "#/$defs/text"
+        },
+        "pointer": {
+          "$ref": "#/$defs/pointer"
+        },
+        "startOffset": {
+          "$ref": "#/$defs/count"
+        },
+        "endOffset": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "required": [
+        "kind",
+        "file",
+        "pointer",
+        "startOffset",
+        "endOffset"
+      ]
+    },
+    "edit": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sourceTarget"
+            },
+            {
+              "$ref": "#/$defs/jsonStringTarget"
+            }
+          ]
+        },
+        "oldText": {
+          "type": "string"
+        },
+        "replacement": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "target",
+        "oldText",
+        "replacement"
+      ]
+    },
+    "suggestion": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "applicability": {
+          "enum": [
+            "machine-applicable",
+            "maybe-incorrect",
+            "has-placeholders"
+          ]
+        },
+        "edits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edit"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "description",
+        "applicability",
+        "edits"
+      ]
+    },
+    "findingFields": {
+      "type": "object",
+      "properties": {
+        "ruleId": {
+          "$ref": "#/$defs/ruleId"
+        },
+        "severity": {
+          "$ref": "#/$defs/severity"
+        },
+        "message": {
+          "$ref": "#/$defs/text"
+        },
+        "help": {
+          "$ref": "#/$defs/text"
+        },
+        "note": {
+          "$ref": "#/$defs/text"
+        },
+        "docsUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/text"
+        },
+        "expression": {
+          "$ref": "#/$defs/expression"
+        },
+        "relatedLocations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relatedLocation"
+          }
+        },
+        "suggestions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/suggestion"
+          }
+        }
+      },
+      "required": [
+        "ruleId",
+        "severity",
+        "message",
+        "fingerprint"
+      ]
+    },
+    "questionnaireFinding": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/findingFields"
+        },
+        {
+          "$ref": "#/$defs/questionnaireLocation"
+        },
+        {
+          "properties": {
+            "ruleId": {
+              "not": {
+                "pattern": "^lint/"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "configurationFinding": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/findingFields"
+        },
+        {
+          "$ref": "#/$defs/configurationLocation"
+        },
+        {
+          "properties": {
+            "ruleId": {
+              "pattern": "^lint/"
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ruleId": {
+                "const": "lint/stale-suppression"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "severity": {
+                "const": "warning"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "finding": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/questionnaireFinding"
+        },
+        {
+          "$ref": "#/$defs/configurationFinding"
+        }
+      ]
+    },
+    "smartFormsVersions": {
+      "type": "object",
+      "properties": {
+        "renderer": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "const": "latest"
+          }
+        },
+        "populate": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "const": "latest"
+          }
+        },
+        "template-extract": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "const": "latest"
+          }
+        }
+      },
+      "required": [
+        "renderer",
+        "populate",
+        "template-extract"
+      ]
+    },
+    "run": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/packageVersion"
+            },
+            {
+              "properties": {
+                "name": {
+                  "const": "sdc-questionnaire-lint"
+                }
+              }
+            }
+          ]
+        },
+        "plugins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/packageVersion"
+          },
+          "minItems": 1
+        },
+        "compat": {
+          "type": "object",
+          "properties": {
+            "smart-forms": {
+              "$ref": "#/$defs/smartFormsVersions"
+            }
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        },
+        "selection": {
+          "enum": [
+            "full",
+            "targeted"
+          ]
+        }
+      },
+      "required": [
+        "tool",
+        "plugins",
+        "compat",
+        "selection"
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "object",
+          "properties": {
+            "read": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "skipped": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "required": [
+            "read",
+            "skipped"
+          ]
+        },
+        "questionnaires": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expressions": {
+          "type": "object",
+          "properties": {
+            "analysed": {
+              "$ref": "#/$defs/count"
+            },
+            "unchecked": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "required": [
+            "analysed",
+            "unchecked"
+          ]
+        },
+        "errors": {
+          "$ref": "#/$defs/count"
+        },
+        "warnings": {
+          "$ref": "#/$defs/count"
+        },
+        "info": {
+          "$ref": "#/$defs/count"
+        },
+        "suppressedFindings": {
+          "$ref": "#/$defs/count"
+        },
+        "suppressions": {
+          "type": "object",
+          "properties": {
+            "applied": {
+              "$ref": "#/$defs/count"
+            },
+            "stale": {
+              "$ref": "#/$defs/count"
+            },
+            "notAssessed": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "required": [
+            "applied",
+            "stale",
+            "notAssessed"
+          ]
+        },
+        "config": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "fshSources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          },
+          "uniqueItems": true
+        },
+        "fshSourceLookup": {
+          "enum": [
+            "enabled",
+            "omitted"
+          ]
+        }
+      },
+      "required": [
+        "files",
+        "questionnaires",
+        "expressions",
+        "errors",
+        "warnings",
+        "info",
+        "suppressedFindings",
+        "suppressions",
+        "config",
+        "fshSources",
+        "fshSourceLookup"
+      ]
+    },
+    "failure": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "enum": [
+            "USAGE_ERROR",
+            "CONFIG_INVALID",
+            "INPUT_NOT_FOUND",
+            "INPUT_PATTERN_UNMATCHED",
+            "INPUT_UNREADABLE",
+            "INPUT_INVALID_JSON",
+            "NO_QUESTIONNAIRES",
+            "RULE_CRASH",
+            "INTERNAL_ERROR"
+          ]
+        },
+        "message": {
+          "$ref": "#/$defs/text"
+        },
+        "help": {
+          "$ref": "#/$defs/text"
+        },
+        "path": {
+          "$ref": "#/$defs/text"
+        },
+        "ruleId": {
+          "$ref": "#/$defs/ruleId"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "help"
+      ],
+      "if": {
+        "properties": {
+          "code": {
+            "const": "RULE_CRASH"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ruleId"
+        ]
+      }
+    },
+    "completedReport": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "const": "completed"
+        },
+        "run": {
+          "$ref": "#/$defs/run"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "status",
+        "run",
+        "findings",
+        "summary"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "failure"
+            ]
+          }
+        ]
+      }
+    },
+    "failedReport": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "const": "failed"
+        },
+        "failure": {
+          "$ref": "#/$defs/failure"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "status",
+        "failure"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "run"
+            ]
+          },
+          {
+            "required": [
+              "findings"
+            ]
+          },
+          {
+            "required": [
+              "summary"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

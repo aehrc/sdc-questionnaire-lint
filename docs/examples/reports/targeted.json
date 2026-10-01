@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "status": "completed",
+  "run": {
+    "tool": {
+      "name": "sdc-questionnaire-lint",
+      "version": "0.1.0"
+    },
+    "plugins": [
+      {
+        "name": "sdc",
+        "version": "0.1.0"
+      }
+    ],
+    "compat": {},
+    "selection": "targeted"
+  },
+  "findings": [
+    {
+      "kind": "questionnaire",
+      "ruleId": "sdc/undefined-variable",
+      "severity": "error",
+      "message": "\"Patient name\" (patient-name) uses %patientNmae, which is not defined. This field will not calculate.",
+      "help": "A variable with a similar name exists: %patientName.",
+      "jsonLocation": {
+        "file": "fsh-generated/resources/Questionnaire-Example.json",
+        "pointer": "/item/0/extension/0/valueExpression/expression",
+        "resource": {
+          "resourceType": "Questionnaire",
+          "id": "Example",
+          "pointer": ""
+        },
+        "linkId": "patient-name"
+      },
+      "sourceLocation": {
+        "status": "mapped",
+        "confidence": "exact",
+        "location": {
+          "file": "input/fsh/Example.fsh",
+          "line": 42,
+          "column": 18,
+          "endLine": 42,
+          "endColumn": 30
+        }
+      },
+      "expression": {
+        "text": "%patientNmae.exists()",
+        "range": {
+          "startOffset": 0,
+          "endOffset": 12
+        }
+      },
+      "suggestions": [
+        {
+          "description": "Rename %patientNmae to %patientName.",
+          "applicability": "maybe-incorrect",
+          "edits": [
+            {
+              "target": {
+                "kind": "source",
+                "file": "input/fsh/Example.fsh",
+                "line": 42,
+                "column": 18,
+                "endLine": 42,
+                "endColumn": 30
+              },
+              "oldText": "%patientNmae",
+              "replacement": "%patientName"
+            }
+          ]
+        }
+      ],
+      "fingerprint": "example:undefined-variable:Example:patient-name:calculatedExpression:patientNmae"
+    }
+  ],
+  "summary": {
+    "files": {
+      "read": 1,
+      "skipped": 0
+    },
+    "questionnaires": 1,
+    "expressions": {
+      "analysed": 1,
+      "unchecked": 0
+    },
+    "errors": 1,
+    "warnings": 0,
+    "info": 0,
+    "suppressedFindings": 0,
+    "suppressions": {
+      "applied": 0,
+      "stale": 0,
+      "notAssessed": 1
+    },
+    "config": "sdc-questionnaire-lint.config.json",
+    "fshSources": [
+      "input/fsh"
+    ],
+    "fshSourceLookup": "enabled"
+  }
+}
