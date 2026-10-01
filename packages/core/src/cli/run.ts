@@ -1,5 +1,5 @@
 import pkg from '../../package.json' with { type: 'json' };
-import { LintFailure, renderFailureText } from '../failure.js';
+import { LintFailure, renderFailureJson, renderFailureText } from '../failure.js';
 import { parseCliArgs } from './args.js';
 
 export interface CliIo {
@@ -19,13 +19,17 @@ export function runCli(argv: readonly string[], io: CliIo): Promise<0 | 1 | 2> {
     case 'version':
       io.stdout.write(`${pkg.version}\n`);
       return Promise.resolve(0);
-    case 'usage-error':
-      io.stderr.write(
-        renderFailureText(
-          new LintFailure({ code: 'USAGE_ERROR', message: args.message, help: args.help }),
-        ),
-      );
+    case 'usage-error': {
+      const failure = new LintFailure({
+        code: 'USAGE_ERROR',
+        message: args.message,
+        help: args.help,
+      });
+      // Once lint --format json is recognised, automation reads the failure from stdout too.
+      if (args.jsonFormat) io.stdout.write(renderFailureJson(failure));
+      io.stderr.write(renderFailureText(failure));
       return Promise.resolve(2);
+    }
     // help, lint and explain print short usage until they are implemented.
     case 'no-command':
     case 'help':
