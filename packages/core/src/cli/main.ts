@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import pkg from '../../package.json' with { type: 'json' };
+import { runCli } from './run.js';
 
-// Placeholder until the CLI contract in docs/cli.md is implemented.
-if (process.argv.slice(2).includes('--version')) {
-  process.stdout.write(`${pkg.version}\n`);
-} else {
-  process.stderr.write('usage: sdc-lint <lint|explain> [options]\n');
-  process.exitCode = 2;
-}
+// Set exitCode instead of calling process.exit(), so piped stdout is flushed before Node exits.
+process.exitCode = await runCli(process.argv.slice(2), {
+  cwd: process.cwd(),
+  env: process.env,
+  stdout: process.stdout,
+  stderr: process.stderr,
+});
