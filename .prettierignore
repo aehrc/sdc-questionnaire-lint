@@ -1,0 +1,8 @@
+*.md
+docs/
+**/dist/
+coverage/
+**/package.json
+package-lock.json
+**/test/fixtures/
+.changeset/
