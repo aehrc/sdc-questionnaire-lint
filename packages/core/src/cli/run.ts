@@ -1,6 +1,10 @@
 import pkg from '../../package.json' with { type: 'json' };
-import { LintFailure, renderFailureJson, renderFailureText } from '../failure.js';
-import { parseCliArgs } from './args.js';
+import { describeError, LintFailure, renderFailureJson, renderFailureText } from '../failure.js';
+import { lint } from '../lint.js';
+import { formatJsonReport } from '../report/json.js';
+import { formatTextReport } from '../report/text.js';
+import { type ParsedArgs, parseCliArgs } from './args.js';
+import { colourEnabled } from './colour.js';
 import { helpText } from './help.js';
 import { guardStdout } from './output-guard.js';
 
@@ -28,7 +32,36 @@ function pickTTY(stdout: CliIo['stdout']): { isTTY?: boolean } {
   return stdout.isTTY === undefined ? {} : { isTTY: stdout.isTTY };
 }
 
-function execute(argv: readonly string[], io: CliIo): 0 | 1 | 2 {
+// Buffers the whole report and writes it once; a failure discards partial results.
+async function runLint(args: Extract<ParsedArgs, { kind: 'lint' }>, io: CliIo): Promise<0 | 1 | 2> {
+  try {
+    const report = await lint({
+      cwd: io.cwd,
+      paths: args.paths,
+      ...(args.configPath === undefined ? {} : { configPath: args.configPath }),
+    });
+    io.stdout.write(
+      args.format === 'json'
+        ? formatJsonReport(report)
+        : formatTextReport(report, { showInfo: args.showInfo, colour: colourEnabled(io) }),
+    );
+    return report.summary.errors > 0 ? 1 : 0;
+  } catch (error) {
+    const failure =
+      error instanceof LintFailure
+        ? error
+        : new LintFailure({
+            code: 'INTERNAL_ERROR',
+            message: `unexpected error: ${describeError(error)}`,
+            help: 'this is a bug in sdc-questionnaire-lint; report it with the command you ran',
+          });
+    if (args.format === 'json') io.stdout.write(renderFailureJson(failure));
+    io.stderr.write(renderFailureText(failure));
+    return 2;
+  }
+}
+
+async function execute(argv: readonly string[], io: CliIo): Promise<0 | 1 | 2> {
   const args = parseCliArgs(argv);
   switch (args.kind) {
     case 'version':
@@ -48,9 +81,10 @@ function execute(argv: readonly string[], io: CliIo): 0 | 1 | 2 {
     case 'help':
       io.stdout.write(helpText(args.command));
       return 0;
-    // lint and explain print short usage until they are implemented.
-    case 'no-command':
     case 'lint':
+      return runLint(args, io);
+    // explain prints short usage until it is implemented.
+    case 'no-command':
     case 'explain':
       io.stderr.write(shortUsage);
       return 2;
