@@ -5,5 +5,9 @@
   "engines": {
     "node": ">=22.12"
   },
-  "packageManager": "npm@11.21.0"
+  "packageManager": "npm@11.21.0",
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "typescript": "6.0.3"
+  }
 }
