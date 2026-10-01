@@ -1,0 +1,8 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    { "resource": { "resourceType": "Questionnaire", "id": "Decoy1", "status": "draft" } },
+    { "resource": { "resourceType": "Questionnaire", "id": "Decoy2", "status": "draft" } }
+  ]
+}

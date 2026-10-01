@@ -4,14 +4,47 @@ A CLI and TypeScript library for statically checking FHIRPath and x-fhir-query e
 
 The npm package is `sdc-questionnaire-lint`; the CLI command is `sdc-lint`.
 
-Planned workflow in an implementation guide (IG):
+## Usage
+
+In an implementation guide (IG), after building it with SUSHI:
 
 ```sh
 sushi . && sdc-lint lint
-sdc-lint explain sdc/undefined-variable
 ```
 
-The linter reads compiled Questionnaire JSON or Bundles, defaulting to `fsh-generated/resources`. Regenerate with SUSHI after editing FSH. Use `--format json` for structured reports and `--show-info` to reveal info findings in text output.
+With no paths, `lint` checks the inputs listed in the config's `files`, otherwise the compiled JSON in `fsh-generated/resources`. The linter reads compiled Questionnaires and Bundles, so run SUSHI again after editing FSH.
+
+```sh
+sdc-lint lint fsh-generated/resources/Questionnaire-intake.json   # one file: a targeted run
+sdc-lint lint "fsh-generated/resources/Questionnaire-*.json"       # quote globs
+sdc-lint lint --format json > report.json                          # one JSON report on stdout
+sdc-lint lint --show-info                                          # also show info findings
+sdc-lint lint --config ig/sdc-questionnaire-lint.config.json       # a config elsewhere
+sdc-lint explain                                                   # list the registered rules
+sdc-lint explain lint/stale-suppression                            # one rule's documentation
+```
+
+The config is `sdc-questionnaire-lint.config.json` or `sdc-questionnaire-lint.config.mjs` in the current directory, or the file given with `--config`. External plugins are listed in an `.mjs` config. For example, once the Smart Forms plugin ships its rules:
+
+```js
+import { defineConfig } from 'sdc-questionnaire-lint';
+import smartForms from '@sdc-questionnaire-lint/plugin-smart-forms';
+
+export default defineConfig({
+  plugins: [smartForms],
+  rules: { 'smart-forms/repeating-group-variable': 'warning' },
+});
+```
+
+| Exit code | Meaning |
+| :- | :- |
+| 0 | Analysis completed with no unsuppressed errors; warnings and info may remain |
+| 1 | Analysis completed with one or more unsuppressed errors |
+| 2 | The run did not complete: bad config, unreadable input, no Questionnaires found, a rule crash, or wrong usage |
+
+Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
+
+**Status:** the CLI, configuration, input selection, reporters and plugin loading work. The analysis engine is not built yet: expression discovery, the built-in `sdc` rules, FSH source mapping and suppressions. Until then a run reports findings only from plugins listed in an `.mjs` config, and every finding keeps its compiled JSON location.
 
 Start with these docs:
 
@@ -22,7 +55,7 @@ Start with these docs:
 
 ## Development
 
-The library and CLI are being built. The packages and toolchain are set up, but the CLI currently only answers `--version`.
+The CLI contract is implemented; the analysis engine is in progress (see **Status** above).
 
 ### Prerequisites
 
@@ -46,14 +79,16 @@ npm run check
 
 `npm run check` type-checks, lints, checks formatting, builds, tests and validates both packages. It is what CI runs; run it before every commit.
 
-To try the CLI from a checkout:
+To try the CLI from a checkout, build it and run `packages/core/dist/cli.js`, for example through an alias:
 
 ```sh
 npm run build
-npx sdc-lint --version
+alias sdc-lint="node $PWD/packages/core/dist/cli.js"
+cd packages/core/test/fixtures/cli/plugin-run
+sdc-lint lint --config info.config.mjs --show-info
 ```
 
-`npx sdc-lint` and `npx sdc-questionnaire-lint` run `packages/core/dist/cli.js`, so rebuild after changing the source.
+Rebuild after changing the source. Inside this repository, `npx sdc-lint` runs with `packages/core` as its working directory, because npm switches to the nearest workspace package, so config discovery and relative paths do not use the directory you ran it from.
 
 ### Repository layout
 
@@ -63,7 +98,7 @@ npx sdc-lint --version
 | `packages/plugin-smart-forms/` | `@sdc-questionnaire-lint/plugin-smart-forms`: Smart Forms compatibility rules and the compatibility matrix (`compat/`) |
 | `docs/` | Spec, CLI contract, report format, JSON Schema and example reports |
 | `.changeset/` | Pending release notes and version bumps |
-| `.github/workflows/ci.yml` | CI: `npm run check` on Node 22 and 24 |
+| `.github/workflows/ci.yml` | CI: `npm run check` on Node 22 and 24, and the CLI tests on Windows |
 
 The two packages are npm workspaces. The plugin depends on core only through core's public exports and is type-checked against core's built declarations, so core is always built first.
 
@@ -99,7 +134,7 @@ The two packages are npm workspaces. The plugin depends on core only through cor
 ### Tests
 
 - Test files are `packages/*/test/**/*.test.ts`.
-- CLI tests run the built `packages/core/dist/cli.js` as a separate process and check stdout, stderr and exit codes. The test setup rebuilds core first. Because the CLI runs in another process, coverage reports it as untested.
+- CLI tests in `packages/core/test/cli/` run the built `packages/core/dist/cli.js` as a separate process, or `runCli` in process for terminal and colour cases, and check stdout, stderr and exit codes. The test setup rebuilds core first. The helpers in `test/support/cli.ts` validate every JSON document a CLI test captures against the report schema. Code that only runs in the separate process is reported as untested by coverage.
 - `packages/core/test/report-schema.test.ts` validates every example report in `docs/` against the JSON Schema, so the docs and the code fail together.
 - Fixtures go in `packages/*/test/fixtures/<scenario>/`, laid out like an IG (`input/fsh/`, `fsh-generated/`). They are committed SUSHI output, so tests need neither SUSHI nor the network.
 

@@ -1,0 +1,9 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    { "resource": { "resourceType": "Questionnaire", "id": "Extra1", "status": "draft" } },
+    { "resource": { "resourceType": "Questionnaire", "id": "Extra2", "status": "draft" } },
+    { "resource": { "resourceType": "Questionnaire", "id": "Extra3", "status": "draft" } }
+  ]
+}
