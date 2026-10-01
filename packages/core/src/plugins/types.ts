@@ -15,6 +15,13 @@ export interface QuestionnaireDocument {
   readonly resource: Readonly<Record<string, unknown>>;
   // JSON Pointer to the resource within the file: "" for a standalone root.
   readonly resourcePointer: string;
+  // Every resource in the same Bundle, as local reference targets; empty for a standalone file.
+  readonly localResources: readonly LocalResource[];
+}
+
+export interface LocalResource {
+  readonly pointer: string;
+  readonly resource: Readonly<Record<string, unknown>>;
 }
 
 export interface ExpressionSite {

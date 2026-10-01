@@ -6,6 +6,7 @@ export type {
   ExpressionUseCase,
   LintPlugin,
   LintRule,
+  LocalResource,
   QuestionnaireDocument,
   RuleContext,
   RuleFinding,
