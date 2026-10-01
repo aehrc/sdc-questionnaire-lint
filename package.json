@@ -9,12 +9,16 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.4",
+    "@vitest/coverage-v8": "5.0.3",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
     "prettier": "3.9.9",
     "tsup": "8.5.1",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.71.0"
+    "typescript-eslint": "8.71.0",
+    "vitest": "5.0.3"
   },
   "workspaces": [
     "packages/core",
@@ -24,6 +28,8 @@
     "build": "npm run build --workspaces",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   }
 }
