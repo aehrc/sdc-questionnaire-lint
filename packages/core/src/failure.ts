@@ -44,6 +44,11 @@ export class LintFailure extends Error {
   }
 }
 
+// The message of a caught value, for failures that quote it. Never a stack trace.
+export function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export function renderFailureText(failure: LintFailure): string {
   return `error: ${failure.message}\nhelp: ${failure.help}\n`;
 }

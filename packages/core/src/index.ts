@@ -1,4 +1,16 @@
 // Public library API.
+export { defineConfig } from './config/types.js';
+export type { LintConfig, RuleSetting, SuppressionEntry } from './config/types.js';
+export type {
+  ExpressionSite,
+  ExpressionUseCase,
+  LintPlugin,
+  LintRule,
+  QuestionnaireDocument,
+  RuleContext,
+  RuleFinding,
+  Scope,
+} from './plugins/types.js';
 export type {
   CompletedReport,
   ConfigFinding,
