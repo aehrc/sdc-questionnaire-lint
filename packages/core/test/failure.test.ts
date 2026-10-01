@@ -6,7 +6,7 @@ import {
   renderFailureJson,
   renderFailureText,
 } from '../src/failure.js';
-import { validateReportSchema as validate } from './support/report.js';
+import { expectValidReport } from './support/report.js';
 
 const codes: FailureCode[] = [
   'USAGE_ERROR',
@@ -29,8 +29,7 @@ function failureFor(code: FailureCode): LintFailure {
 
 describe('renderFailureJson', () => {
   it.each(codes)('renders a schema-valid failed document for %s', (code) => {
-    const document = JSON.parse(renderFailureJson(failureFor(code))) as unknown;
-    expect(validate(document), JSON.stringify(validate.errors, null, 2)).toBe(true);
+    const document = expectValidReport(JSON.parse(renderFailureJson(failureFor(code))));
     expect(document).toMatchObject({ schemaVersion: 1, status: 'failed', failure: { code } });
     expect(document).not.toHaveProperty('run');
     expect(document).not.toHaveProperty('findings');

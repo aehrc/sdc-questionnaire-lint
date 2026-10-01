@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { runBinary } from '../support/cli.js';
-import { validateReportSchema as validate } from '../support/report.js';
+import { expectValidReport } from '../support/report.js';
 
 describe('no command', () => {
   it('prints short usage to stderr and exits 2', () => {
@@ -42,8 +42,7 @@ describe('usage errors after a JSON format selection', () => {
     expect(result.stderr).toBe(
       'error: unknown flag --bogus\nhelp: run sdc-lint lint --help for the available flags\n',
     );
-    const document = JSON.parse(result.stdout) as unknown;
-    expect(validate(document), JSON.stringify(validate.errors, null, 2)).toBe(true);
+    const document = expectValidReport(JSON.parse(result.stdout));
     expect(document).toEqual({
       schemaVersion: 1,
       status: 'failed',
@@ -58,7 +57,9 @@ describe('usage errors after a JSON format selection', () => {
   it('sees a format given before the command and before the invalid flag', () => {
     const result = runBinary(['--format=json', '--bogus', 'lint']);
     expect(result.code).toBe(2);
-    expect(JSON.parse(result.stdout)).toMatchObject({ failure: { code: 'USAGE_ERROR' } });
+    expect(expectValidReport(JSON.parse(result.stdout))).toMatchObject({
+      failure: { code: 'USAGE_ERROR' },
+    });
   });
 
   it.each([
