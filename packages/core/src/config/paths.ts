@@ -13,8 +13,8 @@ export interface RunPaths {
   // Directories to search for FSH, before checking which exist.
   fshDirectories: string[];
   fshSourceLookup: 'enabled' | 'omitted';
-  // The file of each suppress entry, by index; undefined when the entry names no file.
-  suppressionFiles: (string | undefined)[];
+  // The file of each suppress entry, by index.
+  suppressionFiles: string[];
   defaultInputDirectory: string;
   sushiIndex: string;
 }
@@ -36,9 +36,7 @@ export function resolveRunPaths({
     ...(values.files === undefined ? {} : { configFiles: values.files.map(resolve) }),
     fshDirectories: fsh.map(resolve),
     fshSourceLookup: fsh.length === 0 ? 'omitted' : 'enabled',
-    suppressionFiles: (values.suppress ?? []).map((entry) =>
-      entry.file === undefined ? undefined : resolve(entry.file),
-    ),
+    suppressionFiles: (values.suppress ?? []).map((entry) => resolve(entry.file)),
     defaultInputDirectory: resolve(defaultInputDirectory),
     sushiIndex: resolve(defaultSushiIndex),
   };

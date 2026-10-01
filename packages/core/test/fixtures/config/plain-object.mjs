@@ -1,1 +1,1 @@
-export default { rules: { 'lint/stale-suppression': 'error' } };
+export default { rules: { 'lint/stale-suppression': 'off' } };

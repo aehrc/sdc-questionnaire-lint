@@ -195,6 +195,18 @@ export function buildRegistry(loaded: LoadedConfig | null): Registry {
       );
       throw configInvalid(display, ['rules', id], `unknown rule ${id}`, help);
     }
+    if (
+      registered.plugin === 'lint' &&
+      setting !== 'off' &&
+      setting !== registered.defaultSeverity
+    ) {
+      throw configInvalid(
+        display,
+        ['rules', id],
+        `${id} can only be ${registered.defaultSeverity} or off`,
+        `set "${id}" to ${registered.defaultSeverity} or off`,
+      );
+    }
     registered.effectiveSeverity = setting;
     registered.enabled = setting !== 'off';
   }

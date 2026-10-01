@@ -39,7 +39,7 @@ export function configFingerprint(ruleId: string, entry: SuppressionEntry): stri
   return digest([
     ruleId,
     entry.rule,
-    entry.file ?? null,
+    entry.file,
     entry.linkId ?? null,
     entry.extensionUrl ?? null,
     entry.pointer ?? null,

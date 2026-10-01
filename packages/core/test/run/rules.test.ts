@@ -62,7 +62,7 @@ function run(plugin: LintPlugin, documents: QuestionnaireDocument[], config: Lin
     documents,
     rules: buildRegistry(loaded).rules,
     sourceMap: createSourceMap({ directories: [], sushiIndex: '/index.json' }),
-  });
+  }).map((result) => result.finding);
 }
 
 const calculatedPointer = (index: number) =>

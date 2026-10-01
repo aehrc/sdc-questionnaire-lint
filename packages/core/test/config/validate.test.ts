@@ -127,7 +127,7 @@ describe('validateConfig', () => {
     ],
     [
       'a suppression without a reason',
-      { suppress: [{ rule: 'sdc/x', reason: 'Why.' }, { rule: 'sdc/x' }] },
+      { suppress: [{ rule: 'sdc/x', file: 'a.json', reason: 'Why.' }, { rule: 'sdc/x' }] },
       '/suppress/1/reason',
       'the suppression has no reason',
     ],
@@ -142,6 +142,30 @@ describe('validateConfig', () => {
       { suppress: [{ rule: 'sdc/x', reason: 'Why.', file: 1 }] },
       '/suppress/0/file',
       'expected a file path, got a number',
+    ],
+    [
+      'a suppression without a file',
+      { suppress: [{ rule: 'sdc/x', reason: 'Why.' }] },
+      '/suppress/0/file',
+      'the suppression has no file',
+    ],
+    [
+      'a suppression with a non-string selector',
+      { suppress: [{ rule: 'sdc/x', reason: 'Why.', file: 'a.json', linkId: 3 }] },
+      '/suppress/0/linkId',
+      'expected a non-empty string, got a number',
+    ],
+    [
+      'a suppression with an unknown key',
+      { suppress: [{ rule: 'sdc/x', reason: 'Why.', file: 'a.json', link: 'q1' }] },
+      '/suppress/0/link',
+      'unknown suppression key link',
+    ],
+    [
+      'a suppression pointer that is not a JSON Pointer',
+      { suppress: [{ rule: 'sdc/x', reason: 'Why.', file: 'a.json', pointer: 'item/0' }] },
+      '/suppress/0/pointer',
+      'item/0 is not a JSON Pointer',
     ],
     [
       'presets that is not an array',
@@ -163,6 +187,13 @@ describe('validateConfig', () => {
     ],
   ])('rejects %s', (_name, raw, pointer, problem) => {
     expect(check(raw)).toThrow(expect.objectContaining(invalidAt(pointer, problem)));
+  });
+
+  it('names a similar suppression key', () => {
+    const raw = { suppress: [{ rule: 'sdc/x', reason: 'Why.', file: 'a.json', linkid: 'q1' }] };
+    expect(check(raw)).toThrow(
+      expect.objectContaining({ help: 'a key with a similar name exists: linkId' }),
+    );
   });
 
   it('accepts plugins in an .mjs config and requires an array', () => {

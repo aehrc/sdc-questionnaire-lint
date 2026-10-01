@@ -1,5 +1,5 @@
 import { LintFailure } from '../failure.js';
-import { toPointer } from '../json-pointer.js';
+import { parsePointer, toPointer } from '../json-pointer.js';
 import { closestName } from '../suggest.js';
 import type { LintConfig } from './types.js';
 
@@ -16,6 +16,18 @@ const topLevelKeys = [
   'suppress',
 ];
 const ruleSettings = ['error', 'warning', 'info', 'off'];
+// Selectors identify an expression site (core-plan §6.3); file, linkId and extensionUrl are
+// preferred over pointer, which shifts when items are added.
+const suppressionKeys = [
+  'rule',
+  'reason',
+  'file',
+  'linkId',
+  'extensionUrl',
+  'declaration',
+  'resource',
+  'pointer',
+];
 
 // A CONFIG_INVALID failure naming the config file and the JSON Pointer of the offending entry.
 // For .mjs, the pointer addresses the exported config object.
@@ -198,14 +210,43 @@ export function validateConfig(
           'write why this finding is acceptable in reason',
         );
       }
-      if (
-        suppression.file !== undefined &&
-        (typeof suppression.file !== 'string' || suppression.file === '')
-      ) {
+      if (typeof suppression.file !== 'string' || suppression.file === '') {
         fail(
           ['suppress', index, 'file'],
-          `expected a file path, got ${describeValue(suppression.file)}`,
-          'give the input file the suppression applies to',
+          suppression.file === undefined
+            ? 'the suppression has no file'
+            : `expected a file path, got ${describeValue(suppression.file)}`,
+          'name the input file the suppression applies to, relative to the config directory',
+        );
+      }
+      for (const [key, value] of Object.entries(suppression)) {
+        if (suppressionKeys.includes(key)) {
+          if (typeof value !== 'string' || value === '') {
+            fail(
+              ['suppress', index, key],
+              `expected a non-empty string, got ${describeValue(value)}`,
+              `give ${key} as a string, or remove it`,
+            );
+          }
+          continue;
+        }
+        const similar = closestName(key, suppressionKeys);
+        fail(
+          ['suppress', index, key],
+          `unknown suppression key ${key}`,
+          similar === undefined
+            ? `the suppression keys are ${suppressionKeys.join(', ')}`
+            : `a key with a similar name exists: ${similar}`,
+        );
+      }
+      if (
+        typeof suppression.pointer === 'string' &&
+        parsePointer(suppression.pointer) === undefined
+      ) {
+        fail(
+          ['suppress', index, 'pointer'],
+          `${suppression.pointer} is not a JSON Pointer`,
+          'start the pointer with /, such as /item/0/extension/1',
         );
       }
     });

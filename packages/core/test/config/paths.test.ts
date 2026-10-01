@@ -17,7 +17,7 @@ describe('resolveRunPaths', () => {
       files: ['fsh-generated/resources', 'extra/Questionnaire-*.json'],
       suppress: [
         { rule: 'sdc/x', file: 'fsh-generated/resources/A.json', reason: 'Why.' },
-        { rule: 'sdc/y', reason: 'Why.' },
+        { rule: 'sdc/y', file: '../outside/B.json', reason: 'Why.' },
       ],
     });
     expect(resolveRunPaths({ cwd, config })).toEqual({
@@ -27,7 +27,10 @@ describe('resolveRunPaths', () => {
       ],
       fshDirectories: [path.join(cwd, 'ig', 'input', 'fsh')],
       fshSourceLookup: 'enabled',
-      suppressionFiles: [path.join(cwd, 'ig', 'fsh-generated', 'resources', 'A.json'), undefined],
+      suppressionFiles: [
+        path.join(cwd, 'ig', 'fsh-generated', 'resources', 'A.json'),
+        path.join(cwd, 'outside', 'B.json'),
+      ],
       defaultInputDirectory: path.join(cwd, 'ig', 'fsh-generated', 'resources'),
       sushiIndex: path.join(cwd, 'ig', 'fsh-generated', 'data', 'fsh-index.json'),
     });

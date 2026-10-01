@@ -4,10 +4,16 @@ import type { RegisteredRule } from '../plugins/registry.js';
 import type { QuestionnaireDocument, RuleContext, RuleFinding } from '../plugins/types.js';
 import type { QuestionnaireFinding, ResourceIdentity, Severity } from '../report/types.js';
 import { questionnaireFingerprint } from './fingerprint.js';
-import { identifySite } from './site.js';
+import { identifySite, type SiteIdentity } from './site.js';
 import type { SourceMap } from './source-map.js';
 
 const severities: readonly unknown[] = ['error', 'warning', 'info'];
+
+// A finding with the site identity behind it, which suppressions match on but the report omits.
+export interface RuleResult {
+  finding: QuestionnaireFinding;
+  site: SiteIdentity;
+}
 
 function resourceIdentity(document: QuestionnaireDocument): ResourceIdentity {
   const { id } = document.resource;
@@ -38,7 +44,7 @@ function toFinding(
   document: QuestionnaireDocument,
   reported: RuleFinding,
   sourceMap: SourceMap,
-): QuestionnaireFinding {
+): RuleResult {
   if (typeof reported.message !== 'string' || reported.message === '') {
     throw crash(rule, document, 'it reported a finding without a message');
   }
@@ -70,7 +76,7 @@ function toFinding(
     reported.severity ??
     (rule.effectiveSeverity === 'off' ? rule.defaultSeverity : rule.effectiveSeverity);
 
-  return {
+  const finding: QuestionnaireFinding = {
     kind: 'questionnaire',
     ruleId: rule.id,
     severity,
@@ -90,6 +96,7 @@ function toFinding(
       : { expression: { text, ...(range === undefined ? {} : { range }) } }),
     fingerprint: questionnaireFingerprint({ ruleId: rule.id, file: document.file, resource, site }),
   };
+  return { finding, site };
 }
 
 // Calls each enabled rule once per document. Any exception fails the whole run (core-plan §5.1),
@@ -102,13 +109,13 @@ export function runRules({
   documents: readonly QuestionnaireDocument[];
   rules: readonly RegisteredRule[];
   sourceMap: SourceMap;
-}): QuestionnaireFinding[] {
-  const findings: QuestionnaireFinding[] = [];
+}): RuleResult[] {
+  const results: RuleResult[] = [];
   // The lint namespace reports while suppressions are assessed, not per Questionnaire.
   const enabled = rules.filter((rule) => rule.enabled && rule.plugin !== 'lint');
   for (const document of documents) {
     for (const rule of enabled) {
-      const reported: QuestionnaireFinding[] = [];
+      const reported: RuleResult[] = [];
       const context: RuleContext = {
         document,
         // Stubs until the walker and scope analysis exist (core-plan §3.1).
@@ -125,8 +132,8 @@ export function runRules({
         if (error instanceof LintFailure) throw error;
         throw crash(rule, document, describeError(error));
       }
-      findings.push(...reported);
+      results.push(...reported);
     }
   }
-  return findings;
+  return results;
 }

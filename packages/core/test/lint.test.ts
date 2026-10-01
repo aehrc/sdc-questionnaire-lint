@@ -58,21 +58,6 @@ describe('lint', () => {
     expect(report.summary.questionnaires).toBe(1);
   });
 
-  it('counts every suppression as not assessed until suppressions are applied', async () => {
-    const cwd = await tempTree({
-      'fsh-generated/resources/Questionnaire-A.json': questionnaire,
-      'sdc-questionnaire-lint.config.json': JSON.stringify({
-        suppress: [
-          { rule: 'lint/stale-suppression', file: 'a.json', reason: 'Why.' },
-          { rule: 'lint/stale-suppression', file: 'b.json', reason: 'Why.' },
-        ],
-      }),
-    });
-    const report = await lint({ cwd });
-    expect(report.summary.suppressions).toEqual({ applied: 0, stale: 0, notAssessed: 2 });
-    expect(report.summary.config).toBe('sdc-questionnaire-lint.config.json');
-  });
-
   it('fails with a LintFailure for an invalid config', async () => {
     const cwd = await tempTree({ 'sdc-questionnaire-lint.config.json': '{ "files": [] }' });
     await expect(lint({ cwd })).rejects.toMatchObject({ code: 'CONFIG_INVALID' });

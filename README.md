@@ -44,7 +44,7 @@ export default defineConfig({
 
 Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
-**Status:** the CLI, configuration, input selection, reporters and plugin loading work. The analysis engine is not built yet: expression discovery, the built-in `sdc` rules, FSH source mapping and suppressions. Until then a run reports findings only from plugins listed in an `.mjs` config, and every finding keeps its compiled JSON location.
+**Status:** the CLI, configuration, input selection, reporters, plugin loading and suppressions work. The analysis engine is not built yet: expression discovery, the built-in `sdc` rules and FSH source mapping. Until then a run reports findings only from plugins listed in an `.mjs` config, every finding keeps its compiled JSON location, and a suppression is reported stale only when its file was deleted.
 
 Start with these docs:
 

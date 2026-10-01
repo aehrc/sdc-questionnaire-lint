@@ -95,6 +95,17 @@ describe('buildRegistry', () => {
     expect(registry.namespaces).toEqual(['docs', 'lint', 'sdc']);
   });
 
+  it('rejects a severity for lint/stale-suppression other than warning or off', () => {
+    expect(() => buildRegistry(config({ rules: { 'lint/stale-suppression': 'error' } }))).toThrow(
+      expect.objectContaining(
+        invalidAt(
+          '/rules/lint~1stale-suppression',
+          'lint/stale-suppression can only be warning or off',
+        ),
+      ),
+    );
+  });
+
   it('lets config turn lint/stale-suppression off', () => {
     const registry = buildRegistry(config({ rules: { 'lint/stale-suppression': 'off' } }));
     expect(registry.rules[0]).toMatchObject({ effectiveSeverity: 'off', enabled: false });

@@ -8,6 +8,7 @@ import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
 import { runRules } from './run/rules.js';
 import { createSourceMap } from './run/source-map.js';
+import { applySuppressions, checkSuppressionRules } from './run/suppressions.js';
 import { findFshSources } from './run/sources.js';
 
 export interface LintOptions {
@@ -29,6 +30,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
   });
   const loaded = selected === null ? null : await loadConfig(selected);
   const registry = buildRegistry(loaded);
+  checkSuppressionRules(loaded, registry);
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const inputs = await collectInputs({ cwd, cliPaths: options.paths ?? [], runPaths });
   const sources = await findFshSources(runPaths, cwd);
@@ -37,9 +39,16 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     sushiIndex: runPaths.sushiIndex,
   });
 
-  const findings = runRules({ documents: inputs.documents, rules: registry.rules, sourceMap });
-  // Every suppression stays not assessed until suppressions are applied (implementation guide T31).
-  const suppressions = loaded?.config.suppress?.length ?? 0;
+  const results = runRules({ documents: inputs.documents, rules: registry.rules, sourceMap });
+  const { findings, suppressedFindings, suppressions } = await applySuppressions({
+    cwd,
+    loaded,
+    registry,
+    suppressionFiles: runPaths.suppressionFiles,
+    selection: inputs.selection,
+    inputFiles: inputs.inputFiles,
+    results,
+  });
 
   return {
     schemaVersion: 1,
@@ -57,8 +66,8 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       questionnaires: inputs.documents.length,
       // Zero until the walker discovers expression sites.
       expressions: { analysed: 0, unchecked: 0 },
-      suppressedFindings: 0,
-      suppressions: { applied: 0, stale: 0, notAssessed: suppressions },
+      suppressedFindings,
+      suppressions,
       config: loaded?.display ?? null,
       fshSources: sources.fshSources,
       fshSourceLookup: sources.fshSourceLookup,

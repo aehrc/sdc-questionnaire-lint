@@ -65,7 +65,7 @@ describe('loading an .mjs config', () => {
 
   it('uses a plain default export', async () => {
     expect((await load(fixtures, 'plain-object.mjs')).config).toEqual({
-      rules: { 'lint/stale-suppression': 'error' },
+      rules: { 'lint/stale-suppression': 'off' },
     });
   });
 
