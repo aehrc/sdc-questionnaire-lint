@@ -1,7 +1,12 @@
 import { describeError, LintFailure } from '../failure.js';
 import { isWithin, parsePointer } from '../json-pointer.js';
 import type { RegisteredRule } from '../plugins/registry.js';
-import type { QuestionnaireDocument, RuleContext, RuleFinding } from '../plugins/types.js';
+import type {
+  ExpressionSite,
+  QuestionnaireDocument,
+  RuleContext,
+  RuleFinding,
+} from '../plugins/types.js';
 import type {
   OffsetRange,
   QuestionnaireFinding,
@@ -13,6 +18,12 @@ import { identifySite, type SiteIdentity } from './site.js';
 import type { SourceMap } from './source-map.js';
 
 const severities: readonly unknown[] = ['error', 'warning', 'info'];
+
+// A Questionnaire with the expression sites the walker found in it.
+export interface WalkedDocument {
+  document: QuestionnaireDocument;
+  sites: readonly ExpressionSite[];
+}
 
 // A finding with the site identity behind it, which suppressions match on but the report omits.
 export interface RuleResult {
@@ -117,15 +128,15 @@ function toFinding(
   return { finding, site };
 }
 
-// Calls each enabled rule once per document. Any exception fails the whole run (core-plan §5.1),
-// so no partial findings survive a crash.
+// Calls each enabled rule once per document, with the same sites for every rule. Any exception
+// fails the whole run (core-plan §5.1), so no partial findings survive a crash.
 export function runRules({
   documents,
   rules,
   sourceMap,
   fingerprintFiles,
 }: {
-  documents: readonly QuestionnaireDocument[];
+  documents: readonly WalkedDocument[];
   rules: readonly RegisteredRule[];
   sourceMap: SourceMap;
   // Each display path's file as fingerprints name it; the display path when absent.
@@ -134,14 +145,14 @@ export function runRules({
   const results: RuleResult[] = [];
   // The lint namespace reports while suppressions are assessed, not per Questionnaire.
   const enabled = rules.filter((rule) => rule.enabled && rule.plugin !== 'lint');
-  for (const document of documents) {
+  for (const { document, sites } of documents) {
     const fingerprintFile = fingerprintFiles?.get(document.file) ?? document.file;
     for (const rule of enabled) {
       const reported: RuleResult[] = [];
       const context: RuleContext = {
         document,
-        // Stubs until the walker and scope analysis exist (core-plan §3.1).
-        sites: [],
+        sites,
+        // A stub until the scope model exists (core-plan §3.1).
         scopeAt: () => ({ available: false, names: [] }),
         options: undefined,
         report: (finding) => {

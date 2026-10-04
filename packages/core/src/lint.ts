@@ -5,9 +5,11 @@ import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { collectInputs } from './inputs/collect.js';
 import { displayPath } from './inputs/paths.js';
+import { walkDocument } from './analysis/walker.js';
 import { buildRegistry } from './plugins/registry.js';
 import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
+import { countExpressions } from './run/coverage.js';
 import { runRules } from './run/rules.js';
 import { createSourceMap } from './run/source-map.js';
 import { applySuppressions, checkSuppressionRules } from './run/suppressions.js';
@@ -47,8 +49,12 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
   const fingerprintFiles = new Map(
     inputs.inputFiles.map((file) => [file.display, displayPath(file.path, fingerprintBase)]),
   );
+  const documents = inputs.documents.map((document) => ({
+    document,
+    sites: walkDocument(document),
+  }));
   const results = runRules({
-    documents: inputs.documents,
+    documents,
     rules: registry.rules,
     sourceMap,
     fingerprintFiles,
@@ -77,8 +83,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       findings,
       files: inputs.files,
       questionnaires: inputs.documents.length,
-      // Zero until the walker discovers expression sites.
-      expressions: { analysed: 0, unchecked: 0 },
+      expressions: countExpressions(documents.flatMap(({ sites }) => sites)),
       suppressedFindings,
       suppressions,
       config: loaded?.display ?? null,

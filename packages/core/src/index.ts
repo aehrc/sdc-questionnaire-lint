@@ -5,8 +5,11 @@ export { LintFailure } from './failure.js';
 export { defineConfig } from './config/types.js';
 export type { LintConfig, RuleSetting, SuppressionEntry } from './config/types.js';
 export type {
+  ExpressionCarrier,
   ExpressionSite,
   ExpressionUseCase,
+  RegisteredLocation,
+  SiteItem,
   LintPlugin,
   LintRule,
   LocalResource,

@@ -1,0 +1,34 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "Expressions",
+  "status": "draft",
+  "item": [
+    {
+      "linkId": "bmi",
+      "text": "BMI",
+      "type": "decimal",
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+          "valueExpression": { "language": "text/fhirpath", "expression": "(%weight / (%height * %height)" }
+        }
+      ]
+    },
+    {
+      "linkId": "smoker",
+      "text": "Do you smoke?",
+      "type": "choice",
+      "answerOption": [
+        {
+          "valueString": "yes",
+          "extension": [
+            {
+              "url": "http://example.org/StructureDefinition/option-visible",
+              "valueExpression": { "language": "text/fhirpath", "expression": "%age > 16" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

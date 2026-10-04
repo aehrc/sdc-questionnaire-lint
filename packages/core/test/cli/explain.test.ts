@@ -14,8 +14,10 @@ describe('sdc-lint explain', () => {
     expect(result.code).toBe(0);
     expect(result.stderr).toBe('');
     expect(result.stdout).toBe(
-      'RULE                    DEFAULT  EFFECTIVE  STATUS   DESCRIPTION\n' +
-        'lint/stale-suppression  warning  warning    enabled  Reports a suppression that the run establishes is no longer needed.\n' +
+      'RULE                         DEFAULT  EFFECTIVE  STATUS   DESCRIPTION\n' +
+        'lint/stale-suppression       warning  warning    enabled  Reports a suppression that the run establishes is no longer needed.\n' +
+        'sdc/parse-error              error    error      enabled  Reports a FHIRPath expression that does not parse.\n' +
+        'sdc/unregistered-expression  info     info       enabled  Reports an expression in a place the linter does not recognise.\n' +
         '\n' +
         'Config: none, built-in defaults.\n' +
         "Run sdc-lint explain <rule-id> for a rule's documentation.\n",
@@ -25,7 +27,7 @@ describe('sdc-lint explain', () => {
   it('lists plugin rules from an .mjs config, including rules configured off, sorted by ID', () => {
     const result = runBinary(['explain', ...withPlugin], { cwd: configs });
     expect(result.code).toBe(0);
-    const rows = result.stdout.split('\n').slice(1, 4);
+    const rows = result.stdout.split('\n').filter((row) => /^(lint|test)\//.test(row));
     expect(rows.map((row) => row.split(/\s{2,}/))).toEqual([
       [
         'lint/stale-suppression',

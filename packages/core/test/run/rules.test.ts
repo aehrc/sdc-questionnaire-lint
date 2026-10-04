@@ -9,6 +9,7 @@ import type {
   RuleFinding,
 } from '../../src/plugins/types.js';
 import { configFingerprint } from '../../src/run/fingerprint.js';
+import { walkDocument } from '../../src/analysis/walker.js';
 import { runRules } from '../../src/run/rules.js';
 import { createSourceMap } from '../../src/run/source-map.js';
 
@@ -59,7 +60,7 @@ function run(plugin: LintPlugin, documents: QuestionnaireDocument[], config: Lin
     config: { plugins: [plugin], ...config },
   };
   return runRules({
-    documents,
+    documents: documents.map((document) => ({ document, sites: walkDocument(document) })),
     rules: buildRegistry(loaded).rules,
     sourceMap: createSourceMap({ directories: [], sushiIndex: '/index.json' }),
   }).map((result) => result.finding);

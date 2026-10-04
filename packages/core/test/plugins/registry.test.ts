@@ -27,10 +27,14 @@ function invalidAt(pointer: string, problem: string): object {
 }
 
 describe('buildRegistry', () => {
-  it('registers sdc and lint/stale-suppression without a config', () => {
+  it('registers the sdc rules and lint/stale-suppression without a config', () => {
     const registry = buildRegistry(null);
     expect(registry.plugins).toEqual([{ name: 'sdc', version: expect.any(String) as unknown }]);
-    expect(registry.rules.map((registered) => registered.id)).toEqual(['lint/stale-suppression']);
+    expect(registry.rules.map((registered) => registered.id)).toEqual([
+      'lint/stale-suppression',
+      'sdc/parse-error',
+      'sdc/unregistered-expression',
+    ]);
     expect(registry.rules[0]).toMatchObject({
       plugin: 'lint',
       defaultSeverity: 'warning',
@@ -48,10 +52,12 @@ describe('buildRegistry', () => {
     expect(registry.plugins.map((loaded) => loaded.name)).toEqual(['sdc', 'test']);
     expect(registry.rules.map((registered) => registered.id)).toEqual([
       'lint/stale-suppression',
+      'sdc/parse-error',
+      'sdc/unregistered-expression',
       'test/finding-per-questionnaire',
       'test/second-rule',
     ]);
-    expect(registry.rules[1]).toMatchObject({
+    expect(registry.rules[3]).toMatchObject({
       plugin: 'test',
       description: 'Reports one finding per Questionnaire.',
       defaultSeverity: 'warning',
@@ -59,7 +65,7 @@ describe('buildRegistry', () => {
       enabled: true,
     });
     // A rule configured off stays registered so explain can list it.
-    expect(registry.rules[2]).toMatchObject({
+    expect(registry.rules[4]).toMatchObject({
       defaultSeverity: 'info',
       effectiveSeverity: 'off',
       enabled: false,
@@ -74,6 +80,8 @@ describe('buildRegistry', () => {
     expect(registry.rules.map((registered) => registered.id)).toEqual([
       'alpha/z',
       'lint/stale-suppression',
+      'sdc/parse-error',
+      'sdc/unregistered-expression',
       'zeta/a',
       'zeta/b',
     ]);

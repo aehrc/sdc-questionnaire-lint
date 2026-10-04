@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`expression rule output > prints sdc/parse-error as text 1`] = `
+"fsh-generated/resources/Questionnaire-Expressions.json: error sdc/parse-error A closing ) is missing.
+  (%weight / (%height * %height)
+                                ^
+  location: compiled JSON; Questionnaire/Expressions; /item/0/extension/0/valueExpression/expression
+  note: FSH line not found, no FSH sources are available
+  note: the FHIRPath parser reported: missing ')' at '<EOF>'
+  help: add ) at the end of the expression"
+`;
+
+exports[`expression rule output > prints sdc/unregistered-expression as text 1`] = `
+"fsh-generated/resources/Questionnaire-Expressions.json: info sdc/unregistered-expression This expression is in a place the linter does not recognise, so only its FHIRPath syntax was checked.
+  %age > 16
+  location: compiled JSON; Questionnaire/Expressions; /item/1/answerOption/0/extension/0/valueExpression/expression
+  note: FSH line not found, no FSH sources are available"
+`;
+
+exports[`expression rule output > records sdc/parse-error in JSON 1`] = `
+{
+  "expression": {
+    "range": {
+      "endOffset": 30,
+      "startOffset": 30,
+    },
+    "text": "(%weight / (%height * %height)",
+  },
+  "fingerprint": "5a75f710b99004ef36f354c5bb8c52e895a27b357dc87582f157478039979f5a",
+  "help": "add ) at the end of the expression",
+  "jsonLocation": {
+    "file": "fsh-generated/resources/Questionnaire-Expressions.json",
+    "linkId": "bmi",
+    "pointer": "/item/0/extension/0/valueExpression/expression",
+    "resource": {
+      "id": "Expressions",
+      "pointer": "",
+      "resourceType": "Questionnaire",
+    },
+  },
+  "kind": "questionnaire",
+  "message": "A closing ) is missing.",
+  "note": "the FHIRPath parser reported: missing ')' at '<EOF>'",
+  "ruleId": "sdc/parse-error",
+  "severity": "error",
+  "sourceLocation": {
+    "reason": "source-unavailable",
+    "status": "unmapped",
+  },
+}
+`;
+
+exports[`expression rule output > records sdc/unregistered-expression in JSON 1`] = `
+{
+  "expression": {
+    "text": "%age > 16",
+  },
+  "fingerprint": "ee42c24b9fefb29d1964daed2285388e52478899978f5c2a6bd32c00b5317d06",
+  "jsonLocation": {
+    "file": "fsh-generated/resources/Questionnaire-Expressions.json",
+    "linkId": "smoker",
+    "pointer": "/item/1/answerOption/0/extension/0/valueExpression/expression",
+    "resource": {
+      "id": "Expressions",
+      "pointer": "",
+      "resourceType": "Questionnaire",
+    },
+  },
+  "kind": "questionnaire",
+  "message": "This expression is in a place the linter does not recognise, so only its FHIRPath syntax was checked.",
+  "ruleId": "sdc/unregistered-expression",
+  "severity": "info",
+  "sourceLocation": {
+    "reason": "source-unavailable",
+    "status": "unmapped",
+  },
+}
+`;

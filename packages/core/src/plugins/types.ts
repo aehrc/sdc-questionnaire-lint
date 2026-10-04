@@ -5,8 +5,8 @@ export type { Severity };
 
 export type ExpressionUseCase = 'rendering' | 'population' | 'extraction';
 
-// The supporting types below are provisional until the walker exists (core-plan §3.1); they carry
-// only what the CLI needs today and gain fields as the analysis engine is built.
+// The supporting types below carry what the analysis engine provides so far; they gain fields as
+// it is built (core-plan §3.1).
 
 // One Questionnaire to check, standalone or inside a Bundle.
 export interface QuestionnaireDocument {
@@ -24,9 +24,53 @@ export interface LocalResource {
   readonly resource: Readonly<Record<string, unknown>>;
 }
 
-export interface ExpressionSite {
+// How a site carries its expression. Only Expression objects are discovered so far; whole-string
+// FHIRPath, embedded fragments and indirect references come later (core-plan §3.1).
+export type ExpressionCarrier = 'expression';
+
+// Identifies a registered location: the extension that holds the expression, plus the
+// sub-extension for a complex extension such as targetConstraint.
+export interface RegisteredLocation {
+  readonly url: string;
+  readonly subExtension?: string;
+}
+
+// The item enclosing a site.
+export interface SiteItem {
   // JSON Pointer from the root of the input file.
   readonly pointer: string;
+  // Absent when the item has no string linkId.
+  readonly linkId?: string;
+}
+
+// One expression the walker found in a Questionnaire. Sites are read-only and listed in document
+// order; report a finding with site to point at the expression text.
+export interface ExpressionSite {
+  // JSON Pointer from the root of the input file to the expression text, or to the Expression
+  // object when it has no text (a reference-only Expression).
+  readonly pointer: string;
+  // JSON Pointer from the root of the input file to the Expression object.
+  readonly expressionPointer: string;
+  readonly carrier: ExpressionCarrier;
+  // The registered location the site matched; absent for an unregistered site.
+  readonly location?: RegisteredLocation;
+  // Whether the site matched a registered location. An unregistered site was found by generic
+  // detection of an object with a language and an expression; only its syntax can be checked.
+  readonly registered: boolean;
+  // For an expression in a primitive element's extension, such as _text, the element name: text.
+  readonly element?: string;
+  // The enclosing item; absent for a site on the Questionnaire root or in a contained resource.
+  readonly item?: SiteItem;
+  // Expression.language, expression, reference and name as written, when they are strings.
+  readonly language?: string;
+  readonly text?: string;
+  readonly reference?: string;
+  readonly name?: string;
+  // Whether the location declares a name that other expressions can reference, as variable and
+  // itemPopulationContext do. A name on another expression is recorded but does not declare.
+  readonly declares: boolean;
+  // The use cases that evaluate the site; empty for an unregistered site.
+  readonly useCases: readonly ExpressionUseCase[];
 }
 
 export interface Scope {

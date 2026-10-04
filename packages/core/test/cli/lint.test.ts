@@ -125,6 +125,32 @@ describe('sdc-lint lint', () => {
   });
 });
 
+// One finding per expression rule, so wording changes are reviewed like code (design guideline §3).
+describe('expression rule output', () => {
+  const expressions = fileURLToPath(new URL('../fixtures/cli/expressions/', import.meta.url));
+  const rules = ['sdc/parse-error', 'sdc/unregistered-expression'];
+
+  it('exits 1 for a syntax error and counts the expressions in the summary', () => {
+    const result = runBinary(['lint'], { cwd: expressions });
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain('Expressions: 1 analysed, 1 unchecked.');
+    expect(result.stdout).toContain('1 info finding hidden; use --show-info.');
+    expect(result.stdout).not.toContain('sdc/unregistered-expression');
+  });
+
+  it.each(rules)('prints %s as text', (ruleId) => {
+    const result = runBinary(['lint', '--show-info'], { cwd: expressions });
+    const block = result.stdout.split('\n\n').find((part) => part.includes(` ${ruleId} `));
+    expect(block).toMatchSnapshot();
+  });
+
+  it.each(rules)('records %s in JSON', (ruleId) => {
+    const result = runBinary(['lint', '--format', 'json'], { cwd: expressions });
+    const finding = completed(result.stdout).findings.find((each) => each.ruleId === ruleId);
+    expect(finding).toMatchSnapshot();
+  });
+});
+
 describe('colour', () => {
   const argv = ['lint', '--config', 'warning.config.mjs'];
 

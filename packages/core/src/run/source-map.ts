@@ -3,7 +3,8 @@ import type { SourceMapResult } from '../report/types.js';
 
 // Maps a finding's site to its FSH source (core-plan §7).
 export interface SourceMap {
-  locate(site: ExpressionSite): SourceMapResult;
+  // Takes only the pointer when the rule reported one instead of a site.
+  locate(site: Pick<ExpressionSite, 'pointer'>): SourceMapResult;
 }
 
 export interface SourceMapOptions {
