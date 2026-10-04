@@ -18,3 +18,15 @@ _Avoid_: Unused suppression, dead suppression
 
 **Rule off**:
 A configuration choice that stops a rule from running anywhere. It is not a suppression.
+
+**Expression site**:
+One expression the linter found in a Questionnaire, with where it is, what carries it and which use cases evaluate it. Rules receive a document's expression sites as a flat list in document order.
+_Avoid_: Expression location, occurrence
+
+**Registered location**:
+A place in a Questionnaire that the linter's registry recognises, such as a variable or a calculatedExpression on an item. An expression site found anywhere else is unregistered, and only its syntax can be checked.
+_Avoid_: Known extension, supported path
+
+**Carrier**:
+How an expression site holds its expression: an Expression object, a whole FHIRPath string, an embedded `{{…}}` fragment or a reference.
+_Avoid_: Container, holder
