@@ -44,7 +44,9 @@ export default defineConfig({
 
 Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
-**Status:** the CLI, configuration, input selection, reporters, plugin loading and suppressions work. The analysis engine is not built yet: expression discovery, the built-in `sdc` rules and FSH source mapping. Until then a run reports findings only from plugins listed in an `.mjs` config, every finding keeps its compiled JSON location, and a suppression is reported stale only when its file was deleted.
+**Status:** the CLI, configuration, input selection, reporters, plugin loading and suppressions work. Expression discovery works, with two built-in rules: `sdc/parse-error` and `sdc/unregistered-expression`. Not built yet: the scope model and the rules that depend on it, x-fhir-query checks and FSH source mapping. Until then every finding keeps its compiled JSON location, and a suppression is reported stale only when its file was deleted.
+
+[examples/health-check](examples/health-check/README.md) is a realistic form with typical mistakes, and shows how to run the local build of `sdc-lint` on it.
 
 Start with these docs:
 
@@ -78,6 +80,8 @@ npm run check
 ```
 
 `npm run check` type-checks, lints, checks formatting, builds, tests and validates both packages. It is what CI runs; run it before every commit.
+
+The `Makefile` has shortcuts for these npm scripts and for running the local build of `sdc-lint` on the [examples](examples/health-check/README.md) or on another IG. Run `make` to list them, for example `make test T=expressions`, `make example` or `make lint-ig IG=../my-ig`.
 
 To try the CLI from a checkout, build it and run `packages/core/dist/cli.js`, for example through an alias:
 
