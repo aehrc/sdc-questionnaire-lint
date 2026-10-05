@@ -6,7 +6,8 @@ Stack: TypeScript, Node 22+, tsup, Vitest; fhirpath.js pinned to 4.10.1.
 
 ## Docs
 
-- [CONTEXT.md](CONTEXT.md) is the glossary. Use its terms in code, messages and docs.
+- [CONTEXT.md](CONTEXT.md) defines the core terms. Use its terms in code, messages and docs.
+- [GLOSSARY.md](GLOSSARY.md) explains FHIR, SDC, Smart Forms, FSH and the rest of the project's vocabulary. Read it when a term is unfamiliar.
 - [docs/core-plan.md](docs/core-plan.md) is the spec. Read the relevant section before working on scope, a rule, the plugin contract, configuration, suppressions, source mapping, the CLI or the IG integration.
 - [docs/plan-amendments.md](docs/plan-amendments.md) lists decisions that override the plan. Read it every time you read the plan.
 - [docs/cli.md](docs/cli.md) is the CLI contract: commands, flags, defaults, output formats and exit codes. Read it before working on the CLI or a reporter.
@@ -23,3 +24,7 @@ Stack: TypeScript, Node 22+, tsup, Vitest; fhirpath.js pinned to 4.10.1.
 - Do not run `npm audit fix --force`: it downgrades `fhirpath` below the 4.10.1 pin.
 - Dependency versions are saved exactly (`save-exact` in `.npmrc`).
 - Install scripts of dependencies are blocked unless allowed in `allowScripts` in `package.json`. After adding a dependency, review `npm install-scripts ls`.
+
+## Workflow
+
+- `Don't use` changeset before the first official release
