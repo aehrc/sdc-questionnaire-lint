@@ -1,0 +1,26 @@
+{
+  "name": "@sdc-questionnaire-lint/plugin-smart-forms",
+  "version": "0.1.0",
+  "description": "Smart Forms compatibility rules for sdc-questionnaire-lint",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "compat"],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "peerDependencies": {
+    "sdc-questionnaire-lint": "^0.1.0"
+  },
+  "devDependencies": {
+    "sdc-questionnaire-lint": "*"
+  }
+}
