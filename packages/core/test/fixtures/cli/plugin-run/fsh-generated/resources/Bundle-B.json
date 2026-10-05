@@ -1,0 +1,8 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    { "resource": { "resourceType": "Questionnaire", "id": "B1", "status": "draft", "item": [{ "linkId": "q", "type": "boolean" }] } },
+    { "resource": { "resourceType": "Questionnaire", "status": "draft" } }
+  ]
+}

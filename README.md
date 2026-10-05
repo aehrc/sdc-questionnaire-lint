@@ -4,14 +4,30 @@ A CLI and TypeScript library for statically checking FHIRPath and x-fhir-query e
 
 The npm package is `sdc-questionnaire-lint`; the CLI command is `sdc-lint`.
 
-Planned workflow in an implementation guide (IG):
+## Usage
+
+In an implementation guide (IG), after building it with SUSHI:
 
 ```sh
 sushi . && sdc-lint lint
-sdc-lint explain sdc/undefined-variable
 ```
 
-The linter reads compiled Questionnaire JSON or Bundles, defaulting to `fsh-generated/resources`. Regenerate with SUSHI after editing FSH. Use `--format json` for structured reports and `--show-info` to reveal info findings in text output.
+With no paths, `lint` checks the compiled JSON in `fsh-generated/resources`. The linter reads compiled Questionnaires and Bundles, so run SUSHI again after editing FSH.
+
+```sh
+sdc-lint lint fsh-generated/resources/Questionnaire-intake.json   # one file: a targeted run
+sdc-lint lint "fsh-generated/resources/Questionnaire-*.json"       # quote globs
+sdc-lint lint --format json > report.json                          # one JSON report on stdout
+sdc-lint lint --show-info                                          # also show info findings
+```
+
+| Exit code | Meaning |
+| :- | :- |
+| 0 | Analysis completed with no unsuppressed errors; warnings and info may remain |
+| 1 | Analysis completed with one or more unsuppressed errors |
+| 2 | The run did not complete: bad config, unreadable input, no Questionnaires found, a rule crash, or wrong usage |
+
+Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
 Start with these docs:
 

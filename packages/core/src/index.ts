@@ -1,4 +1,6 @@
 // Public library API.
+export { lint } from './lint.js';
+export type { LintOptions } from './lint.js';
 export { LintFailure } from './failure.js';
 export type {
   CompletedReport,

@@ -1,0 +1,17 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "A",
+  "status": "draft",
+  "item": [
+    {
+      "linkId": "name",
+      "type": "string",
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+          "valueExpression": { "language": "text/fhirpath", "expression": "%patient.name.given.first()" }
+        }
+      ]
+    }
+  ]
+}
