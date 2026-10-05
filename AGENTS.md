@@ -24,3 +24,7 @@ Stack: TypeScript, Node 22+, tsup, Vitest; fhirpath.js pinned to 4.10.1.
 - Do not run `npm audit fix --force`: it downgrades `fhirpath` below the 4.10.1 pin.
 - Dependency versions are saved exactly (`save-exact` in `.npmrc`).
 - Install scripts of dependencies are blocked unless allowed in `allowScripts` in `package.json`. After adding a dependency, review `npm install-scripts ls`.
+
+## Workflow
+
+- `Don't use` changeset before the first official release
