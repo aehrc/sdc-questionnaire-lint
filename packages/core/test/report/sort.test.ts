@@ -11,7 +11,7 @@ interface Options {
   fingerprint?: string;
 }
 
-function questionnaire(options: Options = {}): QuestionnaireFinding {
+function questionnaireFinding(options: Options = {}): QuestionnaireFinding {
   const resourcePointer = options.resourcePointer ?? '';
   return {
     kind: 'questionnaire',
@@ -38,7 +38,7 @@ function questionnaire(options: Options = {}): QuestionnaireFinding {
   };
 }
 
-function config(file: string, pointer: string, fingerprint = 'f'): ConfigFinding {
+function configFinding(file: string, pointer: string, fingerprint = 'f'): ConfigFinding {
   return {
     kind: 'config',
     ruleId: 'lint/stale-suppression',
@@ -59,62 +59,80 @@ const fsh = (file: string, line: number, column: number) => ({ file, line, colum
 describe('compareFindings', () => {
   it('orders by displayed file: mapped FSH, otherwise compiled JSON, otherwise config', () => {
     expectOrder(
-      questionnaire({ file: 'z/Questionnaire-Z.json', fsh: fsh('a/Example.fsh', 9, 1) }),
-      questionnaire({ file: 'm/Questionnaire-M.json' }),
-      config('sdc-questionnaire-lint.config.json', '/suppress/0'),
+      questionnaireFinding({ file: 'z/Questionnaire-Z.json', fsh: fsh('a/Example.fsh', 9, 1) }),
+      questionnaireFinding({ file: 'm/Questionnaire-M.json' }),
+      configFinding('sdc-questionnaire-lint.config.json', '/suppress/0'),
     );
   });
 
   it('orders by line within a file', () => {
     expectOrder(
-      questionnaire({ fsh: fsh('input/fsh/A.fsh', 2, 40), ruleId: 'sdc/z' }),
-      questionnaire({ fsh: fsh('input/fsh/A.fsh', 10, 1), ruleId: 'sdc/a' }),
+      questionnaireFinding({ fsh: fsh('input/fsh/A.fsh', 2, 40), ruleId: 'sdc/z' }),
+      questionnaireFinding({ fsh: fsh('input/fsh/A.fsh', 10, 1), ruleId: 'sdc/a' }),
     );
   });
 
   it('orders by column within a line', () => {
     expectOrder(
-      questionnaire({ fsh: fsh('input/fsh/A.fsh', 4, 3), ruleId: 'sdc/z' }),
-      questionnaire({ fsh: fsh('input/fsh/A.fsh', 4, 12), ruleId: 'sdc/a' }),
+      questionnaireFinding({ fsh: fsh('input/fsh/A.fsh', 4, 3), ruleId: 'sdc/z' }),
+      questionnaireFinding({ fsh: fsh('input/fsh/A.fsh', 4, 12), ruleId: 'sdc/a' }),
     );
   });
 
   it('puts unknown positions after known ones in the same file', () => {
     const file = 'fsh-generated/resources/Questionnaire-A.json';
     expectOrder(
-      questionnaire({ fsh: fsh(file, 50, 1), ruleId: 'sdc/z' }),
-      questionnaire({ file, ruleId: 'sdc/a' }),
+      questionnaireFinding({ fsh: fsh(file, 50, 1), ruleId: 'sdc/z' }),
+      questionnaireFinding({ file, ruleId: 'sdc/a' }),
     );
   });
 
   it('orders by rule ID', () => {
-    expectOrder(questionnaire({ ruleId: 'sdc/a-rule' }), questionnaire({ ruleId: 'sdc/b-rule' }));
+    expectOrder(
+      questionnaireFinding({ ruleId: 'sdc/a-rule' }),
+      questionnaireFinding({ ruleId: 'sdc/b-rule' }),
+    );
   });
 
   it('orders by resource pointer', () => {
     expectOrder(
-      questionnaire({ resourcePointer: '/entry/0/resource', pointer: '/entry/0/resource/item/9' }),
-      questionnaire({ resourcePointer: '/entry/1/resource', pointer: '/entry/1/resource/item/0' }),
+      questionnaireFinding({
+        resourcePointer: '/entry/0/resource',
+        pointer: '/entry/0/resource/item/9',
+      }),
+      questionnaireFinding({
+        resourcePointer: '/entry/1/resource',
+        pointer: '/entry/1/resource/item/0',
+      }),
     );
   });
 
   it('orders by site pointer', () => {
-    expectOrder(questionnaire({ pointer: '/item/0' }), questionnaire({ pointer: '/item/1' }));
+    expectOrder(
+      questionnaireFinding({ pointer: '/item/0' }),
+      questionnaireFinding({ pointer: '/item/1' }),
+    );
   });
 
   it('orders config findings by config pointer', () => {
     expectOrder(
-      config('sdc-questionnaire-lint.config.json', '/suppress/0', 'z'),
-      config('sdc-questionnaire-lint.config.json', '/suppress/1', 'a'),
+      configFinding('sdc-questionnaire-lint.config.json', '/suppress/0', 'z'),
+      configFinding('sdc-questionnaire-lint.config.json', '/suppress/1', 'a'),
     );
   });
 
   it('breaks remaining ties by fingerprint', () => {
-    expectOrder(questionnaire({ fingerprint: 'a' }), questionnaire({ fingerprint: 'b' }));
+    expectOrder(
+      questionnaireFinding({ fingerprint: 'a' }),
+      questionnaireFinding({ fingerprint: 'b' }),
+    );
   });
 
   it('compares pointer indexes as text, not numbers', () => {
-    expectOrder(questionnaire({ pointer: '/item/10' }), questionnaire({ pointer: '/item/2' }));
+    expectOrder(
+      questionnaireFinding({ pointer: '/item/10' }),
+      questionnaireFinding({ pointer: '/item/2' }),
+    );
   });
 
   it('compares file names by code unit, not locale', () => {
@@ -122,14 +140,14 @@ describe('compareFindings', () => {
     // localeCompare would put alpha before Zeta and éclair before fig.
     expect([...names].sort((a, b) => a.localeCompare(b))).not.toEqual(names.slice().sort());
     expectOrder(
-      questionnaire({ file: 'Zeta.json' }),
-      questionnaire({ file: 'alpha.json' }),
-      questionnaire({ file: 'fig.json' }),
-      questionnaire({ file: 'éclair.json' }),
+      questionnaireFinding({ file: 'Zeta.json' }),
+      questionnaireFinding({ file: 'alpha.json' }),
+      questionnaireFinding({ file: 'fig.json' }),
+      questionnaireFinding({ file: 'éclair.json' }),
     );
   });
 
   it('returns 0 only for findings equal on every key', () => {
-    expect(compareFindings(questionnaire(), questionnaire())).toBe(0);
+    expect(compareFindings(questionnaireFinding(), questionnaireFinding())).toBe(0);
   });
 });
