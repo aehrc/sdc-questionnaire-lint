@@ -5,5 +5,3 @@ coverage/
 **/package.json
 package-lock.json
 **/test/fixtures/
-.changeset/
-examples/**/fsh-generated/
