@@ -1,10 +1,8 @@
-import { realpath } from 'node:fs/promises';
 import pkg from '../package.json' with { type: 'json' };
 import { selectConfig } from './config/discover.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { collectInputs } from './inputs/collect.js';
-import { displayPath } from './inputs/paths.js';
 import { walkDocument } from './analysis/walker.js';
 import { buildRegistry } from './plugins/registry.js';
 import { buildSummary } from './report/summary.js';
@@ -12,7 +10,7 @@ import type { CompletedReport } from './report/types.js';
 import { countExpressions } from './run/coverage.js';
 import { runRules } from './run/rules.js';
 import { createSourceMap } from './run/source-map.js';
-import { applySuppressions, checkSuppressionRules } from './run/suppressions.js';
+import { createSuppressions } from './run/suppressions.js';
 import { findFshSources } from './run/sources.js';
 
 export interface LintOptions {
@@ -34,7 +32,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
   });
   const loaded = selected === null ? null : await loadConfig(selected);
   const registry = buildRegistry(loaded);
-  checkSuppressionRules(loaded, registry);
+  const suppressions = createSuppressions({ cwd, loaded, registry });
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const inputs = await collectInputs({ cwd, cliPaths: options.paths ?? [], runPaths });
   const sources = await findFshSources(runPaths, cwd);
@@ -42,32 +40,13 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     directories: sources.directories,
     sushiIndex: runPaths.sushiIndex,
   });
-
-  // Fingerprints name files relative to the config directory, or the working directory without a
-  // config, so running from another directory keeps them.
-  const fingerprintBase = await realpath(loaded?.dir ?? cwd);
-  const fingerprintFiles = new Map(
-    inputs.inputFiles.map((file) => [file.display, displayPath(file.path, fingerprintBase)]),
-  );
-  const documents = inputs.documents.map((document) => ({
-    document,
-    sites: walkDocument(document),
+  const documents = inputs.documents.map(({ input, document }) => ({
+    input,
+    ...walkDocument(document),
   }));
-  const results = runRules({
-    documents,
-    rules: registry.rules,
-    sourceMap,
-    fingerprintFiles,
-  });
-  const { findings, suppressedFindings, suppressions } = await applySuppressions({
-    cwd,
-    loaded,
-    registry,
-    suppressionFiles: runPaths.suppressionFiles,
-    selection: inputs.selection,
-    inputFiles: inputs.inputFiles,
-    results,
-  });
+  const results = runRules({ documents, rules: registry.rules, sourceMap });
+  const outcome = await suppressions.assess({ selection: inputs.selection, results });
+  const { findings } = outcome;
 
   return {
     schemaVersion: 1,
@@ -84,8 +63,8 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       files: inputs.files,
       questionnaires: inputs.documents.length,
       expressions: countExpressions(documents.flatMap(({ sites }) => sites)),
-      suppressedFindings,
-      suppressions,
+      suppressedFindings: outcome.suppressedFindings,
+      suppressions: outcome.suppressions,
       config: loaded?.display ?? null,
       fshSources: sources.fshSources,
       fshSourceLookup: sources.fshSourceLookup,

@@ -1,12 +1,14 @@
 import { realpath } from 'node:fs/promises';
+import path from 'node:path';
 import type { LoadedConfig } from '../config/load.js';
 import type { SuppressionEntry } from '../config/types.js';
 import { configInvalid } from '../config/validate.js';
 import { describeError, LintFailure } from '../failure.js';
 import { isWithin } from '../json-pointer.js';
-import { displayPath, type InputFile } from '../inputs/paths.js';
+import { displayPath } from '../inputs/paths.js';
 import { type Registry, unknownRuleHelp } from '../plugins/registry.js';
 import type { ConfigFinding, Finding, QuestionnaireFinding } from '../report/types.js';
+import { describeDeletedTarget } from '../rules/stale-suppression.js';
 import { configFingerprint } from './fingerprint.js';
 import type { RuleResult } from './rules.js';
 
@@ -19,29 +21,47 @@ export interface SuppressionOutcome {
   suppressions: { applied: number; stale: number; notAssessed: number };
 }
 
+// The config's suppress entries, ready to apply to one run.
+export interface Suppressions {
+  // Applies the entries to the run's rule results and assesses each one (cli.md § Stale
+  // suppressions). An entry matching a finding is applied. Otherwise it is stale only when the run
+  // establishes that: in a full run, its file no longer exists. Everything else is not assessed,
+  // including targets outside a targeted run. Staleness of sites in selected files needs a way for
+  // rules to signal a completed check.
+  assess(run: {
+    selection: 'targeted' | 'full';
+    results: readonly RuleResult[];
+  }): Promise<SuppressionOutcome>;
+}
+
+interface Resolved {
+  entry: SuppressionEntry;
+  index: number;
+  // Absolute, resolved against the config directory.
+  file: string;
+}
+
 const staleRuleId = 'lint/stale-suppression';
 
 // Each suppression must name a registered rule that reports on Questionnaires.
-export function checkSuppressionRules(loaded: LoadedConfig | null, registry: Registry): void {
+function checkRule(entry: SuppressionEntry, index: number, display: string, registry: Registry) {
   const ruleIds = registry.rules.map((rule) => rule.id);
-  (loaded?.config.suppress ?? []).forEach((entry, index) => {
-    if (entry.rule.startsWith('lint/') && ruleIds.includes(entry.rule)) {
-      throw configInvalid(
-        loaded?.display ?? '',
-        ['suppress', index, 'rule'],
-        `${entry.rule} findings cannot be suppressed`,
-        `set "${entry.rule}": "off" in rules instead`,
-      );
-    }
-    if (!ruleIds.includes(entry.rule)) {
-      throw configInvalid(
-        loaded?.display ?? '',
-        ['suppress', index, 'rule'],
-        `unknown rule ${entry.rule}`,
-        unknownRuleHelp(entry.rule, ruleIds, registry.namespaces),
-      );
-    }
-  });
+  if (entry.rule.startsWith('lint/') && ruleIds.includes(entry.rule)) {
+    throw configInvalid(
+      display,
+      ['suppress', index, 'rule'],
+      `${entry.rule} findings cannot be suppressed`,
+      `set "${entry.rule}": "off" in rules instead`,
+    );
+  }
+  if (!ruleIds.includes(entry.rule)) {
+    throw configInvalid(
+      display,
+      ['suppress', index, 'rule'],
+      `unknown rule ${entry.rule}`,
+      unknownRuleHelp(entry.rule, ruleIds, registry.namespaces),
+    );
+  }
 }
 
 // The canonical path of a suppression's file, or undefined when it does not exist.
@@ -80,83 +100,68 @@ function covers(entry: SuppressionEntry, result: RuleResult): boolean {
   );
 }
 
-function staleFinding(
-  entry: SuppressionEntry,
-  index: number,
-  target: string,
-  configDisplay: string,
-): ConfigFinding {
+function staleFinding({ entry, index }: Resolved, target: string, config: string): ConfigFinding {
   return {
     kind: 'config',
     ruleId: staleRuleId,
     severity: 'warning',
-    message: `A suppression targets ${target}, which no longer exists.`,
-    help: 'remove this suppression from the configuration',
-    configLocation: { file: configDisplay, pointer: `/suppress/${String(index)}` },
+    ...describeDeletedTarget(target),
+    configLocation: { file: config, pointer: `/suppress/${String(index)}` },
     fingerprint: configFingerprint(staleRuleId, entry),
   };
 }
 
-// Applies the config's suppressions to the rule results and assesses each entry (cli.md § Stale
-// suppressions). An entry matching a finding is applied. Otherwise it is stale only when the run
-// establishes that: in a full run, its file no longer exists. Everything else is not assessed,
-// including targets outside a targeted run. Staleness of sites in selected files needs the
-// expression walker and a way for rules to signal a completed check.
-export async function applySuppressions({
+// Checks every entry against the registry, so a config failure comes before any input is read.
+export function createSuppressions({
   cwd,
   loaded,
   registry,
-  suppressionFiles,
-  selection,
-  inputFiles,
-  results,
 }: {
   cwd: string;
   loaded: LoadedConfig | null;
   registry: Registry;
-  suppressionFiles: readonly string[];
-  selection: 'targeted' | 'full';
-  inputFiles: readonly InputFile[];
-  results: readonly RuleResult[];
-}): Promise<SuppressionOutcome> {
-  const entries = loaded?.config.suppress ?? [];
-  const canonicalByDisplay = new Map(inputFiles.map((file) => [file.display, file.path]));
+}): Suppressions {
+  const config = loaded?.display ?? '';
+  const entries: Resolved[] = (loaded?.config.suppress ?? []).map((entry, index) => {
+    checkRule(entry, index, config, registry);
+    return { entry, index, file: path.resolve(loaded?.dir ?? cwd, entry.file) };
+  });
   const staleEnabled = registry.rules.find((rule) => rule.id === staleRuleId)?.enabled ?? false;
 
-  const suppressed = new Set<RuleResult>();
-  const stale: ConfigFinding[] = [];
-  const counts = { applied: 0, stale: 0, notAssessed: 0 };
-
-  for (const [index, entry] of entries.entries()) {
-    const file = suppressionFiles[index] ?? entry.file;
-    const target = await canonicalTarget(file, cwd);
-    const matched = results.filter(
-      (result) =>
-        target !== undefined &&
-        canonicalByDisplay.get(result.finding.jsonLocation.file) === target &&
-        covers(entry, result),
-    );
-    if (matched.length > 0) {
-      counts.applied++;
-      for (const result of matched) suppressed.add(result);
-    } else if (selection === 'full' && target === undefined) {
-      counts.stale++;
-      if (staleEnabled && loaded !== null) {
-        stale.push(staleFinding(entry, index, displayPath(file, cwd), loaded.display));
-      }
-    } else {
-      // A target outside a targeted run, an existing file outside a full run's inputs, or a
-      // selected file where the rule found nothing: none of these establishes staleness yet.
-      counts.notAssessed++;
-    }
-  }
-
   return {
-    findings: [
-      ...results.filter((result) => !suppressed.has(result)).map((result) => result.finding),
-      ...stale,
-    ],
-    suppressedFindings: suppressed.size,
-    suppressions: counts,
+    async assess({ selection, results }) {
+      const suppressed = new Set<RuleResult>();
+      const stale: ConfigFinding[] = [];
+      const counts = { applied: 0, stale: 0, notAssessed: 0 };
+
+      for (const resolved of entries) {
+        const target = await canonicalTarget(resolved.file, cwd);
+        const matched = results.filter(
+          (result) =>
+            target !== undefined && result.input.path === target && covers(resolved.entry, result),
+        );
+        if (matched.length > 0) {
+          counts.applied++;
+          for (const result of matched) suppressed.add(result);
+        } else if (selection === 'full' && target === undefined) {
+          counts.stale++;
+          if (staleEnabled)
+            stale.push(staleFinding(resolved, displayPath(resolved.file, cwd), config));
+        } else {
+          // A target outside a targeted run, an existing file outside a full run's inputs, or a
+          // selected file where the rule found nothing: none of these establishes staleness yet.
+          counts.notAssessed++;
+        }
+      }
+
+      return {
+        findings: [
+          ...results.filter((result) => !suppressed.has(result)).map((result) => result.finding),
+          ...stale,
+        ],
+        suppressedFindings: suppressed.size,
+        suppressions: counts,
+      };
+    },
   };
 }

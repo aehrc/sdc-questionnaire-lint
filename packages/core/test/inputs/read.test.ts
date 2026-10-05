@@ -32,7 +32,7 @@ async function read(files: Record<string, string>) {
   const cwd = await realpath(await tempTree(files));
   const inputs = await canonicalFiles(
     Object.keys(files).map((name) => path.join(cwd, name)),
-    cwd,
+    { cwd, base: cwd },
   );
   return { cwd, result: await readInputs(inputs) };
 }
@@ -42,7 +42,7 @@ describe('readInputs', () => {
     const { result } = await read(kinds);
     expect(result.files).toEqual({ read: 7, skipped: 3 });
     expect(
-      result.documents.map((document) => [
+      result.documents.map(({ document }) => [
         document.file,
         document.resourcePointer,
         document.resource.id,
@@ -58,13 +58,14 @@ describe('readInputs', () => {
   it('keeps every Bundle entry resource as a local reference target', async () => {
     const { result } = await read(kinds);
     const [first] = result.documents;
-    expect(first?.localResources.map((local) => local.pointer)).toEqual([
+    expect(first?.document.localResources.map((local) => local.pointer)).toEqual([
       '/entry/0/resource',
       '/entry/1/resource',
       '/entry/3/resource',
     ]);
     expect(
-      result.documents.find((document) => document.resource.id === 'A')?.localResources,
+      result.documents.find(({ document }) => document.resource.id === 'A')?.document
+        .localResources,
     ).toEqual([]);
   });
 
@@ -83,7 +84,7 @@ describe('readInputs', () => {
     async () => {
       const cwd = await realpath(await tempTree({ 'a.json': '{}' }));
       await chmod(path.join(cwd, 'a.json'), 0o000);
-      const files = await canonicalFiles([path.join(cwd, 'a.json')], cwd);
+      const files = await canonicalFiles([path.join(cwd, 'a.json')], { cwd, base: cwd });
       await expect(readInputs(files)).rejects.toMatchObject({
         code: 'INPUT_UNREADABLE',
         path: 'a.json',

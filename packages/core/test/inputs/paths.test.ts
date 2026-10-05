@@ -33,8 +33,11 @@ describe('canonicalFiles', () => {
     const cwd = await realpath(await tempTree({ 'a.json': questionnaire }));
     await symlink(path.join(cwd, 'a.json'), path.join(cwd, 'link.json'));
     expect(
-      await canonicalFiles([path.join(cwd, 'link.json'), path.join(cwd, 'a.json')], cwd),
-    ).toEqual([{ path: path.join(cwd, 'a.json'), display: 'a.json' }]);
+      await canonicalFiles([path.join(cwd, 'link.json'), path.join(cwd, 'a.json')], {
+        cwd,
+        base: cwd,
+      }),
+    ).toEqual([{ path: path.join(cwd, 'a.json'), display: 'a.json', baseRelative: 'a.json' }]);
   });
 
   it('sorts by display path by code unit', async () => {
@@ -45,7 +48,7 @@ describe('canonicalFiles', () => {
     );
     const files = await canonicalFiles(
       names.map((name) => path.join(cwd, name)),
-      cwd,
+      { cwd, base: cwd },
     );
     expect(files.map((file) => file.display)).toEqual([
       'Zeta.json',
@@ -63,6 +66,6 @@ describe('canonicalFiles', () => {
       cliPaths: ['resources/a.json'],
       runPaths: resolveRunPaths({ cwd, config: null }),
     });
-    expect(inputs.documents[0]?.file).toBe('resources/a.json');
+    expect(inputs.documents[0]?.document.file).toBe('resources/a.json');
   });
 });

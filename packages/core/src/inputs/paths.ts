@@ -15,13 +15,16 @@ export interface InputFile {
   // Canonical absolute path: the file's identity.
   path: string;
   display: string;
+  // Relative to the config directory, or the working directory without a config, so it does not
+  // change when the linter runs from another directory. Fingerprints name the file by it.
+  baseRelative: string;
 }
 
 // Resolves symlinks so each file is read once, however many entries selected it. Sorted by display
-// path, by code unit.
+// path, by code unit. Both directories must be canonical.
 export async function canonicalFiles(
   files: readonly string[],
-  canonicalCwd: string,
+  { cwd, base }: { cwd: string; base: string },
 ): Promise<InputFile[]> {
   const byPath = new Map<string, InputFile>();
   for (const file of files) {
@@ -29,7 +32,7 @@ export async function canonicalFiles(
     try {
       canonical = await realpath(file);
     } catch (error) {
-      const display = displayPath(file, canonicalCwd);
+      const display = displayPath(file, cwd);
       throw new LintFailure({
         code: 'INPUT_UNREADABLE',
         path: display,
@@ -38,7 +41,11 @@ export async function canonicalFiles(
       });
     }
     if (!byPath.has(canonical)) {
-      byPath.set(canonical, { path: canonical, display: displayPath(canonical, canonicalCwd) });
+      byPath.set(canonical, {
+        path: canonical,
+        display: displayPath(canonical, cwd),
+        baseRelative: displayPath(canonical, base),
+      });
     }
   }
   return [...byPath.values()].sort((a, b) =>

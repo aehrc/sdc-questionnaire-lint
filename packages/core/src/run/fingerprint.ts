@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { SuppressionEntry } from '../config/types.js';
 import type { ResourceIdentity } from '../report/types.js';
-import type { SiteIdentity } from './site.js';
+import type { SiteIdentity } from '../analysis/walker.js';
 
 function digest(parts: readonly unknown[]): string {
   return createHash('sha256').update(JSON.stringify(parts)).digest('hex');

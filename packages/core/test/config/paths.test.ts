@@ -15,10 +15,6 @@ describe('resolveRunPaths', () => {
     // sdc-lint lint --config ig/sdc-questionnaire-lint.config.json, run from the parent of ig.
     const config = loaded(path.join(cwd, 'ig', 'sdc-questionnaire-lint.config.json'), {
       files: ['fsh-generated/resources', 'extra/Questionnaire-*.json'],
-      suppress: [
-        { rule: 'sdc/x', file: 'fsh-generated/resources/A.json', reason: 'Why.' },
-        { rule: 'sdc/y', file: '../outside/B.json', reason: 'Why.' },
-      ],
     });
     expect(resolveRunPaths({ cwd, config })).toEqual({
       base: path.join(cwd, 'ig'),
@@ -28,10 +24,6 @@ describe('resolveRunPaths', () => {
       ],
       fshDirectories: [path.join(cwd, 'ig', 'input', 'fsh')],
       fshSourceLookup: 'enabled',
-      suppressionFiles: [
-        path.join(cwd, 'ig', 'fsh-generated', 'resources', 'A.json'),
-        path.join(cwd, 'outside', 'B.json'),
-      ],
       defaultInputDirectory: path.join(cwd, 'ig', 'fsh-generated', 'resources'),
       sushiIndex: path.join(cwd, 'ig', 'fsh-generated', 'data', 'fsh-index.json'),
     });
@@ -53,7 +45,6 @@ describe('resolveRunPaths', () => {
       base: cwd,
       fshDirectories: [path.join(cwd, 'input', 'fsh')],
       fshSourceLookup: 'enabled',
-      suppressionFiles: [],
       defaultInputDirectory: path.join(cwd, 'fsh-generated', 'resources'),
       sushiIndex: path.join(cwd, 'fsh-generated', 'data', 'fsh-index.json'),
     });

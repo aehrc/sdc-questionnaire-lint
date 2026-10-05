@@ -5,8 +5,14 @@ import { parseJson } from '../json.js';
 import type { LocalResource, QuestionnaireDocument } from '../plugins/types.js';
 import type { InputFile } from './paths.js';
 
+// A Questionnaire and the file it was read from, which rules never see.
+export interface InputDocument {
+  input: InputFile;
+  document: QuestionnaireDocument;
+}
+
 export interface ReadResult {
-  documents: QuestionnaireDocument[];
+  documents: InputDocument[];
   // read: every parsed file; skipped: parsed files with neither a Questionnaire nor a Bundle.
   files: { read: number; skipped: number };
 }
@@ -67,12 +73,12 @@ function classify(file: InputFile, json: unknown): QuestionnaireDocument[] | 'sk
 }
 
 export async function readInputs(files: readonly InputFile[]): Promise<ReadResult> {
-  const documents: QuestionnaireDocument[] = [];
+  const documents: InputDocument[] = [];
   let skipped = 0;
   for (const file of files) {
     const classified = classify(file, await parseFile(file));
     if (classified === 'skipped') skipped++;
-    else documents.push(...classified);
+    else documents.push(...classified.map((document) => ({ input: file, document })));
   }
   return { documents, files: { read: files.length, skipped } };
 }

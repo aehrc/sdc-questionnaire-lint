@@ -60,7 +60,10 @@ function run(plugin: LintPlugin, documents: QuestionnaireDocument[], config: Lin
     config: { plugins: [plugin], ...config },
   };
   return runRules({
-    documents: documents.map((document) => ({ document, sites: walkDocument(document) })),
+    documents: documents.map((document) => ({
+      input: { path: `/${document.file}`, display: document.file, baseRelative: document.file },
+      ...walkDocument(document),
+    })),
     rules: buildRegistry(loaded).rules,
     sourceMap: createSourceMap({ directories: [], sushiIndex: '/index.json' }),
   }).map((result) => result.finding);
@@ -119,6 +122,15 @@ describe('runRules', () => {
       resource: { resourceType: 'Questionnaire', pointer: '/entry/2/resource' },
     });
     expect(finding).not.toHaveProperty('expression');
+  });
+
+  it('gives a finding in a contained resource no linkId, as its site has no item', () => {
+    const contained = { resourceType: 'Questionnaire', item: [item('inner')] };
+    const [finding] = run(
+      reporting(() => [{ message: 'm', pointer: '/contained/0/item/0/extension/1' }]),
+      [document({ id: 'A', contained: [contained] })],
+    );
+    expect(finding?.jsonLocation).not.toHaveProperty('linkId');
   });
 
   it('drops a range that does not fit the expression text', () => {

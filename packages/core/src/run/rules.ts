@@ -1,12 +1,8 @@
+import type { SiteIdentity, WalkedDocument } from '../analysis/walker.js';
 import { describeError, LintFailure } from '../failure.js';
-import { isWithin, parsePointer } from '../json-pointer.js';
+import type { InputFile } from '../inputs/paths.js';
 import type { RegisteredRule } from '../plugins/registry.js';
-import type {
-  ExpressionSite,
-  QuestionnaireDocument,
-  RuleContext,
-  RuleFinding,
-} from '../plugins/types.js';
+import type { QuestionnaireDocument, RuleContext, RuleFinding } from '../plugins/types.js';
 import type {
   OffsetRange,
   QuestionnaireFinding,
@@ -14,20 +10,20 @@ import type {
   Severity,
 } from '../report/types.js';
 import { questionnaireFingerprint } from './fingerprint.js';
-import { identifySite, type SiteIdentity } from './site.js';
 import type { SourceMap } from './source-map.js';
 
 const severities: readonly unknown[] = ['error', 'warning', 'info'];
 
-// A Questionnaire with the expression sites the walker found in it.
-export interface WalkedDocument {
-  document: QuestionnaireDocument;
-  sites: readonly ExpressionSite[];
+// A walked Questionnaire and the input file it was read from.
+export interface RunDocument extends WalkedDocument {
+  input: InputFile;
 }
 
-// A finding with the site identity behind it, which suppressions match on but the report omits.
+// A finding with the file and site identity behind it, which suppressions match on but the report
+// omits.
 export interface RuleResult {
   finding: QuestionnaireFinding;
+  input: InputFile;
   site: SiteIdentity;
 }
 
@@ -67,11 +63,11 @@ function crash(
 // Turns what a rule reported into a report finding: rule ID, severity, locations, fingerprint.
 function toFinding(
   rule: RegisteredRule,
-  document: QuestionnaireDocument,
+  walked: RunDocument,
   reported: RuleFinding,
   sourceMap: SourceMap,
-  fingerprintFile: string,
 ): RuleResult {
+  const { document, input } = walked;
   if (typeof reported.message !== 'string' || reported.message === '') {
     throw crash(rule, document, 'it reported a finding without a message');
   }
@@ -83,15 +79,14 @@ function toFinding(
     );
   }
   const pointer = reported.site?.pointer ?? reported.pointer ?? document.resourcePointer;
-  const segments = parsePointer(pointer);
-  if (segments === undefined || !isWithin(pointer, document.resourcePointer)) {
+  const located = walked.locate(pointer);
+  if (located === undefined) {
     throw crash(rule, document, `it reported a location outside its Questionnaire: ${pointer}`);
   }
-  const resourceSegments = parsePointer(document.resourcePointer)?.length ?? 0;
-  const site = identifySite(document.resource, segments.slice(resourceSegments));
+  const site = located.identity;
   const resource = resourceIdentity(document);
   // An expression string at the pointer becomes the excerpt; a range must fit inside it.
-  const text = typeof site.value === 'string' ? site.value : undefined;
+  const text = typeof located.value === 'string' ? located.value : undefined;
   const range =
     reported.range !== undefined && text !== undefined && fitsText(reported.range, text)
       ? reported.range
@@ -120,12 +115,12 @@ function toFinding(
       : { expression: { text, ...(range === undefined ? {} : { range }) } }),
     fingerprint: questionnaireFingerprint({
       ruleId: rule.id,
-      file: fingerprintFile,
+      file: input.baseRelative,
       resource,
       site,
     }),
   };
-  return { finding, site };
+  return { finding, input, site };
 }
 
 // Calls each enabled rule once per document, with the same sites for every rule. Any exception
@@ -134,19 +129,16 @@ export function runRules({
   documents,
   rules,
   sourceMap,
-  fingerprintFiles,
 }: {
-  documents: readonly WalkedDocument[];
+  documents: readonly RunDocument[];
   rules: readonly RegisteredRule[];
   sourceMap: SourceMap;
-  // Each display path's file as fingerprints name it; the display path when absent.
-  fingerprintFiles?: ReadonlyMap<string, string>;
 }): RuleResult[] {
   const results: RuleResult[] = [];
   // The lint namespace reports while suppressions are assessed, not per Questionnaire.
   const enabled = rules.filter((rule) => rule.enabled && rule.plugin !== 'lint');
-  for (const { document, sites } of documents) {
-    const fingerprintFile = fingerprintFiles?.get(document.file) ?? document.file;
+  for (const walked of documents) {
+    const { document, sites } = walked;
     for (const rule of enabled) {
       const reported: RuleResult[] = [];
       const context: RuleContext = {
@@ -156,7 +148,7 @@ export function runRules({
         scopeAt: () => ({ available: false, names: [] }),
         options: undefined,
         report: (finding) => {
-          reported.push(toFinding(rule, document, finding, sourceMap, fingerprintFile));
+          reported.push(toFinding(rule, walked, finding, sourceMap));
         },
       };
       try {

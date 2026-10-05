@@ -3,14 +3,12 @@ import path from 'node:path';
 import type { RunPaths } from '../config/paths.js';
 import { LintFailure } from '../failure.js';
 import { expandEntries } from './expand.js';
-import { canonicalFiles, displayPath, type InputFile } from './paths.js';
+import { canonicalFiles, displayPath } from './paths.js';
 import { readInputs, type ReadResult } from './read.js';
 import { type InputEntry, selectInputs } from './select.js';
 
 export interface CollectedInputs extends ReadResult {
   selection: 'targeted' | 'full';
-  // The selected files, canonical and deduplicated.
-  inputFiles: InputFile[];
 }
 
 const listedEntries = 3;
@@ -46,8 +44,11 @@ export async function collectInputs({
   runPaths: RunPaths;
 }): Promise<CollectedInputs> {
   const { selection, entries } = selectInputs({ cwd, cliPaths, runPaths });
-  const files = await canonicalFiles(await expandEntries(entries), await realpath(cwd));
+  const files = await canonicalFiles(await expandEntries(entries), {
+    cwd: await realpath(cwd),
+    base: await realpath(runPaths.base),
+  });
   const read = await readInputs(files);
   if (read.documents.length === 0) throw noQuestionnaires(entries, cwd);
-  return { selection, inputFiles: files, ...read };
+  return { selection, ...read };
 }

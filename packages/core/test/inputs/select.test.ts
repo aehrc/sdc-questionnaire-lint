@@ -12,7 +12,6 @@ function runPaths(configFiles?: string[]): RunPaths {
     ...(configFiles === undefined ? {} : { configFiles }),
     fshDirectories: [],
     fshSourceLookup: 'enabled',
-    suppressionFiles: [],
     defaultInputDirectory: path.join(cwd, 'ig', 'fsh-generated', 'resources'),
     sushiIndex: path.join(cwd, 'ig', 'fsh-generated', 'data', 'fsh-index.json'),
   };
