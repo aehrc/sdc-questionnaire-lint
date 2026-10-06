@@ -3,14 +3,14 @@ import type { LintRule } from '../plugins/types.js';
 
 const unrecognised = 'This expression is in a place the linter does not recognise';
 
-export const unregisteredExpression: LintRule = {
+export const uncataloguedExpression: LintRule = {
   meta: {
     description: 'Reports an expression in a place the linter does not recognise.',
     defaultSeverity: 'info',
   },
   check(ctx) {
     for (const site of ctx.sites) {
-      if (site.registered) continue;
+      if (site.catalogued) continue;
       ctx.report({
         site,
         message:

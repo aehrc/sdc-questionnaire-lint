@@ -55,9 +55,9 @@ export function checkFhirPathSyntax(text: string): FhirPathSyntaxError | undefin
 }
 
 // Approximates report-format.md § Run metadata and summary while FHIRPath syntax is the only
-// check: registered FHIRPath sites with text are analysed; unregistered sites still lack scope
+// check: catalogued FHIRPath sites with text are analysed; uncatalogued sites still lack scope
 // analysis, and other languages have no analysis. Revisit when a second check is added.
 export function countExpressions(sites: readonly ExpressionSite[]): Summary['expressions'] {
-  const analysed = sites.filter((site) => site.registered && hasFhirPathText(site)).length;
+  const analysed = sites.filter((site) => site.catalogued && hasFhirPathText(site)).length;
   return { analysed, unchecked: sites.length - analysed };
 }

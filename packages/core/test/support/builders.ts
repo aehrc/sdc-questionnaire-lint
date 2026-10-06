@@ -74,13 +74,13 @@ export function completedReport(
   };
 }
 
-// An unregistered site with no language and no text; override any field.
+// An uncatalogued site with no language and no text; override any field.
 export function expressionSite(overrides: Partial<ExpressionSite> = {}): ExpressionSite {
   return {
     pointer: '/extension/0/valueExpression',
     expressionPointer: '/extension/0/valueExpression',
     carrier: 'expression',
-    registered: false,
+    catalogued: false,
     declares: false,
     useCases: [],
     ...overrides,

@@ -83,7 +83,7 @@ describe('questionnaireFingerprint', () => {
 
   it('changes with the rule or the file', () => {
     const fingerprint = questionnaireFingerprint(parts);
-    expect(questionnaireFingerprint({ ...parts, ruleId: 'sdc/unregistered-expression' })).not.toBe(
+    expect(questionnaireFingerprint({ ...parts, ruleId: 'sdc/uncatalogued-expression' })).not.toBe(
       fingerprint,
     );
     expect(questionnaireFingerprint({ ...parts, file: 'Questionnaire-R.json' })).not.toBe(

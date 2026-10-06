@@ -75,8 +75,8 @@ describe('sdc-lint lint', () => {
       const hidden = runBinary(['lint'], { cwd });
       const shown = runBinary(['lint', '--show-info'], { cwd });
       expect([hidden.code, shown.code]).toEqual([0, 0]);
-      expect(hidden.stdout).not.toContain('sdc/unregistered-expression');
-      expect(shown.stdout).toContain('info sdc/unregistered-expression');
+      expect(hidden.stdout).not.toContain('sdc/uncatalogued-expression');
+      expect(shown.stdout).toContain('info sdc/uncatalogued-expression');
       const summary = '1 finding (0 errors, 0 warnings, 1 info) in 1 questionnaire.';
       expect(hidden.stdout).toMatch(
         new RegExp(`^${summary.replace(/[.()]/g, '\\$&')} 1 info finding hidden`),

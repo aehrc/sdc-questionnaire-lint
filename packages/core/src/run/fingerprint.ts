@@ -3,7 +3,7 @@ import type { ExpressionSite, QuestionnaireDocument } from '../plugins/types.js'
 import type { ResourceIdentity } from '../report/types.js';
 
 // A site's identity from its own fields, without array indexes above its item where the item has
-// a linkId. Sites that repeat one registered location share a base key.
+// a linkId. Sites that repeat one catalogued location share a base key.
 function baseKey(document: QuestionnaireDocument, site: ExpressionSite): string {
   const anchor = site.item?.linkId ?? site.item?.pointer ?? '';
   const { location } = site;

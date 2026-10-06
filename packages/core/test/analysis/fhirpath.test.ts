@@ -34,8 +34,8 @@ describe('checkFhirPathSyntax', () => {
 });
 
 describe('countExpressions', () => {
-  const registered = {
-    registered: true,
+  const catalogued = {
+    catalogued: true,
     location: {
       url: 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression',
     },
@@ -43,23 +43,23 @@ describe('countExpressions', () => {
   } as const;
   const fhirPath = (text: string) => ({ language: 'text/fhirpath', text });
 
-  it('counts a registered FHIRPath site with text as analysed, even when it does not parse', () => {
+  it('counts a catalogued FHIRPath site with text as analysed, even when it does not parse', () => {
     const sites = [
-      expressionSite({ ...registered, ...fhirPath('1 + 1') }),
-      expressionSite({ ...registered, ...fhirPath('a.where(') }),
+      expressionSite({ ...catalogued, ...fhirPath('1 + 1') }),
+      expressionSite({ ...catalogued, ...fhirPath('a.where(') }),
     ];
     expect(countExpressions(sites)).toEqual({ analysed: 2, unchecked: 0 });
   });
 
-  it('counts unregistered, other-language and reference-only sites as unchecked', () => {
+  it('counts uncatalogued, other-language and reference-only sites as unchecked', () => {
     const sites = [
       expressionSite(fhirPath('1 + 1')),
       expressionSite({
-        ...registered,
+        ...catalogued,
         language: 'application/x-fhir-query',
         text: 'Patient?_id=1',
       }),
-      expressionSite({ ...registered, language: 'text/fhirpath', reference: '#library' }),
+      expressionSite({ ...catalogued, language: 'text/fhirpath', reference: '#library' }),
     ];
     expect(countExpressions(sites)).toEqual({ analysed: 0, unchecked: 3 });
   });

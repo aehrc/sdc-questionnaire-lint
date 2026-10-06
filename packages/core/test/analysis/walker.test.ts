@@ -36,7 +36,7 @@ describe('findSites', () => {
         expressionPointer: '/extension/0/valueExpression',
         carrier: 'expression',
         location: { url: VARIABLE },
-        registered: true,
+        catalogued: true,
         language: 'text/fhirpath',
         text: '1',
         name: 'a',
@@ -48,7 +48,7 @@ describe('findSites', () => {
         expressionPointer: '/item/0/extension/0/valueExpression',
         carrier: 'expression',
         location: { url: VARIABLE },
-        registered: true,
+        catalogued: true,
         item: { pointer: '/item/0', linkId: 'q' },
         language: 'text/fhirpath',
         text: '2',
@@ -75,7 +75,7 @@ describe('findSites', () => {
       pointer: '/item/0/item/1/extension/0/valueExpression/expression',
       item: { pointer: '/item/0/item/1', linkId: 'bmi' },
       location: { url: `${sdc}calculatedExpression` },
-      registered: true,
+      catalogued: true,
       declares: false,
       useCases: ['rendering'],
     });
@@ -85,8 +85,8 @@ describe('findSites', () => {
     const cqf = () => ({ extension: [extension(CQF, fhirPath("'Hi'"))] });
     const sites = sitesOf({ item: [{ linkId: 'q', _text: cqf(), _linkId: cqf() }] });
     expect(sites).toMatchObject([
-      { pointer: '/item/0/_text/extension/0/valueExpression/expression', registered: true },
-      { pointer: '/item/0/_linkId/extension/0/valueExpression/expression', registered: false },
+      { pointer: '/item/0/_text/extension/0/valueExpression/expression', catalogued: true },
+      { pointer: '/item/0/_linkId/extension/0/valueExpression/expression', catalogued: false },
     ]);
     expect(sites[0]).toMatchObject({ element: 'text', location: { url: CQF } });
     expect(sites[1]).not.toHaveProperty('element');
@@ -114,7 +114,7 @@ describe('findSites', () => {
     expect(site).toMatchObject({
       pointer: '/item/0/extension/0/extension/1/valueExpression/expression',
       location: { url: `${sdc}answerOptionsToggleExpression`, subExtension: 'expression' },
-      registered: true,
+      catalogued: true,
     });
   });
 
@@ -136,12 +136,12 @@ describe('findSites', () => {
       pointer: '/item/0/extension/0/valueExpression',
       expressionPointer: '/item/0/extension/0/valueExpression',
       reference: 'Library/x#y',
-      registered: true,
+      catalogued: true,
     });
     expect(site).not.toHaveProperty('text');
   });
 
-  it('keeps the enclosing item for an unregistered expression on an answerOption', () => {
+  it('keeps the enclosing item for an uncatalogued expression on an answerOption', () => {
     const [site] = sitesOf({
       item: [
         {
@@ -159,7 +159,7 @@ describe('findSites', () => {
       pointer: '/item/0/answerOption/0/extension/0/valueExpression/expression',
       expressionPointer: '/item/0/answerOption/0/extension/0/valueExpression',
       carrier: 'expression',
-      registered: false,
+      catalogued: false,
       item: { pointer: '/item/0', linkId: 'smoking' },
       language: 'text/fhirpath',
       text: '%age > 18',
@@ -168,7 +168,7 @@ describe('findSites', () => {
     });
   });
 
-  it('treats an expression in a contained resource as unregistered, with no item', () => {
+  it('treats an expression in a contained resource as uncatalogued, with no item', () => {
     const [site] = sitesOf({
       contained: [
         {
@@ -179,7 +179,7 @@ describe('findSites', () => {
     });
     expect(site).toMatchObject({
       pointer: '/contained/0/item/0/extension/0/valueExpression/expression',
-      registered: false,
+      catalogued: false,
       declares: false,
     });
     expect(site).not.toHaveProperty('item');

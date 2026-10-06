@@ -15,8 +15,8 @@ function check(sites: ExpressionSite[]): RuleFinding[] {
   return findings;
 }
 
-const registered = {
-  registered: true,
+const catalogued = {
+  catalogued: true,
   location: {
     url: 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression',
   },
@@ -26,14 +26,14 @@ describe('sdc/parse-error', () => {
   it('never parses another language', () => {
     const broken = 'a.where(';
     const sites = [
-      expressionSite({ ...registered, language: 'application/x-fhir-query', text: broken }),
-      expressionSite({ ...registered, language: 'text/cql', text: broken }),
-      expressionSite({ ...registered, text: broken }),
+      expressionSite({ ...catalogued, language: 'application/x-fhir-query', text: broken }),
+      expressionSite({ ...catalogued, language: 'text/cql', text: broken }),
+      expressionSite({ ...catalogued, text: broken }),
     ];
     expect(check(sites)).toEqual([]);
   });
 
-  it('reports broken FHIRPath in an unregistered site', () => {
+  it('reports broken FHIRPath in an uncatalogued site', () => {
     const site = expressionSite({ language: 'text/fhirpath', text: 'a.where(' });
     expect(check([site])).toMatchObject([{ site }]);
   });
@@ -120,7 +120,7 @@ describe('sdc/parse-error', () => {
       },
     },
   ])('describes the $branch case', ({ text, expected }) => {
-    const site = expressionSite({ ...registered, language: 'text/fhirpath', text });
+    const site = expressionSite({ ...catalogued, language: 'text/fhirpath', text });
     expect(check([site])).toEqual([{ site, ...expected }]);
   });
 });

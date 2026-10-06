@@ -1,14 +1,14 @@
 import { toPointer } from '../json-pointer.js';
 import { isObject } from '../object.js';
 import type { ExpressionSite, QuestionnaireDocument, SiteItem } from '../plugins/types.js';
-import { type Owner, registry, type RegistryEntry } from './registry.js';
+import { type CatalogEntry, extensionCatalog, type Owner } from './extension-catalog.js';
 
 type Json = Record<string, unknown>;
 type Segments = readonly (string | number)[];
 
-// The registered location an Expression object was claimed for.
+// The catalogued location an Expression object was claimed for.
 interface Claim {
-  entry: RegistryEntry;
+  entry: CatalogEntry;
   // For an extension in a primitive element's _element companion, the element name.
   element?: string;
 }
@@ -18,9 +18,9 @@ function stringField(object: Json, key: string): Record<string, string> {
   return typeof value === 'string' ? { [key]: value } : {};
 }
 
-// The Expression objects a registered extension holds; none when its shape is not the expected
+// The Expression objects a catalogued extension holds; none when its shape is not the expected
 // one, which is the FHIR Validator's to report.
-function expressionsOf(extension: Json, entry: RegistryEntry): Json[] {
+function expressionsOf(extension: Json, entry: CatalogEntry): Json[] {
   if (entry.subExtension === undefined) {
     return isObject(extension.valueExpression) ? [extension.valueExpression] : [];
   }
@@ -33,9 +33,9 @@ function expressionsOf(extension: Json, entry: RegistryEntry): Json[] {
 }
 
 // Every expression site in a Questionnaire, in document order: a depth-first, pre-order traversal
-// of its JSON. Expressions held by registered extensions on the root and its items are registered
+// of its JSON. Expressions held by catalogued extensions on the root and its items are catalogued
 // sites; any other object with a string language and expression, including in a contained
-// resource, is an unregistered site.
+// resource, is an uncatalogued site.
 export function findSites(document: QuestionnaireDocument): ExpressionSite[] {
   const sites: ExpressionSite[] = [];
   const claims = new Map<Json, Claim>();
@@ -43,14 +43,14 @@ export function findSites(document: QuestionnaireDocument): ExpressionSite[] {
 
   function claimAll(
     extensions: unknown,
-    matches: (on: RegistryEntry['on'][Owner]) => boolean,
+    matches: (on: CatalogEntry['on'][Owner]) => boolean,
     owner: Owner,
     element?: string,
   ): void {
     if (!Array.isArray(extensions)) return;
     for (const extension of extensions) {
       if (!isObject(extension)) continue;
-      for (const entry of registry) {
+      for (const entry of extensionCatalog) {
         if (entry.url !== extension.url || !matches(entry.on[owner])) continue;
         for (const expression of expressionsOf(extension, entry)) {
           claims.set(expression, { entry, ...(element === undefined ? {} : { element }) });
@@ -88,7 +88,7 @@ export function findSites(document: QuestionnaireDocument): ExpressionSite[] {
                 : { subExtension: claim.entry.subExtension }),
             }),
           }),
-      registered: claim !== undefined,
+      catalogued: claim !== undefined,
       ...(claim?.element === undefined ? {} : { element: claim.element }),
       ...(item === undefined ? {} : { item }),
       ...stringField(expression, 'language'),

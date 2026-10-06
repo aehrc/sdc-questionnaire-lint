@@ -28,9 +28,9 @@ export interface LocalResource {
 // FHIRPath, embedded fragments and indirect references come later (core-plan §3.1).
 export type ExpressionCarrier = 'expression';
 
-// Identifies a registered location: the extension that holds the expression, plus the
+// Identifies a catalogued location: the extension that holds the expression, plus the
 // sub-extension for a complex extension such as targetConstraint.
-export interface RegisteredLocation {
+export interface CataloguedLocation {
   readonly url: string;
   readonly subExtension?: string;
 }
@@ -52,11 +52,11 @@ export interface ExpressionSite {
   // JSON Pointer from the root of the input file to the Expression object.
   readonly expressionPointer: string;
   readonly carrier: ExpressionCarrier;
-  // The registered location the site matched; absent for an unregistered site.
-  readonly location?: RegisteredLocation;
-  // Whether the site matched a registered location. An unregistered site was found by generic
+  // The catalogued location the site matched; absent for an uncatalogued site.
+  readonly location?: CataloguedLocation;
+  // Whether the site matched a catalogued location. An uncatalogued site was found by generic
   // detection of an object with a language and an expression; only its syntax can be checked.
-  readonly registered: boolean;
+  readonly catalogued: boolean;
   // For an expression in a primitive element's extension, such as _text, the element name: text.
   readonly element?: string;
   // The enclosing item; absent for a site on the Questionnaire root or in a contained resource.
@@ -69,7 +69,7 @@ export interface ExpressionSite {
   // Whether the location declares a name that other expressions can reference, as variable and
   // itemPopulationContext do. A name on another expression is recorded but does not declare.
   readonly declares: boolean;
-  // The use cases that evaluate the site; empty for an unregistered site.
+  // The use cases that evaluate the site; empty for an uncatalogued site.
   readonly useCases: readonly ExpressionUseCase[];
 }
 

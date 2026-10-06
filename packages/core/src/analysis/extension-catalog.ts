@@ -1,12 +1,13 @@
 import type { ExpressionCarrier, ExpressionUseCase } from '../plugins/types.js';
 
-// The registry of SDC locations the linter understands (core-plan §3.1). Supporting another
-// location is a new entry here, not walker code.
+// The catalog of SDC extensions the linter understands: the kinds of location an expression may
+// sit in, not the expressions of any one Questionnaire (core-plan §3.1 calls it the registry).
+// Supporting another location is a new entry here, not walker code.
 
 // The element an extension sits on: the Questionnaire root or an item.
 export type Owner = 'root' | 'item';
 
-export interface RegistryEntry {
+export interface CatalogEntry {
   url: string;
   // For a complex extension, the url of the sub-extension holding the valueExpression.
   subExtension?: string;
@@ -25,10 +26,10 @@ const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
 
 function entry(
   url: string,
-  on: RegistryEntry['on'],
+  on: CatalogEntry['on'],
   useCases: readonly ExpressionUseCase[],
-  extra: Partial<Pick<RegistryEntry, 'subExtension' | 'declares'>> = {},
-): RegistryEntry {
+  extra: Partial<Pick<CatalogEntry, 'subExtension' | 'declares'>> = {},
+): CatalogEntry {
   return Object.freeze({
     url,
     on: Object.freeze(on),
@@ -42,7 +43,7 @@ function entry(
 const both = { root: true, item: true } as const;
 const item = { item: true } as const;
 
-export const registry: readonly RegistryEntry[] = Object.freeze([
+export const extensionCatalog: readonly CatalogEntry[] = Object.freeze([
   entry(
     'http://hl7.org/fhir/StructureDefinition/variable',
     both,

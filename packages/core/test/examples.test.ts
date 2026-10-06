@@ -20,7 +20,7 @@ describe('examples/health-check', () => {
       ['sdc/parse-error', 'smoking', 'The character " is not valid here.'],
       ['sdc/parse-error', 'packs', 'The expression ends before it is complete.'],
       [
-        'sdc/unregistered-expression',
+        'sdc/uncatalogued-expression',
         'smoking',
         'This expression is in a place the linter does not recognise, so only its FHIRPath syntax was checked.',
       ],

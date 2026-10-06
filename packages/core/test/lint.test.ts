@@ -67,7 +67,7 @@ describe('expression findings', () => {
     return { report, findings: report.findings as QuestionnaireFinding[] };
   }
 
-  it('reports broken FHIRPath in an unregistered site twice, at the same pointer', async () => {
+  it('reports broken FHIRPath in an uncatalogued site twice, at the same pointer', async () => {
     const { report, findings } = await lintQuestionnaire({
       item: [
         {
@@ -90,7 +90,7 @@ describe('expression findings', () => {
         expression: { text: 'a.where(', range: { startOffset: 8, endOffset: 8 } },
         sourceLocation: { status: 'unmapped', reason: 'source-unavailable' },
       },
-      { ruleId: 'sdc/unregistered-expression', severity: 'info', jsonLocation: { pointer } },
+      { ruleId: 'sdc/uncatalogued-expression', severity: 'info', jsonLocation: { pointer } },
     ]);
     expect(report.summary).toMatchObject({
       expressions: { analysed: 0, unchecked: 1 },
@@ -111,7 +111,7 @@ describe('expression findings', () => {
     });
     expect(findings).toMatchObject([
       {
-        ruleId: 'sdc/unregistered-expression',
+        ruleId: 'sdc/uncatalogued-expression',
         jsonLocation: {
           pointer: '/contained/0/extension/0/valueExpression/expression',
           resource: { resourceType: 'Library', id: 'lib', pointer: '/contained/0' },
@@ -120,7 +120,7 @@ describe('expression findings', () => {
     ]);
   });
 
-  it('gives two broken repeated registered sites distinct fingerprints', async () => {
+  it('gives two broken repeated catalogued sites distinct fingerprints', async () => {
     const toggle = (expression: string) => ({
       url: `${sdc}answerOptionsToggleExpression`,
       extension: [{ url: 'expression', valueExpression: fhirPath(expression) }],
