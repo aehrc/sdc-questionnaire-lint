@@ -69,13 +69,13 @@ describe('readInputs', () => {
     ).toEqual([]);
   });
 
-  it('fails on malformed JSON with the position', async () => {
+  it('fails on malformed JSON', async () => {
     await expect(
       read({ 'bad.json': '{\n  "resourceType": "Questionnaire",\n}' }),
     ).rejects.toMatchObject({
       code: 'INPUT_INVALID_JSON',
       path: 'bad.json',
-      message: 'input bad.json is not valid JSON: unexpected "}" at line 3, column 1',
+      message: expect.stringMatching(/^input bad\.json is not valid JSON: /) as string,
     });
   });
 

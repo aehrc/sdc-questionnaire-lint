@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { describeError, LintFailure } from '../failure.js';
-import { isObject, parseJson } from '../json.js';
+import { isObject } from '../json.js';
 import type { LocalResource, QuestionnaireDocument } from '../plugins/types.js';
 import type { InputFile } from './paths.js';
 
@@ -30,13 +30,13 @@ async function parseFile(file: InputFile): Promise<unknown> {
   }
   try {
     // Tolerate a byte order mark, which JSON.parse rejects.
-    return parseJson(text.startsWith('﻿') ? text.slice(1) : text);
+    return JSON.parse(text.startsWith('﻿') ? text.slice(1) : text) as unknown;
   } catch (error) {
     throw new LintFailure({
       code: 'INPUT_INVALID_JSON',
       path: file.display,
       message: `input ${file.display} is not valid JSON: ${describeError(error)}`,
-      help: 'regenerate the file with sushi, or fix the JSON at that position',
+      help: 'regenerate the file with sushi',
     });
   }
 }
