@@ -1,6 +1,10 @@
 import pkg from '../../package.json' with { type: 'json' };
-import { LintFailure, renderFailureJson, renderFailureText } from '../failure.js';
-import { parseCliArgs } from './args.js';
+import { asLintFailure, LintFailure, renderFailureJson, renderFailureText } from '../failure.js';
+import { lint } from '../lint.js';
+import { formatJsonReport } from '../report/json.js';
+import { formatTextReport } from '../report/text.js';
+import { type ParsedArgs, parseCliArgs } from './args.js';
+import { colourEnabled } from './colour.js';
 import { helpText } from './help.js';
 
 export interface CliIo {
@@ -18,7 +22,32 @@ export function runCli(argv: readonly string[], io: CliIo): Promise<0 | 1 | 2> {
   return Promise.resolve().then(() => execute(argv, io));
 }
 
-function execute(argv: readonly string[], io: CliIo): 0 | 1 | 2 {
+// Buffers the whole report and writes it once; a failure discards partial results.
+async function runLint(args: Extract<ParsedArgs, { kind: 'lint' }>, io: CliIo): Promise<0 | 1 | 2> {
+  try {
+    if (args.configPath !== undefined) {
+      throw new LintFailure({
+        code: 'USAGE_ERROR',
+        message: '--config is not supported yet',
+        help: 'run sdc-lint lint without --config to use the built-in defaults',
+      });
+    }
+    const report = await lint({ cwd: io.cwd, paths: args.paths });
+    io.stdout.write(
+      args.format === 'json'
+        ? formatJsonReport(report)
+        : formatTextReport(report, { showInfo: args.showInfo, colour: colourEnabled(io) }),
+    );
+    return report.summary.errors > 0 ? 1 : 0;
+  } catch (error) {
+    const failure = asLintFailure(error);
+    if (args.format === 'json') io.stdout.write(renderFailureJson(failure));
+    io.stderr.write(renderFailureText(failure));
+    return 2;
+  }
+}
+
+async function execute(argv: readonly string[], io: CliIo): Promise<0 | 1 | 2> {
   const args = parseCliArgs(argv);
   switch (args.kind) {
     case 'version':
@@ -39,14 +68,13 @@ function execute(argv: readonly string[], io: CliIo): 0 | 1 | 2 {
       io.stdout.write(helpText(args.command));
       return 0;
     case 'lint':
+      return runLint(args, io);
     case 'explain': {
       const failure = new LintFailure({
         code: 'USAGE_ERROR',
-        message: `sdc-lint ${args.kind} is not implemented yet`,
+        message: 'sdc-lint explain is not implemented yet',
         help: 'run sdc-lint --help for the available commands and flags',
       });
-      if (args.kind === 'lint' && args.format === 'json')
-        io.stdout.write(renderFailureJson(failure));
       io.stderr.write(renderFailureText(failure));
       return 2;
     }
