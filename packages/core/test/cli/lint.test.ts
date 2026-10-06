@@ -108,6 +108,37 @@ describe('sdc-lint lint', () => {
     expect(result.stderr).toMatch(/^error: input missing\.json does not exist\n/);
   });
 
+  it('exits 2 for a missing --config with a CONFIG_INVALID document in JSON mode', () => {
+    const result = runBinary(['lint', '--config', 'missing.json', '--format', 'json'], { cwd });
+    expect(result.code).toBe(2);
+    expect(failed(result.stdout).failure).toMatchObject({
+      code: 'CONFIG_INVALID',
+      path: 'missing.json',
+    });
+  });
+
+  it('resolves defaults beneath a --config given from a parent directory', async () => {
+    const parent = await tempTree({
+      'ig/sdc-questionnaire-lint.config.json': '{}',
+      'ig/fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+        resourceType: 'Questionnaire',
+        status: 'draft',
+      }),
+    });
+    const config = ['--config', 'ig/sdc-questionnaire-lint.config.json', '--format', 'json'];
+    const result = runBinary(['lint', ...config], { cwd: parent });
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      summary: { files: { read: 1 }, config: 'ig/sdc-questionnaire-lint.config.json' },
+    });
+    // A CLI path stays relative to the working directory.
+    const targeted = runBinary(
+      ['lint', ...config, 'ig/fsh-generated/resources/Questionnaire-A.json'],
+      { cwd: parent },
+    );
+    expect(targeted.code).toBe(0);
+  });
+
   it('reports an unexpected exception as INTERNAL_ERROR without a stack trace', async () => {
     const missing = `${await tempTree()}/gone`;
     const result = await runInProcess(['lint', '--format', 'json'], { cwd: missing });
