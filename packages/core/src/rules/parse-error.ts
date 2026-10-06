@@ -82,7 +82,8 @@ export const parseError: LintRule = {
   },
   check(ctx) {
     for (const site of ctx.sites) {
-      if (!hasFhirPathText(site)) continue;
+      // Fragments are sdc/fragment-parse-error's.
+      if (site.carrier !== 'expression' || !hasFhirPathText(site)) continue;
       const error = checkFhirPathSyntax(site.text);
       if (error !== undefined) ctx.report({ site, ...toFinding(site.text, error) });
     }

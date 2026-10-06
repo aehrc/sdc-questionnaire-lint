@@ -29,7 +29,8 @@ export const uncataloguedExpression: LintRule = {
   },
   check(ctx) {
     for (const site of ctx.sites) {
-      if (site.catalogued) continue;
+      // A query is reported once, not once per fragment.
+      if (site.catalogued || site.carrier !== 'expression') continue;
       ctx.report({
         site,
         message:

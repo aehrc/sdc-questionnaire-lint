@@ -86,3 +86,21 @@ export function expressionSite(overrides: Partial<ExpressionSite> = {}): Express
     ...overrides,
   };
 }
+
+// The site of the fragment {{text}} in query, at its first occurrence; override any field.
+export function fragmentSite(
+  query: string,
+  text: string,
+  overrides: Partial<ExpressionSite> = {},
+): ExpressionSite {
+  const braces = query.indexOf(`{{${text}}}`);
+  if (braces === -1) throw new Error(`{{${text}}} is not in ${query}`);
+  const startOffset = braces + 2;
+  return expressionSite({
+    carrier: 'fragment',
+    language: 'text/fhirpath',
+    text,
+    fragment: { query, startOffset, endOffset: startOffset + text.length },
+    ...overrides,
+  });
+}
