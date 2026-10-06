@@ -63,7 +63,7 @@ export const parseError: LintRule = {
     docs: {
       checks:
         'Every expression whose language is text/fhirpath, at a catalogued location or found ' +
-        'elsewhere in the Questionnaire, is parsed with fhirpath.js 4.10.1. An expression that ' +
+        'elsewhere in the Questionnaire, is parsed with fhirpath.js. An expression that ' +
         'does not parse is reported at the position where the parser found the error.',
       why:
         'An expression that does not parse fails when the form runs: a calculated value is never ' +
