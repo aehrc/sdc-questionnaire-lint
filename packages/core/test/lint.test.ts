@@ -133,3 +133,75 @@ describe('expression findings', () => {
     expect(report.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
   });
 });
+
+describe('config', () => {
+  const config = 'sdc-questionnaire-lint.config.json';
+  const broken = JSON.stringify({
+    resourceType: 'Questionnaire',
+    id: 'A',
+    status: 'draft',
+    item: [
+      {
+        linkId: 'q',
+        extension: [
+          {
+            url: 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression',
+            valueExpression: { language: 'text/fhirpath', expression: 'a.where(' },
+          },
+        ],
+      },
+    ],
+  });
+
+  it('applies a configured severity', async () => {
+    const cwd = await tempTree({
+      [config]: JSON.stringify({ rules: { 'sdc/parse-error': 'warning' } }),
+      'fsh-generated/resources/Questionnaire-A.json': broken,
+    });
+    const report = await lint({ cwd });
+    expect(report.findings).toMatchObject([{ ruleId: 'sdc/parse-error', severity: 'warning' }]);
+    expect(report.summary).toMatchObject({ errors: 0, warnings: 1, config });
+  });
+
+  it('does not claim a syntax check ran when sdc/parse-error is off', async () => {
+    const cwd = await tempTree({
+      [config]: JSON.stringify({ rules: { 'sdc/parse-error': 'off' } }),
+      'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+        resourceType: 'Questionnaire',
+        status: 'draft',
+        extension: [
+          {
+            url: 'http://example.org/custom',
+            valueExpression: { language: 'text/fhirpath', expression: 'a.where(' },
+          },
+        ],
+      }),
+    });
+    expect((await lint({ cwd })).findings).toMatchObject([
+      {
+        ruleId: 'sdc/uncatalogued-expression',
+        message:
+          'This expression is in a place the linter does not recognise, so only its FHIRPath syntax can be checked.',
+      },
+    ]);
+  });
+
+  it('resolves files and source.fsh beneath a config in a subdirectory', async () => {
+    const cwd = await tempTree({
+      [`ig/${config}`]: JSON.stringify({ files: ['out'], source: { fsh: ['fsh'] } }),
+      'ig/out/Questionnaire-A.json': broken,
+      'ig/fsh/': '',
+    });
+    const report = await lint({ cwd, configPath: `ig/${config}` });
+    expectValidReport(report);
+    expect(report.findings).toMatchObject([
+      { jsonLocation: { file: 'ig/out/Questionnaire-A.json' } },
+    ]);
+    expect(report.summary).toMatchObject({ config: `ig/${config}`, fshSources: ['ig/fsh'] });
+  });
+
+  it('fails on an invalid config before looking for inputs', async () => {
+    const cwd = await tempTree({ [config]: '{ "rulez": {} }' });
+    await expect(lint({ cwd })).rejects.toMatchObject({ code: 'CONFIG_INVALID' });
+  });
+});

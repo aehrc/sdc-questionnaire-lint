@@ -1,23 +1,14 @@
 import type { InputFile } from '../inputs/paths.js';
 import { isObject } from '../object.js';
-import { sdcPlugin } from '../plugins/builtin.js';
+import type { RegisteredRule } from '../plugins/registry.js';
 import type {
   ExpressionSite,
-  LintRule,
   QuestionnaireDocument,
   RuleFinding,
+  Severity,
 } from '../plugins/types.js';
 import type { QuestionnaireFinding, ResourceIdentity } from '../report/types.js';
 import { questionnaireFingerprint, siteKeys } from './fingerprint.js';
-
-export interface Rule {
-  id: string;
-  rule: LintRule;
-}
-
-export const builtinRules: readonly Rule[] = Object.entries(sdcPlugin.rules).map(
-  ([name, rule]) => ({ id: `${sdcPlugin.meta.name}/${name}`, rule }),
-);
 
 function identity(resourceType: string, id: unknown, pointer: string): ResourceIdentity {
   return { resourceType, ...(typeof id === 'string' && id !== '' ? { id } : {}), pointer };
@@ -37,17 +28,17 @@ function resourceAt(document: QuestionnaireDocument, pointer: string): ResourceI
   return identity('Questionnaire', resource.id, resourcePointer);
 }
 
-// Calls each rule once on the document, at its default severity. Built-in rules are trusted: what
-// they report is not checked, and a crash propagates as a linter bug.
+// Calls each rule that is not off once on the document, at its effective severity. Built-in rules
+// are trusted: what they report is not checked, and a crash propagates as a linter bug.
 export function runRules(
   doc: { input: InputFile; document: QuestionnaireDocument; sites: readonly ExpressionSite[] },
-  rules: readonly Rule[],
+  rules: readonly RegisteredRule[],
 ): QuestionnaireFinding[] {
   const { input, document, sites } = doc;
   const keys = siteKeys(document, sites);
   const findings: QuestionnaireFinding[] = [];
 
-  function toFinding({ id, rule }: Rule, reported: RuleFinding): QuestionnaireFinding {
+  function toFinding(id: string, severity: Severity, reported: RuleFinding): QuestionnaireFinding {
     const { site } = reported;
     const pointer = site?.pointer ?? reported.pointer ?? document.resourcePointer;
     const resource = resourceAt(document, pointer);
@@ -58,7 +49,7 @@ export function runRules(
     return {
       kind: 'questionnaire',
       ruleId: id,
-      severity: reported.severity ?? rule.meta.defaultSeverity,
+      severity: reported.severity ?? severity,
       message: reported.message,
       ...(reported.help === undefined ? {} : { help: reported.help }),
       ...(reported.note === undefined ? {} : { note: reported.note }),
@@ -87,15 +78,16 @@ export function runRules(
     };
   }
 
-  for (const rule of rules) {
-    rule.rule.check({
+  for (const { id, rule, severity } of rules) {
+    if (severity === 'off') continue;
+    rule.check({
       document,
       sites,
       // A stub until the scope model exists (core-plan §3.1).
       scopeAt: () => ({ available: false, names: [] }),
       options: undefined,
       report: (reported) => {
-        findings.push(toFinding(rule, reported));
+        findings.push(toFinding(id, severity, reported));
       },
     });
   }

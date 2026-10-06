@@ -18,6 +18,7 @@ cd examples/health-check
 npx sdc-lint lint                  # errors and warnings; exit code 1
 npx sdc-lint lint --show-info      # also the info finding
 npx sdc-lint lint --format json    # the full JSON report
+npx sdc-lint explain sdc/parse-error  # what the rule checks and how to fix it
 ```
 
 ## Expected output

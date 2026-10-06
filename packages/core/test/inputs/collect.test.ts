@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { resolveRunPaths } from '../../src/config/paths.js';
 import { collectInputs } from '../../src/inputs/collect.js';
@@ -39,6 +40,17 @@ describe('collectInputs', () => {
       path: 'fsh-generated/resources',
       message: 'no Questionnaires found in fsh-generated/resources',
       help: 'run sushi . to generate fsh-generated/resources, then lint again; or pass paths to Questionnaire or Bundle JSON files, or list them in files in the config',
+    });
+  });
+
+  it('names the IG directory in the SUSHI hint for a config in a subdirectory', async () => {
+    const cwd = await tempTree({ 'ig/': '' });
+    const runPaths = resolveRunPaths({ cwd, config: { dir: path.join(cwd, 'ig'), config: {} } });
+    await expect(collectInputs({ cwd, cliPaths: [], runPaths })).rejects.toMatchObject({
+      path: 'ig/fsh-generated/resources',
+      help: expect.stringMatching(
+        /^run sushi ig to generate ig\/fsh-generated\/resources, then lint again;/,
+      ) as unknown,
     });
   });
 

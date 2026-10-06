@@ -60,6 +60,25 @@ export const parseError: LintRule = {
   meta: {
     description: 'Reports a FHIRPath expression that does not parse.',
     defaultSeverity: 'error',
+    docs: {
+      checks:
+        'Every expression whose language is text/fhirpath, at a catalogued location or found ' +
+        'elsewhere in the Questionnaire, is parsed with fhirpath.js. An expression that ' +
+        'does not parse is reported at the position where the parser found the error.',
+      why:
+        'An expression that does not parse fails when the form runs: a calculated value is never ' +
+        'filled in, a question is never shown or hidden, or prefill silently does nothing.',
+      exampleMessage: 'A closing ) is missing.',
+      fix:
+        'Correct the expression in the FSH rule that sets it, at the position the caret shows, ' +
+        'then run SUSHI again. FHIRPath strings use single quotes, and every opening bracket ' +
+        'needs a closing one.',
+      limitations:
+        'Only syntax is checked: unknown functions, undefined variables and wrong paths still ' +
+        'parse. Expressions in other languages, such as x-fhir-query and CQL, are not parsed. ' +
+        'Some malformed input makes the parser fail without a position; the finding then has no ' +
+        'caret.',
+    },
   },
   check(ctx) {
     for (const site of ctx.sites) {
