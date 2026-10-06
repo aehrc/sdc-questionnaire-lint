@@ -45,7 +45,8 @@ function rangeAt(text: string, offset: number): OffsetRange {
   return { startOffset: offset, endOffset: offset + width };
 }
 
-function toFinding(text: string, error: FhirPathSyntaxError): Omit<RuleFinding, 'site'> {
+// The finding for a syntax error in text, without its site; shared with sdc/fragment-parse-error.
+export function syntaxFinding(text: string, error: FhirPathSyntaxError): Omit<RuleFinding, 'site'> {
   const { parserMessage, offset } = error;
   // The first clause only: what the parser saw, not what it expected.
   const clause = parserMessage?.replace(/ expecting [\s\S]*$/, '');
@@ -85,7 +86,7 @@ export const parseError: LintRule = {
       // Fragments are sdc/fragment-parse-error's.
       if (site.carrier !== 'expression' || !hasFhirPathText(site)) continue;
       const error = checkFhirPathSyntax(site.text);
-      if (error !== undefined) ctx.report({ site, ...toFinding(site.text, error) });
+      if (error !== undefined) ctx.report({ site, ...syntaxFinding(site.text, error) });
     }
   },
 };

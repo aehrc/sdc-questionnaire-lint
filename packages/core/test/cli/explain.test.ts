@@ -12,6 +12,7 @@ describe('sdc-lint explain', () => {
       code: 0,
       stdout:
         'RULE                         DEFAULT  EFFECTIVE  DESCRIPTION\n' +
+        'sdc/fragment-parse-error     error    error      Reports a FHIRPath expression embedded in an x-fhir-query that does not parse.\n' +
         'sdc/parse-error              error    error      Reports a FHIRPath expression that does not parse.\n' +
         'sdc/uncatalogued-expression  info     info       Reports an expression in a place the linter does not recognise.\n' +
         'sdc/unknown-function         error    error      Reports a call to a function that fhirpath.js does not implement.\n' +
@@ -61,6 +62,17 @@ describe('sdc-lint explain', () => {
     expect(stdout).toContain(
       'fist() is not a FHIRPath function, so this expression fails when the form runs.',
     );
+  });
+
+  it('prints the documentation of sdc/fragment-parse-error', async () => {
+    const { code, stdout } = await runInProcess(['explain', 'sdc/fragment-parse-error'], {
+      cwd: await tempTree(),
+    });
+    expect(code).toBe(0);
+    expect(stdout).toMatch(
+      /^sdc\/fragment-parse-error\nReports a FHIRPath expression embedded in an x-fhir-query that does not parse\.\n\nDefault severity: error\. Effective severity: error\.\n/,
+    );
+    expect(stdout).toContain('The expression ends before it is complete.');
   });
 
   it('exits 2 for an unknown rule, naming a similar one on stderr', async () => {

@@ -133,6 +133,24 @@ describe('expression findings', () => {
     expect(report.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
   });
 
+  it('reports a broken fragment once, as sdc/fragment-parse-error', async () => {
+    const text = 'Observation?subject={{%patient.id.}}';
+    const { findings } = await lintQuestionnaire({
+      extension: [
+        {
+          url: `${sdc}itemPopulationContext`,
+          valueExpression: { name: 'obs', language: 'application/x-fhir-query', expression: text },
+        },
+      ],
+    });
+    expect(findings).toMatchObject([
+      {
+        ruleId: 'sdc/fragment-parse-error',
+        expression: { text, range: { startOffset: 34, endOffset: 34 } },
+      },
+    ]);
+  });
+
   it('shows a finding in a fragment in its query, with the range rebased', async () => {
     const text = 'Observation?subject={{%patient.fist()}}';
     const { report, findings } = await lintQuestionnaire({

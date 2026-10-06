@@ -17,6 +17,7 @@ describe('registerRules', () => {
   it('registers every built-in rule at its default severity, sorted by ID', () => {
     const rules = registerRules(null);
     expect(severities(rules)).toEqual([
+      ['sdc/fragment-parse-error', 'error'],
       ['sdc/parse-error', 'error'],
       ['sdc/uncatalogued-expression', 'info'],
       ['sdc/unknown-function', 'error'],
@@ -30,6 +31,7 @@ describe('registerRules', () => {
       loaded({ rules: { 'sdc/parse-error': 'warning', 'sdc/uncatalogued-expression': 'off' } }),
     );
     expect(severities(rules)).toEqual([
+      ['sdc/fragment-parse-error', 'error'],
       ['sdc/parse-error', 'warning'],
       ['sdc/uncatalogued-expression', 'off'],
       ['sdc/unknown-function', 'error'],
