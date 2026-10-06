@@ -74,10 +74,10 @@ export const parseError: LintRule = {
         'then run SUSHI again. FHIRPath strings use single quotes, and every opening bracket ' +
         'needs a closing one.',
       limitations:
-        'Only syntax is checked: unknown functions, undefined variables and wrong paths still ' +
-        'parse. Expressions in other languages, such as x-fhir-query and CQL, are not parsed. ' +
-        'Some malformed input makes the parser fail without a position; the finding then has no ' +
-        'caret.',
+        'Only syntax is checked: undefined variables and wrong paths still parse, and unknown ' +
+        'functions are reported by sdc/unknown-function. Expressions in other languages, such as ' +
+        'x-fhir-query and CQL, are not parsed. Some malformed input makes the parser fail ' +
+        'without a position; the finding then has no caret.',
     },
   },
   check(ctx) {

@@ -19,6 +19,7 @@ describe('registerRules', () => {
     expect(severities(rules)).toEqual([
       ['sdc/parse-error', 'error'],
       ['sdc/uncatalogued-expression', 'info'],
+      ['sdc/unknown-function', 'error'],
     ]);
     expect(rules.map(({ id }) => id)).toEqual(rules.map(({ id }) => id).sort());
     expect(rules[0]?.rule.meta.defaultSeverity).toBe('error');
@@ -31,6 +32,7 @@ describe('registerRules', () => {
     expect(severities(rules)).toEqual([
       ['sdc/parse-error', 'warning'],
       ['sdc/uncatalogued-expression', 'off'],
+      ['sdc/unknown-function', 'error'],
     ]);
   });
 

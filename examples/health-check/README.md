@@ -1,13 +1,14 @@
 # Example: adult health check
 
-A form with four common authoring mistakes. `fsh-generated/resources/Questionnaire-HealthCheck.json` stands in for SUSHI output.
+A form with five common authoring mistakes. `fsh-generated/resources/Questionnaire-HealthCheck.json` stands in for SUSHI output.
 
 | Item | Where | Mistake | Finding |
 | :- | :- | :- | :- |
 | `bmi` | calculatedExpression, line 2 | `.round(1` has no closing `)` | `sdc/parse-error`, error |
+| `bmi` | variable `h` | `fist()` is a typo for `first()` | `sdc/unknown-function`, error |
 | `smoking` | cqf-expression on `_text` | the string uses `"…"`; FHIRPath strings use single quotes | `sdc/parse-error`, error |
 | `packs` | enableWhenExpression | the expression ends with a dangling `and` | `sdc/parse-error`, error |
-| `smoking` | a custom extension on an answerOption | an expression in a place the linter does not recognise | `sdc/unregistered-expression`, info |
+| `smoking` | a custom extension on an answerOption | an expression in a place the linter does not recognise | `sdc/uncatalogued-expression`, info |
 
 ## Run it
 
@@ -19,6 +20,7 @@ npx sdc-lint lint                  # errors and warnings; exit code 1
 npx sdc-lint lint --show-info      # also the info finding
 npx sdc-lint lint --format json    # the full JSON report
 npx sdc-lint explain sdc/parse-error  # what the rule checks and how to fix it
+npx sdc-lint explain sdc/unknown-function
 ```
 
 ## Expected output
@@ -47,7 +49,14 @@ fsh-generated/resources/Questionnaire-HealthCheck.json: error sdc/parse-error Th
   note: FSH line not found, no FSH sources are available
   note: the FHIRPath parser reported: mismatched input '<EOF>'
 
-4 findings (3 errors, 0 warnings, 1 info) in 1 questionnaire. 1 info finding hidden; use --show-info.
+fsh-generated/resources/Questionnaire-HealthCheck.json: error sdc/unknown-function fist() is not a FHIRPath function, so this expression fails when the form runs.
+  %resource.item.where(linkId = 'body').item.where(linkId = 'height').answer.fist().value / 100
+                                                                             ^~~~
+  location: compiled JSON; Questionnaire/HealthCheck; /item/0/item/2/extension/0/valueExpression/expression
+  note: FSH line not found, no FSH sources are available
+  help: a function with a similar name exists: first()
+
+5 findings (4 errors, 0 warnings, 1 info) in 1 questionnaire. 1 info finding hidden; use --show-info.
 Inputs: full run; 1 file read, 0 skipped. Expressions: 6 analysed, 2 unchecked. Suppressed findings: 0.
 Suppressions: 0 applied, 0 stale, 0 not assessed.
 Config: none, built-in defaults. FSH sources: none found.

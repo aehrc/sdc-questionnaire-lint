@@ -181,7 +181,7 @@ describe('config', () => {
       {
         ruleId: 'sdc/uncatalogued-expression',
         message:
-          'This expression is in a place the linter does not recognise, so only its FHIRPath syntax can be checked.',
+          'This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.',
       },
     ]);
   });

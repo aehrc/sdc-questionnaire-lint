@@ -24,5 +24,5 @@ One expression the linter found in a Questionnaire, with where it is, what carri
 _Avoid_: Expression location, occurrence
 
 **Registered location**:
-A place in a Questionnaire that the linter's registry recognises, such as a variable or a calculatedExpression on an item. An expression site found anywhere else is unregistered, and only its syntax can be checked.
+A place in a Questionnaire that the linter's registry recognises, such as a variable or a calculatedExpression on an item. An expression site found anywhere else is unregistered, and only its syntax and function names can be checked.
 _Avoid_: Known extension, supported path

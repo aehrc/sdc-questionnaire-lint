@@ -40,3 +40,8 @@ Where the plan and [linter-design-guidelines.md](linter-design-guidelines.md) di
 
 - **§2.1, §7.3 executable names:** the npm package is `sdc-questionnaire-lint`; its primary executable is `sdc-lint`. Both `sdc-lint` and the `sdc-questionnaire-lint` executable alias ship in v1 and use the same implementation. This supersedes deferring a short alias. Help, usage examples and IG scripts use `sdc-lint`.
 - **§6, §7.4 package identity:** config filenames, library imports, plugin package names and the report's `run.tool.name` retain `sdc-questionnaire-lint`. Choosing an executable name does not change report content or behavior.
+
+## From slice 5, `sdc/unknown-function` (2026-10-06)
+
+- **§4.1 `sdc/unknown-function` catalogue:** the catalogue is the keys of `engine.invocationTable` in the pinned fhirpath.js, the engine Smart Forms runs; it supersedes "the pinned FHIRPath and SDC function catalogue". fhirpath.js fails on a call to any other name, even on an empty collection, so the rule defaults to `error`. A FHIRPath specification function that fhirpath.js lacks is reported too. `packages/core/src/analysis/functions.ts` is generated from the installed fhirpath.js by `npm run generate:functions --workspace sdc-questionnaire-lint`, and a test fails when the two differ.
+- **§4.1 `sdc/unknown-function` scope:** calls on `%factory` and `%terminologies` are not checked, because fhirpath.js resolves them against those objects' own functions. An expression that does not parse gets no `sdc/unknown-function`; the `sdc/parse-error` finding stands alone.

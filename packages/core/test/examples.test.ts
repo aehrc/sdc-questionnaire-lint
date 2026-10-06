@@ -22,7 +22,12 @@ describe('examples/health-check', () => {
       [
         'sdc/uncatalogued-expression',
         'smoking',
-        'This expression is in a place the linter does not recognise, so only its FHIRPath syntax can be checked.',
+        'This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.',
+      ],
+      [
+        'sdc/unknown-function',
+        'bmi',
+        'fist() is not a FHIRPath function, so this expression fails when the form runs.',
       ],
     ]);
     expect(report.summary.expressions).toEqual({ analysed: 6, unchecked: 2 });
