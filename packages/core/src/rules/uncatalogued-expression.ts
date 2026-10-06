@@ -2,6 +2,7 @@ import { FHIRPATH } from '../analysis/fhirpath.js';
 import type { LintRule } from '../plugins/types.js';
 
 const unrecognised = 'This expression is in a place the linter does not recognise';
+const fhirPathMessage = `${unrecognised}, so only its FHIRPath syntax and function names can be checked.`;
 
 export const uncataloguedExpression: LintRule = {
   meta: {
@@ -14,9 +15,10 @@ export const uncataloguedExpression: LintRule = {
         'contained resource. Each one is reported once.',
       why:
         'The linter knows how a recognised location is used, such as for rendering or population. ' +
-        'Any other expression gets at most the FHIRPath syntax check of sdc/parse-error, and an ' +
-        'expression in another language gets no check, so a clean run says nothing else about it.',
-      exampleMessage: `${unrecognised}, so only its FHIRPath syntax can be checked.`,
+        'Any other expression gets at most the FHIRPath syntax and function checks of ' +
+        'sdc/parse-error and sdc/unknown-function, and an expression in another language gets no ' +
+        'check, so a clean run says nothing else about it.',
+      exampleMessage: fhirPathMessage,
       fix:
         'Nothing to fix when the location is intended. If the expression belongs in an SDC ' +
         'extension, move it there, for example from a misspelt extension URL to the correct one.',
@@ -31,9 +33,7 @@ export const uncataloguedExpression: LintRule = {
       ctx.report({
         site,
         message:
-          site.language === FHIRPATH
-            ? `${unrecognised}, so only its FHIRPath syntax can be checked.`
-            : `${unrecognised}, so it was not checked.`,
+          site.language === FHIRPATH ? fhirPathMessage : `${unrecognised}, so it was not checked.`,
       });
     }
   },

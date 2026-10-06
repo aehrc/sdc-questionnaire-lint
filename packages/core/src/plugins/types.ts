@@ -55,7 +55,8 @@ export interface ExpressionSite {
   // The catalogued location the site matched; absent for an uncatalogued site.
   readonly location?: CataloguedLocation;
   // Whether the site matched a catalogued location. An uncatalogued site was found by generic
-  // detection of an object with a language and an expression; only its syntax can be checked.
+  // detection of an object with a language and an expression; only its syntax and function names
+  // can be checked.
   readonly catalogued: boolean;
   // For an expression in a primitive element's extension, such as _text, the element name: text.
   readonly element?: string;
