@@ -1,4 +1,12 @@
+import type { ExpressionSite } from '../plugins/types.js';
+
 export const X_FHIR_QUERY = 'application/x-fhir-query';
+
+// Whether the query checks apply to a site: an Expression whose language is exactly
+// x-fhir-query, with text. Its fragments are FHIRPath sites of their own.
+export function hasQueryText(site: ExpressionSite): site is ExpressionSite & { text: string } {
+  return site.carrier === 'expression' && site.language === X_FHIR_QUERY && site.text !== undefined;
+}
 
 // Where the {{…}} fragments of an x-fhir-query are.
 export interface QueryScan {

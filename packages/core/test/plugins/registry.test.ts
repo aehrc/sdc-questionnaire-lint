@@ -19,6 +19,7 @@ describe('registerRules', () => {
     expect(severities(rules)).toEqual([
       ['sdc/fragment-parse-error', 'error'],
       ['sdc/parse-error', 'error'],
+      ['sdc/query-syntax', 'error'],
       ['sdc/uncatalogued-expression', 'info'],
       ['sdc/unknown-function', 'error'],
     ]);
@@ -33,6 +34,7 @@ describe('registerRules', () => {
     expect(severities(rules)).toEqual([
       ['sdc/fragment-parse-error', 'error'],
       ['sdc/parse-error', 'warning'],
+      ['sdc/query-syntax', 'error'],
       ['sdc/uncatalogued-expression', 'off'],
       ['sdc/unknown-function', 'error'],
     ]);

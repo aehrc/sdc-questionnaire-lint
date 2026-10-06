@@ -1,6 +1,7 @@
 import pkg from '../../package.json' with { type: 'json' };
 import { fragmentParseError } from '../rules/fragment-parse-error.js';
 import { parseError } from '../rules/parse-error.js';
+import { querySyntax } from '../rules/query-syntax.js';
 import { uncataloguedExpression } from '../rules/uncatalogued-expression.js';
 import { unknownFunction } from '../rules/unknown-function.js';
 import type { LintPlugin } from './types.js';
@@ -11,6 +12,7 @@ export const sdcPlugin: LintPlugin = {
   rules: {
     'fragment-parse-error': fragmentParseError,
     'parse-error': parseError,
+    'query-syntax': querySyntax,
     'uncatalogued-expression': uncataloguedExpression,
     'unknown-function': unknownFunction,
   },
