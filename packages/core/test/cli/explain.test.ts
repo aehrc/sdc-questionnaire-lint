@@ -49,8 +49,8 @@ describe('sdc-lint explain', () => {
     ]);
   });
 
-  it('exits 2 for an unknown rule, naming a similar one on stderr', () => {
-    const result = runBinary(['explain', 'sdc/parse-eror'], { cwd: process.cwd() });
+  it('exits 2 for an unknown rule, naming a similar one on stderr', async () => {
+    const result = runBinary(['explain', 'sdc/parse-eror'], { cwd: await tempTree() });
     expect(result).toEqual({
       code: 2,
       stdout: '',

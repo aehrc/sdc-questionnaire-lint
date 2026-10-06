@@ -38,6 +38,14 @@ describe('validateConfig', () => {
     );
   });
 
+  it('names the expected shape for a key that is not an object', () => {
+    expect(() => validateConfig({ rules: [] }, display)).toThrow(
+      expect.objectContaining({
+        help: 'make rules an object, such as { "sdc/parse-error": "warning" }',
+      }),
+    );
+  });
+
   it('accepts a config, with source.fsh [] omitting source lookup', () => {
     const config = {
       files: ['fsh-generated/resources'],

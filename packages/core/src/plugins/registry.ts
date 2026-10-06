@@ -30,9 +30,10 @@ export function registerRules(loaded: LoadedConfig | null): RegisteredRule[] {
     })
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
+  if (loaded === null) return rules;
   const ruleIds = rules.map(({ id }) => id);
   for (const id of Object.keys(settings)) {
-    if (loaded !== null && !ruleIds.includes(id)) {
+    if (!ruleIds.includes(id)) {
       throw configInvalid(
         loaded.display,
         ['rules', id],

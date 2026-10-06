@@ -42,6 +42,7 @@ describe('loadConfig', () => {
 
   it.each([
     ['a missing path', {}, 'missing.json', 'config missing.json does not exist'],
+    ['a missing path with no extension', {}, 'missing', 'config missing does not exist'],
     ['a directory', { 'dir.json/': '' }, 'dir.json', 'config dir.json is not a file'],
     ['a .mjs path', { 'c.mjs': '' }, 'c.mjs', 'config c.mjs is not a JSON file'],
     ['invalid JSON', { 'c.json': '{ files' }, 'c.json', /^config c\.json is not valid JSON: \S/],

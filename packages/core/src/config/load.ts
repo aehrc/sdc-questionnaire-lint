@@ -31,12 +31,6 @@ export async function loadConfig({
   const invalid = (message: string, help: string): LintFailure =>
     new LintFailure({ code: 'CONFIG_INVALID', path: display, message, help });
 
-  if (path.extname(file) !== '.json') {
-    throw invalid(
-      `config ${display} is not a JSON file`,
-      `use a JSON config, such as ${configFileName}`,
-    );
-  }
   let text: string;
   try {
     text = await readFile(file, 'utf8');
@@ -58,6 +52,13 @@ export async function loadConfig({
     throw invalid(
       `cannot read config ${display}: ${describeError(error)}`,
       'check the permissions of the config file',
+    );
+  }
+  // Checked after reading, so a mistyped path is reported as missing.
+  if (path.extname(file) !== '.json') {
+    throw invalid(
+      `config ${display} is not a JSON file`,
+      `use a JSON config, such as ${configFileName}`,
     );
   }
   let raw: unknown;

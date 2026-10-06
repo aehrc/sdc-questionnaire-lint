@@ -36,13 +36,13 @@ export function validateConfig(raw: unknown, display: string): LintConfig {
   const fail = (at: Path, problem: string, help: string): never => {
     throw configInvalid(display, at, problem, help);
   };
-  const expectObject = (value: unknown, at: Path): Record<string, unknown> =>
+  const expectObject = (value: unknown, at: Path, example: string): Record<string, unknown> =>
     isObject(value)
       ? value
       : fail(
           at,
           `expected an object, got ${describeValue(value)}`,
-          'see docs/cli.md for the config format',
+          `make ${toPointer(at).slice(1)} an object, such as ${example}`,
         );
   const expectStrings = (value: unknown, at: Path, what: string): void => {
     if (!Array.isArray(value)) {
@@ -90,7 +90,7 @@ export function validateConfig(raw: unknown, display: string): LintConfig {
   }
 
   if (config.source !== undefined) {
-    const source = expectObject(config.source, ['source']);
+    const source = expectObject(config.source, ['source'], '{ "fsh": ["input/fsh"] }');
     for (const key of Object.keys(source)) {
       if (key !== 'fsh') fail(['source', key], `unknown key ${key}`, 'the only source key is fsh');
     }
@@ -99,7 +99,7 @@ export function validateConfig(raw: unknown, display: string): LintConfig {
   }
 
   if (config.rules !== undefined) {
-    const rules = expectObject(config.rules, ['rules']);
+    const rules = expectObject(config.rules, ['rules'], '{ "sdc/parse-error": "warning" }');
     for (const [ruleId, setting] of Object.entries(rules)) {
       if (typeof setting !== 'string' || !ruleSettings.includes(setting)) {
         fail(
