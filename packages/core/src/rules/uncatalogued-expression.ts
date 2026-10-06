@@ -14,9 +14,9 @@ export const uncataloguedExpression: LintRule = {
         'contained resource. Each one is reported once.',
       why:
         'The linter knows how a recognised location is used, such as for rendering or population. ' +
-        'For any other expression it checks FHIRPath syntax at most, and expressions in other ' +
-        'languages not at all, so a clean run says nothing else about it.',
-      exampleMessage: `${unrecognised}, so only its FHIRPath syntax was checked.`,
+        'Any other expression gets at most the FHIRPath syntax check of sdc/parse-error, and an ' +
+        'expression in another language gets no check, so a clean run says nothing else about it.',
+      exampleMessage: `${unrecognised}, so only its FHIRPath syntax can be checked.`,
       fix:
         'Nothing to fix when the location is intended. If the expression belongs in an SDC ' +
         'extension, move it there, for example from a misspelt extension URL to the correct one.',
@@ -32,7 +32,7 @@ export const uncataloguedExpression: LintRule = {
         site,
         message:
           site.language === FHIRPATH
-            ? `${unrecognised}, so only its FHIRPath syntax was checked.`
+            ? `${unrecognised}, so only its FHIRPath syntax can be checked.`
             : `${unrecognised}, so it was not checked.`,
       });
     }

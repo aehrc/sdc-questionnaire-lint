@@ -163,6 +163,29 @@ describe('config', () => {
     expect(report.summary).toMatchObject({ errors: 0, warnings: 1, config });
   });
 
+  it('does not claim a syntax check ran when sdc/parse-error is off', async () => {
+    const cwd = await tempTree({
+      [config]: JSON.stringify({ rules: { 'sdc/parse-error': 'off' } }),
+      'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+        resourceType: 'Questionnaire',
+        status: 'draft',
+        extension: [
+          {
+            url: 'http://example.org/custom',
+            valueExpression: { language: 'text/fhirpath', expression: 'a.where(' },
+          },
+        ],
+      }),
+    });
+    expect((await lint({ cwd })).findings).toMatchObject([
+      {
+        ruleId: 'sdc/uncatalogued-expression',
+        message:
+          'This expression is in a place the linter does not recognise, so only its FHIRPath syntax can be checked.',
+      },
+    ]);
+  });
+
   it('resolves files and source.fsh beneath a config in a subdirectory', async () => {
     const cwd = await tempTree({
       [`ig/${config}`]: JSON.stringify({ files: ['out'], source: { fsh: ['fsh'] } }),
