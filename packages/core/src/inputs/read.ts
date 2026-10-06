@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { describeError, LintFailure } from '../failure.js';
+import { isObject } from '../object.js';
 import type { LocalResource, QuestionnaireDocument } from '../plugins/types.js';
 import type { InputFile } from './paths.js';
 
@@ -13,10 +14,6 @@ export interface ReadResult {
   documents: InputDocument[];
   // read: every parsed file; skipped: parsed files with neither a Questionnaire nor a Bundle.
   files: { read: number; skipped: number };
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 async function parseFile(file: InputFile): Promise<unknown> {

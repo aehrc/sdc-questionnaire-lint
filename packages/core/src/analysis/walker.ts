@@ -1,0 +1,136 @@
+import { toPointer } from '../json-pointer.js';
+import { isObject } from '../object.js';
+import type { ExpressionSite, QuestionnaireDocument, SiteItem } from '../plugins/types.js';
+import { type Owner, registry, type RegistryEntry } from './registry.js';
+
+type Json = Record<string, unknown>;
+type Segments = readonly (string | number)[];
+
+// The registered location an Expression object was claimed for.
+interface Claim {
+  entry: RegistryEntry;
+  // For an extension in a primitive element's _element companion, the element name.
+  element?: string;
+}
+
+function stringField(object: Json, key: string): Record<string, string> {
+  const value = object[key];
+  return typeof value === 'string' ? { [key]: value } : {};
+}
+
+// The Expression objects a registered extension holds; none when its shape is not the expected
+// one, which is the FHIR Validator's to report.
+function expressionsOf(extension: Json, entry: RegistryEntry): Json[] {
+  if (entry.subExtension === undefined) {
+    return isObject(extension.valueExpression) ? [extension.valueExpression] : [];
+  }
+  if (!Array.isArray(extension.extension)) return [];
+  return extension.extension.flatMap((sub: unknown) =>
+    isObject(sub) && sub.url === entry.subExtension && isObject(sub.valueExpression)
+      ? [sub.valueExpression]
+      : [],
+  );
+}
+
+// Every expression site in a Questionnaire, in document order: a depth-first, pre-order traversal
+// of its JSON. Expressions held by registered extensions on the root and its items are registered
+// sites; any other object with a string language and expression, including in a contained
+// resource, is an unregistered site.
+export function findSites(document: QuestionnaireDocument): ExpressionSite[] {
+  const sites: ExpressionSite[] = [];
+  const claims = new Map<Json, Claim>();
+  const pointerOf = (segments: Segments): string => document.resourcePointer + toPointer(segments);
+
+  function claimAll(
+    extensions: unknown,
+    matches: (on: RegistryEntry['on'][Owner]) => boolean,
+    owner: Owner,
+    element?: string,
+  ): void {
+    if (!Array.isArray(extensions)) return;
+    for (const extension of extensions) {
+      if (!isObject(extension)) continue;
+      for (const entry of registry) {
+        if (entry.url !== extension.url || !matches(entry.on[owner])) continue;
+        for (const expression of expressionsOf(extension, entry)) {
+          claims.set(expression, { entry, ...(element === undefined ? {} : { element }) });
+        }
+      }
+    }
+  }
+
+  // Claims the Expressions in an owner's extensions and in its primitives' _element companions.
+  function claimOwned(owner: Json, kind: Owner): void {
+    claimAll(owner.extension, (on) => on === true, kind);
+    claimAll(owner.modifierExtension, (on) => on === true, kind);
+    for (const [key, value] of Object.entries(owner)) {
+      if (!key.startsWith('_') || !isObject(value)) continue;
+      const element = key.slice(1);
+      claimAll(value.extension, (on) => Array.isArray(on) && on.includes(element), kind, element);
+    }
+  }
+
+  function addSite(expression: Json, segments: Segments, item: SiteItem | undefined): void {
+    const claim = claims.get(expression);
+    const expressionPointer = pointerOf(segments);
+    const text = expression.expression;
+    const site: ExpressionSite = {
+      pointer: typeof text === 'string' ? `${expressionPointer}/expression` : expressionPointer,
+      expressionPointer,
+      carrier: claim?.entry.carrier ?? 'expression',
+      ...(claim === undefined
+        ? {}
+        : {
+            location: Object.freeze({
+              url: claim.entry.url,
+              ...(claim.entry.subExtension === undefined
+                ? {}
+                : { subExtension: claim.entry.subExtension }),
+            }),
+          }),
+      registered: claim !== undefined,
+      ...(claim?.element === undefined ? {} : { element: claim.element }),
+      ...(item === undefined ? {} : { item }),
+      ...stringField(expression, 'language'),
+      ...(typeof text === 'string' ? { text } : {}),
+      ...stringField(expression, 'reference'),
+      ...stringField(expression, 'name'),
+      declares: claim?.entry.declares ?? false,
+      useCases: claim?.entry.useCases ?? Object.freeze([]),
+    };
+    sites.push(Object.freeze(site));
+  }
+
+  // owner is set for the root and its items; below anything else, such as contained, it is unset.
+  function visit(node: unknown, segments: Segments, item?: SiteItem, owner?: Owner): void {
+    if (Array.isArray(node)) {
+      node.forEach((child, index) => {
+        visit(child, [...segments, index], item);
+      });
+      return;
+    }
+    if (!isObject(node)) return;
+    if (owner !== undefined) claimOwned(node, owner);
+    if (
+      claims.has(node) ||
+      (typeof node.language === 'string' && typeof node.expression === 'string')
+    ) {
+      addSite(node, segments, item);
+    }
+    for (const [key, value] of Object.entries(node)) {
+      const path = [...segments, key];
+      if (owner === undefined || key !== 'item' || !Array.isArray(value)) {
+        visit(value, path, item);
+        continue;
+      }
+      value.forEach((child, index) => {
+        const itemPath = [...path, index];
+        const linkId = isObject(child) ? stringField(child, 'linkId') : {};
+        visit(child, itemPath, Object.freeze({ pointer: pointerOf(itemPath), ...linkId }), 'item');
+      });
+    }
+  }
+
+  visit(document.resource, [], undefined, 'root');
+  return sites;
+}

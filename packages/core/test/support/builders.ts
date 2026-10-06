@@ -5,6 +5,7 @@ import type {
   QuestionnaireFinding,
   Summary,
 } from '../../src/index.js';
+import type { ExpressionSite } from '../../src/plugins/types.js';
 
 // A schema-valid unmapped Questionnaire finding; override any field.
 export function questionnaireFinding(
@@ -70,5 +71,18 @@ export function completedReport(
       fshSourceLookup: 'enabled',
       ...summary,
     },
+  };
+}
+
+// An unregistered site with no language and no text; override any field.
+export function expressionSite(overrides: Partial<ExpressionSite> = {}): ExpressionSite {
+  return {
+    pointer: '/extension/0/valueExpression',
+    expressionPointer: '/extension/0/valueExpression',
+    carrier: 'expression',
+    registered: false,
+    declares: false,
+    useCases: [],
+    ...overrides,
   };
 }

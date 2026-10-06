@@ -1,0 +1,58 @@
+import { createHash } from 'node:crypto';
+import type { ExpressionSite, QuestionnaireDocument } from '../plugins/types.js';
+import type { ResourceIdentity } from '../report/types.js';
+
+// A site's identity from its own fields, without array indexes above its item where the item has
+// a linkId. Sites that repeat one registered location share a base key.
+function baseKey(document: QuestionnaireDocument, site: ExpressionSite): string {
+  const anchor = site.item?.linkId ?? site.item?.pointer ?? '';
+  const { location } = site;
+  if (location !== undefined) {
+    return JSON.stringify([
+      anchor,
+      location.url,
+      location.subExtension ?? null,
+      site.element ?? null,
+      site.declares ? (site.name ?? null) : null,
+    ]);
+  }
+  const base = site.item?.pointer ?? document.resourcePointer;
+  return JSON.stringify([anchor, site.pointer.slice(base.length)]);
+}
+
+// One stable key per site of a document; computed once per document, in document order. The n-th
+// site with the same base key gets #n, so repeats stay distinct; the first gets nothing. Inserting
+// another site with the same base key before a site therefore changes its key.
+export function siteKeys(
+  document: QuestionnaireDocument,
+  sites: readonly ExpressionSite[],
+): Map<ExpressionSite, string> {
+  const occurrences = new Map<string, number>();
+  const keys = new Map<ExpressionSite, string>();
+  for (const site of sites) {
+    const base = baseKey(document, site);
+    const occurrence = (occurrences.get(base) ?? 0) + 1;
+    occurrences.set(base, occurrence);
+    keys.set(site, occurrence === 1 ? base : `${base}#${String(occurrence)}`);
+  }
+  return keys;
+}
+
+// Rule, file, resource and the site key; never a line number or an array index above the item.
+export function questionnaireFingerprint(parts: {
+  ruleId: string;
+  file: string;
+  resource: ResourceIdentity;
+  key: string;
+}): string {
+  const { ruleId, file, resource, key } = parts;
+  const identity = [
+    ruleId,
+    file,
+    resource.resourceType,
+    resource.id ?? null,
+    resource.pointer,
+    key,
+  ];
+  return createHash('sha256').update(JSON.stringify(identity)).digest('hex');
+}
