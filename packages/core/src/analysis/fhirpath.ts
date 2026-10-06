@@ -142,9 +142,10 @@ export function findFunctionCalls(text: string): FunctionCall[] | undefined {
   return calls;
 }
 
-// Approximates report-format.md § Run metadata and summary while FHIRPath syntax is the only
-// check: catalogued FHIRPath sites with text are analysed; uncatalogued sites still lack scope
-// analysis, and other languages have no analysis. Revisit when a second check is added.
+// Approximates report-format.md § Run metadata and summary. A catalogued FHIRPath site with text
+// is analysed: the syntax check always completes, and the function check either runs or is
+// prevented by an established syntax error. Uncatalogued sites still lack scope analysis, and
+// other languages have no analysis.
 export function countExpressions(sites: readonly ExpressionSite[]): Summary['expressions'] {
   const analysed = sites.filter((site) => site.catalogued && hasFhirPathText(site)).length;
   return { analysed, unchecked: sites.length - analysed };
