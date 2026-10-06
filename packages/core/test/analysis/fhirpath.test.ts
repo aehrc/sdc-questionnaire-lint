@@ -4,7 +4,7 @@ import {
   countExpressions,
   findFunctionCalls,
 } from '../../src/analysis/fhirpath.js';
-import { expressionSite } from '../support/builders.js';
+import { expressionSite, fragmentSite } from '../support/builders.js';
 
 describe('checkFhirPathSyntax', () => {
   it('returns undefined for valid text', () => {
@@ -125,13 +125,26 @@ describe('countExpressions', () => {
   it('counts uncatalogued, other-language and reference-only sites as unchecked', () => {
     const sites = [
       expressionSite(fhirPath('1 + 1')),
-      expressionSite({
-        ...catalogued,
-        language: 'application/x-fhir-query',
-        text: 'Patient?_id=1',
-      }),
+      expressionSite({ ...catalogued, language: 'text/cql', text: 'AgeInYears()' }),
       expressionSite({ ...catalogued, language: 'text/fhirpath', reference: '#library' }),
+      expressionSite({ ...catalogued, language: 'application/x-fhir-query', reference: '#q' }),
     ];
-    expect(countExpressions(sites)).toEqual({ analysed: 0, unchecked: 3 });
+    expect(countExpressions(sites)).toEqual({ analysed: 0, unchecked: 4 });
+  });
+
+  describe('a query and its fragment, counted separately', () => {
+    const text = 'Observation?subject={{%patient.id}}';
+    const query = (overrides = {}) =>
+      expressionSite({ language: 'application/x-fhir-query', text, ...overrides });
+
+    it('counts both as analysed when the query is catalogued', () => {
+      const sites = [query(catalogued), fragmentSite(text, '%patient.id', catalogued)];
+      expect(countExpressions(sites)).toEqual({ analysed: 2, unchecked: 0 });
+    });
+
+    it('counts both as unchecked when the query is uncatalogued', () => {
+      const sites = [query(), fragmentSite(text, '%patient.id')];
+      expect(countExpressions(sites)).toEqual({ analysed: 0, unchecked: 2 });
+    });
   });
 });

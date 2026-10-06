@@ -2,6 +2,8 @@ import { toPointer } from '../json-pointer.js';
 import { isObject } from '../object.js';
 import type { ExpressionSite, QuestionnaireDocument, SiteItem } from '../plugins/types.js';
 import { type CatalogEntry, extensionCatalog, type Owner } from './extension-catalog.js';
+import { FHIRPATH } from './fhirpath.js';
+import { scanQuery, X_FHIR_QUERY } from './query.js';
 
 type Json = Record<string, unknown>;
 type Segments = readonly (string | number)[];
@@ -32,10 +34,32 @@ function expressionsOf(extension: Json, entry: CatalogEntry): Json[] {
   );
 }
 
+// One site per closed {{…}} fragment of a query site with text: FHIRPath at the query's place.
+function fragmentSites(site: ExpressionSite): ExpressionSite[] {
+  const query = site.text;
+  if (site.language !== X_FHIR_QUERY || query === undefined) return [];
+  return scanQuery(query).fragments.map(({ startOffset, endOffset }) =>
+    Object.freeze({
+      pointer: site.pointer,
+      expressionPointer: site.expressionPointer,
+      carrier: 'fragment',
+      ...(site.location === undefined ? {} : { location: site.location }),
+      catalogued: site.catalogued,
+      ...(site.element === undefined ? {} : { element: site.element }),
+      ...(site.item === undefined ? {} : { item: site.item }),
+      language: FHIRPATH,
+      text: query.slice(startOffset, endOffset),
+      declares: false,
+      useCases: site.useCases,
+      fragment: Object.freeze({ query, startOffset, endOffset }),
+    }),
+  );
+}
+
 // Every expression site in a Questionnaire, in document order: a depth-first, pre-order traversal
 // of its JSON. Expressions held by catalogued extensions on the root and its items are catalogued
 // sites; any other object with a string language and expression, including in a contained
-// resource, is an uncatalogued site.
+// resource, is an uncatalogued site. Each fragment of a query directly follows the query.
 export function findSites(document: QuestionnaireDocument): ExpressionSite[] {
   const sites: ExpressionSite[] = [];
   const claims = new Map<Json, Claim>();
@@ -98,7 +122,7 @@ export function findSites(document: QuestionnaireDocument): ExpressionSite[] {
       declares: claim?.entry.declares ?? false,
       useCases: claim?.entry.useCases ?? Object.freeze([]),
     };
-    sites.push(Object.freeze(site));
+    sites.push(Object.freeze(site), ...fragmentSites(site));
   }
 
   // owner is set for the root and its items; below anything else, such as contained, it is unset.

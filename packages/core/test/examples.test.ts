@@ -30,7 +30,7 @@ describe('examples/health-check', () => {
         'fist() is not a FHIRPath function, so this expression fails when the form runs.',
       ],
     ]);
-    expect(report.summary.expressions).toEqual({ analysed: 6, unchecked: 2 });
+    expect(report.summary.expressions).toEqual({ analysed: 8, unchecked: 1 });
   });
 
   it('prints the text output shown in its README', () => {

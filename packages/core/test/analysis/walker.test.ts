@@ -10,6 +10,14 @@ function fhirPath(expression: string, name?: string) {
   return { language: 'text/fhirpath', expression, ...(name === undefined ? {} : { name }) };
 }
 
+function query(expression: string, name?: string) {
+  return {
+    language: 'application/x-fhir-query',
+    expression,
+    ...(name === undefined ? {} : { name }),
+  };
+}
+
 function extension(url: string, valueExpression: object) {
   return { url, valueExpression };
 }
@@ -218,5 +226,71 @@ describe('findSites', () => {
       extension: [extension(VARIABLE, fhirPath('5', 'v'))],
     });
     expect(sites.map((site) => site.text)).toEqual(['1', '2', '3', '4', '5']);
+  });
+
+  describe('fragments', () => {
+    const POPULATION_CONTEXT = `${sdc}itemPopulationContext`;
+    const text = 'Observation?subject={{%patient.id}}&date=gt{{%today}}';
+
+    it('follows a query with one site per fragment, in order', () => {
+      const sites = sitesOf({ extension: [extension(POPULATION_CONTEXT, query(text, 'obs'))] });
+      expect(sites.map((site) => [site.carrier, site.text])).toEqual([
+        ['expression', text],
+        ['fragment', '%patient.id'],
+        ['fragment', '%today'],
+      ]);
+      expect(sites[0]).not.toHaveProperty('fragment');
+      expect(sites[1]).toEqual({
+        pointer: '/extension/0/valueExpression/expression',
+        expressionPointer: '/extension/0/valueExpression',
+        carrier: 'fragment',
+        location: { url: POPULATION_CONTEXT },
+        catalogued: true,
+        language: 'text/fhirpath',
+        text: '%patient.id',
+        declares: false,
+        useCases: ['population'],
+        fragment: { query: text, startOffset: 22, endOffset: 33 },
+      });
+    });
+
+    it('gives the fragments of an uncatalogued query its item and no location', () => {
+      const sites = sitesOf({
+        item: [{ linkId: 'q', extension: [extension('http://example.org/q', query(text))] }],
+      });
+      expect(sites).toHaveLength(3);
+      for (const site of sites) {
+        expect(site).toMatchObject({
+          catalogued: false,
+          item: { pointer: '/item/0', linkId: 'q' },
+        });
+        expect(site).not.toHaveProperty('location');
+      }
+    });
+
+    it('keeps the element of a query on a primitive', () => {
+      const sites = sitesOf({
+        item: [{ linkId: 'q', _text: { extension: [extension(CQF, query('Patient/{{%id}}'))] } }],
+      });
+      expect(sites[1]).toMatchObject({ carrier: 'fragment', element: 'text', text: '%id' });
+    });
+
+    it('never gives a FHIRPath site fragments', () => {
+      const sites = sitesOf({ extension: [extension(VARIABLE, fhirPath("'{{%a}}'", 'v'))] });
+      expect(sites.map((site) => site.carrier)).toEqual(['expression']);
+    });
+
+    it('gives a query with no text no fragments', () => {
+      const reference = { language: 'application/x-fhir-query', reference: '#q' };
+      const sites = sitesOf({ extension: [extension(POPULATION_CONTEXT, reference)] });
+      expect(sites.map((site) => site.carrier)).toEqual(['expression']);
+    });
+
+    it('stops at an unclosed {{, keeping the fragments before it', () => {
+      const sites = sitesOf({
+        extension: [extension(POPULATION_CONTEXT, query('Patient/{{%a}}?x={{%b', 'p'))],
+      });
+      expect(sites.map((site) => site.text)).toEqual(['Patient/{{%a}}?x={{%b', '%a']);
+    });
   });
 });
