@@ -33,8 +33,9 @@ export const unknownFunction: LintRule = {
     defaultSeverity: 'error',
     docs: {
       checks:
-        'Every function call in an expression whose language is text/fhirpath, at a catalogued ' +
-        'location or found elsewhere in the Questionnaire, is compared with the functions ' +
+        'Every function call in an expression whose language is text/fhirpath, or in a {{…}} ' +
+        'fragment of an x-fhir-query, at a catalogued location or found elsewhere in the ' +
+        'Questionnaire, is compared with the functions ' +
         'fhirpath.js 4.10.1 implements. Calls on %factory and %terminologies are not checked, ' +
         'because fhirpath.js resolves them against their own functions.',
       why:

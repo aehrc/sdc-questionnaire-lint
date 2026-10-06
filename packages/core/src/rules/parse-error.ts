@@ -65,7 +65,8 @@ export const parseError: LintRule = {
       checks:
         'Every expression whose language is text/fhirpath, at a catalogued location or found ' +
         'elsewhere in the Questionnaire, is parsed with fhirpath.js. An expression that ' +
-        'does not parse is reported at the position where the parser found the error.',
+        'does not parse is reported at the position where the parser found the error. FHIRPath ' +
+        'embedded in an x-fhir-query is parsed by sdc/fragment-parse-error.',
       why:
         'An expression that does not parse fails when the form runs: a calculated value is never ' +
         'filled in, a question is never shown or hidden, or prefill silently does nothing.',
@@ -77,7 +78,8 @@ export const parseError: LintRule = {
       limitations:
         'Only syntax is checked: undefined variables and wrong paths still parse, and unknown ' +
         'functions are reported by sdc/unknown-function. Expressions in other languages, such as ' +
-        'x-fhir-query and CQL, are not parsed. Some malformed input makes the parser fail ' +
+        'CQL, are not parsed, and an x-fhir-query is left to sdc/query-syntax. Some malformed ' +
+        'input makes the parser fail ' +
         'without a position; the finding then has no caret.',
     },
   },

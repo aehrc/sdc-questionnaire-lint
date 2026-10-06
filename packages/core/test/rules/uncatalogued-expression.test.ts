@@ -22,4 +22,19 @@ describe('sdc/uncatalogued-expression', () => {
     const sites = [query, fragmentSite(text, '%patient.id'), fragmentSite(text, '%today')];
     expect(check(sites).map(({ site }) => site)).toEqual([query]);
   });
+
+  it.each([
+    [
+      'application/x-fhir-query',
+      'Patient?_id=1',
+      'This expression is in a place the linter does not recognise, so only its query shape and the FHIRPath in its {{…}} fragments can be checked.',
+    ],
+    [
+      'text/cql',
+      'AgeInYears()',
+      'This expression is in a place the linter does not recognise, so it was not checked.',
+    ],
+  ])('says what can still be checked in %s', (language, text, message) => {
+    expect(check([expressionSite({ language, text })])).toMatchObject([{ message }]);
+  });
 });
