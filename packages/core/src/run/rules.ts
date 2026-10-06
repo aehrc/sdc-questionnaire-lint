@@ -7,7 +7,12 @@ import type {
   RuleFinding,
   Severity,
 } from '../plugins/types.js';
-import type { QuestionnaireFinding, ResourceIdentity } from '../report/types.js';
+import type {
+  ExpressionExcerpt,
+  OffsetRange,
+  QuestionnaireFinding,
+  ResourceIdentity,
+} from '../report/types.js';
 import { questionnaireFingerprint, siteKeys } from './fingerprint.js';
 
 function identity(resourceType: string, id: unknown, pointer: string): ResourceIdentity {
@@ -28,6 +33,30 @@ function resourceAt(document: QuestionnaireDocument, pointer: string): ResourceI
   return identity('Questionnaire', resource.id, resourcePointer);
 }
 
+// The excerpt a finding at a site shows. A fragment's finding is shown in its query, with the
+// rule's range rebased onto it, or over the whole fragment when the rule gave none
+// (report-format.md § Findings and locations).
+function excerpt(
+  site: ExpressionSite | undefined,
+  range: OffsetRange | undefined,
+): ExpressionExcerpt | undefined {
+  if (site?.fragment !== undefined) {
+    const { query, startOffset, endOffset } = site.fragment;
+    return {
+      text: query,
+      range:
+        range === undefined
+          ? { startOffset, endOffset }
+          : {
+              startOffset: range.startOffset + startOffset,
+              endOffset: range.endOffset + startOffset,
+            },
+    };
+  }
+  if (site?.text === undefined) return undefined;
+  return { text: site.text, ...(range === undefined ? {} : { range }) };
+}
+
 // Calls each rule that is not off once on the document, at its effective severity. Built-in rules
 // are trusted: what they report is not checked, and a crash propagates as a linter bug.
 export function runRules(
@@ -42,6 +71,7 @@ export function runRules(
     const { site } = reported;
     const pointer = site?.pointer ?? reported.pointer ?? document.resourcePointer;
     const resource = resourceAt(document, pointer);
+    const expression = excerpt(site, reported.range);
     // A finding with no site is identified by its pointer below the resource.
     const key =
       (site === undefined ? undefined : keys.get(site)) ??
@@ -61,14 +91,7 @@ export function runRules(
       },
       // No source mapper yet.
       sourceLocation: { status: 'unmapped', reason: 'source-unavailable' },
-      ...(site?.text === undefined
-        ? {}
-        : {
-            expression: {
-              text: site.text,
-              ...(reported.range === undefined ? {} : { range: reported.range }),
-            },
-          }),
+      ...(expression === undefined ? {} : { expression }),
       fingerprint: questionnaireFingerprint({
         ruleId: id,
         file: input.baseRelative,

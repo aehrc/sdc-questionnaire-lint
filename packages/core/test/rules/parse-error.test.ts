@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ExpressionSite, RuleFinding } from '../../src/plugins/types.js';
 import { parseError } from '../../src/rules/parse-error.js';
-import { expressionSite } from '../support/builders.js';
+import { expressionSite, fragmentSite } from '../support/builders.js';
 
 function check(sites: ExpressionSite[]): RuleFinding[] {
   const findings: RuleFinding[] = [];
@@ -31,6 +31,11 @@ describe('sdc/parse-error', () => {
       expressionSite({ ...catalogued, text: broken }),
     ];
     expect(check(sites)).toEqual([]);
+  });
+
+  it('leaves a broken fragment to sdc/fragment-parse-error', () => {
+    const site = fragmentSite('Observation?subject={{a.where(}}', 'a.where(', catalogued);
+    expect(check([site])).toEqual([]);
   });
 
   it('reports broken FHIRPath in an uncatalogued site', () => {

@@ -33,7 +33,17 @@
         {
           "linkId": "height",
           "type": "decimal",
-          "text": "Height (cm)"
+          "text": "Height (cm)",
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/variable",
+              "valueExpression": { "name": "heights", "language": "application/x-fhir-query", "expression": "%observations.where(code.coding.code = '8302-2')" }
+            },
+            {
+              "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+              "valueExpression": { "language": "text/fhirpath", "expression": "%heights.last().value.value" }
+            }
+          ]
         },
         {
           "linkId": "bmi",
@@ -59,6 +69,12 @@
       "linkId": "smoking",
       "type": "choice",
       "text": "Do you smoke?",
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/variable",
+          "valueExpression": { "name": "smokingStatus", "language": "application/x-fhir-query", "expression": "Observation?patient={{%patient.id}}&code=72166-2&date=ge{{(today() - 1 year}}" }
+        }
+      ],
       "_text": {
         "extension": [
           {

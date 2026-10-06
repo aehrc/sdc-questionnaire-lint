@@ -24,9 +24,18 @@ export interface LocalResource {
   readonly resource: Readonly<Record<string, unknown>>;
 }
 
-// How a site carries its expression. Only Expression objects are discovered so far; whole-string
-// FHIRPath, embedded fragments and indirect references come later (core-plan §3.1).
-export type ExpressionCarrier = 'expression';
+// How a site carries its expression: an Expression object, or a {{…}} fragment embedded in the
+// x-fhir-query of one. Whole-string FHIRPath and indirect references come later (core-plan §3.1).
+export type ExpressionCarrier = 'expression' | 'fragment';
+
+// Where a fragment sits in its query.
+export interface QueryFragment {
+  // The decoded x-fhir-query string the fragment is embedded in.
+  readonly query: string;
+  // Zero-based UTF-16 offsets of the fragment's text within query, excluding the braces.
+  readonly startOffset: number;
+  readonly endOffset: number;
+}
 
 // Identifies a catalogued location: the extension that holds the expression, plus the
 // sub-extension for a complex extension such as targetConstraint.
@@ -72,6 +81,8 @@ export interface ExpressionSite {
   readonly declares: boolean;
   // The use cases that evaluate the site; empty for an uncatalogued site.
   readonly useCases: readonly ExpressionUseCase[];
+  // Set only when carrier is fragment: where the site's text sits in its query.
+  readonly fragment?: QueryFragment;
 }
 
 export interface Scope {

@@ -74,6 +74,56 @@ describe('siteKeys', () => {
   });
 });
 
+describe('siteKeys for fragments', () => {
+  const xFhirQuery = (expression: string) => ({
+    language: 'application/x-fhir-query',
+    expression,
+  });
+  const populationContext = (expression: string) => ({
+    url: `${sdc}itemPopulationContext`,
+    valueExpression: { name: 'obs', ...xFhirQuery(expression) },
+  });
+  const targetConstraint = (expression: string) => ({
+    url: 'http://hl7.org/fhir/StructureDefinition/targetConstraint',
+    extension: [{ url: 'expression', valueExpression: xFhirQuery(expression) }],
+  });
+
+  // Each site's key, in document order.
+  function keysOf(extension: unknown[]): string[] {
+    const doc = document([{ linkId: 'q', extension }]);
+    const sites = findSites(doc);
+    const keys = siteKeys(doc, sites);
+    return sites.map((site) => keys.get(site) ?? '');
+  }
+
+  it("gives each fragment its query's key plus its 1-based index", () => {
+    const [query, ...fragments] = keysOf([
+      populationContext('Observation?subject={{%a}}&date={{%b}}'),
+    ]);
+    expect(fragments).toEqual([`${query ?? ''}{{1}}`, `${query ?? ''}{{2}}`]);
+  });
+
+  it('keeps the key of a query whether or not it has fragments', () => {
+    expect(keysOf([populationContext('Observation?subject={{%a}}')])[0]).toBe(
+      keysOf([populationContext('Observation?subject=1')])[0],
+    );
+  });
+
+  it("keeps a fragment's key when another fragment's text changes", () => {
+    expect(keysOf([populationContext('Observation?subject={{%a}}&date={{%b}}')])[2]).toBe(
+      keysOf([populationContext('Observation?subject={{%changed}}&date={{%b}}')])[2],
+    );
+  });
+
+  it('does not count fragments as repeats of their query', () => {
+    const queries = (texts: string[]) =>
+      keysOf(texts.map(targetConstraint)).filter((key) => !key.endsWith('}}'));
+    expect(queries(['Patient?a={{%a}}', 'Patient?b={{%b}}', 'Patient'])).toEqual(
+      queries(['Patient?a=1', 'Patient?b=1', 'Patient']),
+    );
+  });
+});
+
 describe('questionnaireFingerprint', () => {
   const parts = { ruleId: 'sdc/parse-error', file: 'Questionnaire-Q.json', resource, key: 'k' };
 
