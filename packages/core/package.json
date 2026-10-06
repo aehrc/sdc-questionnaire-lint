@@ -21,7 +21,8 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "generate:functions": "node scripts/generate-functions.ts"
   },
   "dependencies": {
     "fhirpath": "4.10.1",
