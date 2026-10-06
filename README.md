@@ -29,7 +29,7 @@ sdc-lint lint --show-info                                          # also show i
 
 Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
-**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with two built-in rules: `sdc/parse-error` and `sdc/uncatalogued-expression`. Not built yet: plugins, suppressions, the scope model and the rules that depend on it, x-fhir-query checks and FSH source mapping. Until then every finding keeps its compiled JSON location.
+**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with three built-in rules: `sdc/parse-error`, `sdc/unknown-function` and `sdc/uncatalogued-expression`. Not built yet: plugins, suppressions, the scope model and the rules that depend on it, x-fhir-query checks and FSH source mapping. Until then every finding keeps its compiled JSON location.
 
 [examples/health-check](examples/health-check/README.md) is a form with common mistakes and the output the linter gives for it.
 

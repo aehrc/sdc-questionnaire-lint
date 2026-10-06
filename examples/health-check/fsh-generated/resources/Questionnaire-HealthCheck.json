@@ -42,7 +42,7 @@
           "extension": [
             {
               "url": "http://hl7.org/fhir/StructureDefinition/variable",
-              "valueExpression": { "name": "h", "language": "text/fhirpath", "expression": "%resource.item.where(linkId = 'body').item.where(linkId = 'height').answer.value / 100" }
+              "valueExpression": { "name": "h", "language": "text/fhirpath", "expression": "%resource.item.where(linkId = 'body').item.where(linkId = 'height').answer.fist().value / 100" }
             },
             {
               "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
