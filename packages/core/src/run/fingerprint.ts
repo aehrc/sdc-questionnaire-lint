@@ -22,18 +22,30 @@ function baseKey(document: QuestionnaireDocument, site: ExpressionSite): string 
 
 // One stable key per site of a document; computed once per document, in document order. The n-th
 // site with the same base key gets #n, so repeats stay distinct; the first gets nothing. Inserting
-// another site with the same base key before a site therefore changes its key.
+// another site with the same base key before a site therefore changes its key. A fragment follows
+// its query, and its key is the query's plus {{n}} for the n-th fragment; fragments are not
+// repeats, so a query's key does not depend on them.
 export function siteKeys(
   document: QuestionnaireDocument,
   sites: readonly ExpressionSite[],
 ): Map<ExpressionSite, string> {
   const occurrences = new Map<string, number>();
   const keys = new Map<ExpressionSite, string>();
+  let query: { key: string; fragments: number } | undefined;
   for (const site of sites) {
+    if (site.carrier === 'fragment') {
+      if (query === undefined)
+        throw new Error(`A fragment has no query before it: ${site.pointer}`);
+      query.fragments += 1;
+      keys.set(site, `${query.key}{{${String(query.fragments)}}}`);
+      continue;
+    }
     const base = baseKey(document, site);
     const occurrence = (occurrences.get(base) ?? 0) + 1;
     occurrences.set(base, occurrence);
-    keys.set(site, occurrence === 1 ? base : `${base}#${String(occurrence)}`);
+    const key = occurrence === 1 ? base : `${base}#${String(occurrence)}`;
+    keys.set(site, key);
+    query = { key, fragments: 0 };
   }
   return keys;
 }

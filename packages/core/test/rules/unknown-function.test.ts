@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ExpressionSite, RuleFinding } from '../../src/plugins/types.js';
 import { unknownFunction } from '../../src/rules/unknown-function.js';
-import { expressionSite } from '../support/builders.js';
+import { expressionSite, fragmentSite } from '../support/builders.js';
 
 function check(sites: ExpressionSite[]): RuleFinding[] {
   const findings: RuleFinding[] = [];
@@ -30,6 +30,11 @@ const helpOf = (text: string) => check([fhirPath(text)]).map(({ help }) => help)
 const fallback = 'check the function name; see the FHIRPath function list';
 
 describe('sdc/unknown-function', () => {
+  it('checks a fragment, with the range in the fragment', () => {
+    const site = fragmentSite('Observation?subject={{%patient.fist()}}', '%patient.fist()');
+    expect(check([site])).toMatchObject([{ site, range: { startOffset: 9, endOffset: 13 } }]);
+  });
+
   it('reports an unknown function, with a similar name in help and a range over the name', () => {
     const site = fhirPath('a.fist()');
     expect(check([site])).toEqual([

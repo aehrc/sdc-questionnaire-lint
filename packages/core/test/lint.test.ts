@@ -132,6 +132,26 @@ describe('expression findings', () => {
     expect(findings[0]?.fingerprint).not.toBe(findings[1]?.fingerprint);
     expect(report.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
   });
+
+  it('shows a finding in a fragment in its query, with the range rebased', async () => {
+    const text = 'Observation?subject={{%patient.fist()}}';
+    const { report, findings } = await lintQuestionnaire({
+      extension: [
+        {
+          url: `${sdc}itemPopulationContext`,
+          valueExpression: { name: 'obs', language: 'application/x-fhir-query', expression: text },
+        },
+      ],
+    });
+    expect(findings).toMatchObject([
+      {
+        ruleId: 'sdc/unknown-function',
+        jsonLocation: { pointer: '/extension/0/valueExpression/expression' },
+        expression: { text, range: { startOffset: 31, endOffset: 35 } },
+      },
+    ]);
+    expect(report.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
+  });
 });
 
 describe('config', () => {
