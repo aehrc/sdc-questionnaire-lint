@@ -16,9 +16,15 @@ describe('examples/health-check', () => {
     expect(
       findings.map(({ ruleId, message, jsonLocation }) => [ruleId, jsonLocation.linkId, message]),
     ).toEqual([
+      ['sdc/fragment-parse-error', 'smoking', 'A closing ) is missing.'],
       ['sdc/parse-error', 'bmi', 'This FHIRPath expression has a syntax error.'],
       ['sdc/parse-error', 'smoking', 'The character " is not valid here.'],
       ['sdc/parse-error', 'packs', 'The expression ends before it is complete.'],
+      [
+        'sdc/query-syntax',
+        'height',
+        "This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills stay empty.",
+      ],
       [
         'sdc/uncatalogued-expression',
         'smoking',
@@ -30,7 +36,7 @@ describe('examples/health-check', () => {
         'fist() is not a FHIRPath function, so this expression fails when the form runs.',
       ],
     ]);
-    expect(report.summary.expressions).toEqual({ analysed: 8, unchecked: 1 });
+    expect(report.summary.expressions).toEqual({ analysed: 13, unchecked: 1 });
   });
 
   it('prints the text output shown in its README', () => {
