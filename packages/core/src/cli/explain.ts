@@ -107,7 +107,8 @@ export async function runExplain(
 ): Promise<0 | 2> {
   try {
     let text: string;
-    // Loading an .mjs config runs its code; the output is written once the guard is off.
+    // Loading an .mjs config runs its code, whose output goes to stderr. The listing goes through
+    // io.stdout, which the guard never patches.
     const restore = guardStdout(io.stderr);
     try {
       text = await explain(args, io.cwd);

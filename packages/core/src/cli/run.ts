@@ -29,7 +29,9 @@ export function runCli(argv: readonly string[], io: CliIo): Promise<0 | 1 | 2> {
 async function runLint(args: Extract<ParsedArgs, { kind: 'lint' }>, io: CliIo): Promise<0 | 1 | 2> {
   try {
     let report: CompletedReport;
-    // The run executes config and plugin code; the report is written once the guard is off.
+    // The run executes config and plugin code, whose output goes to stderr. The report goes through
+    // io.stdout, which the guard never patches. The binary keeps its own guard on for the whole
+    // process; this one covers in-process callers.
     const restore = guardStdout(io.stderr);
     try {
       report = await lint({
