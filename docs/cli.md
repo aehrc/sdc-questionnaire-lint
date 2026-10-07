@@ -1,6 +1,6 @@
 # CLI
 
-The command-line contract for the first version. It supersedes plan §7.3 and the output-mode list in [linter-design-guidelines.md](linter-design-guidelines.md) §4. Configuration, suppression and reporting amendments are recorded in [plan-amendments.md](plan-amendments.md). Terms are defined in [CONTEXT.md](../CONTEXT.md).
+The command-line contract for the first version. It supersedes plan §7.3 and the output-mode list in [linter-design-guidelines.md](linter-design-guidelines.md) §4. Configuration, suppression and reporting amendments are recorded in [plan-amendments.md](plan-amendments.md). Terms are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 The npm package `sdc-questionnaire-lint` provides `sdc-lint` as its primary executable and `sdc-questionnaire-lint` as an alias, both included in the first version. Both executable entries use the same implementation, arguments, output and exit codes. Help and documentation examples use `sdc-lint`. Config filenames and the report's `run.tool.name` use the package name.
 
