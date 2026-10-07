@@ -6,11 +6,11 @@ import { loadConfig } from '../../src/config/load.js';
 import { resolveRunPaths } from '../../src/config/paths.js';
 import { loadInputs } from '../../src/inputs/load-inputs.js';
 import { lint } from '../../src/lint.js';
-import { sdcPlugin } from '../../src/plugins/builtin.js';
-import { buildRuleRegistry } from '../../src/plugins/rule-registry.js';
+import { completesCheck, sdcPlugin } from '../../src/plugins/builtin.js';
+import { resolveRuleSet } from '../../src/plugins/rule-set.js';
 import { configFingerprint } from '../../src/run/fingerprint.js';
 import { runRules } from '../../src/run/rules.js';
-import { applySuppressions, completesCheck } from '../../src/run/suppressions.js';
+import { applySuppressions } from '../../src/run/suppressions.js';
 import { tempTree } from '../support/tmp.js';
 
 const configName = 'sdc-questionnaire-lint.config.json';
@@ -53,7 +53,7 @@ interface Run {
 async function assessIn(cwd: string, { suppress, rules, files, paths }: Run) {
   await writeFile(path.join(cwd, configName), JSON.stringify({ rules, files, suppress }));
   const loaded = await loadConfig({ cwd });
-  const registered = buildRuleRegistry(loaded).rules;
+  const resolved = resolveRuleSet(loaded).rules;
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const inputs = await loadInputs({ cwd, cliPaths: paths ?? [], runPaths });
   const documents = inputs.documents.map(({ input, document }) => ({
@@ -61,10 +61,10 @@ async function assessIn(cwd: string, { suppress, rules, files, paths }: Run) {
     document,
     sites: findExpressionSites(document),
   }));
-  const findings = documents.flatMap((doc) => runRules(doc, registered));
+  const findings = documents.flatMap((doc) => runRules(doc, resolved));
   const outcome = await applySuppressions({
     loaded,
-    rules: registered,
+    rules: resolved,
     runKind: inputs.runKind,
     inputFiles: inputs.inputFiles,
     documents,

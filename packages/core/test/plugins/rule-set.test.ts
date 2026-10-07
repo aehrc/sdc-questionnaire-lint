@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LoadedConfig } from '../../src/config/load.js';
 import type { LintConfig } from '../../src/config/types.js';
-import { buildRuleRegistry, type RegisteredRule } from '../../src/plugins/rule-registry.js';
+import { type ResolvedRule, resolveRuleSet } from '../../src/plugins/rule-set.js';
 import type { LintPlugin } from '../../src/plugins/types.js';
 
 const display = 'sdc-questionnaire-lint.config.mjs';
@@ -10,10 +10,10 @@ function loaded(config: LintConfig): LoadedConfig {
   return { path: `/ig/${display}`, dir: '/ig', display, format: 'mjs', config };
 }
 
-const registerRules = (config: LoadedConfig | null) => buildRuleRegistry(config).rules;
+const resolveRules = (config: LoadedConfig | null) => resolveRuleSet(config).rules;
 
-function severities(rules: readonly RegisteredRule[]) {
-  return rules.map(({ id, severity }) => [id, severity]);
+function severities(rules: readonly ResolvedRule[]) {
+  return rules.map(({ id, setting }) => [id, setting]);
 }
 
 function demoPlugin(): LintPlugin {
@@ -28,9 +28,9 @@ function demoPlugin(): LintPlugin {
   };
 }
 
-describe('buildRuleRegistry', () => {
+describe('resolveRuleSet', () => {
   it('registers every built-in rule at its default severity, sorted by ID', () => {
-    const rules = registerRules(null);
+    const rules = resolveRules(null);
     expect(severities(rules)).toEqual([
       ['lint/stale-suppression', 'warning'],
       ['sdc/fragment-parse-error', 'error'],
@@ -44,7 +44,7 @@ describe('buildRuleRegistry', () => {
   });
 
   it('applies a configured severity and off', () => {
-    const rules = registerRules(
+    const rules = resolveRules(
       loaded({ rules: { 'sdc/parse-error': 'warning', 'sdc/uncatalogued-expression': 'off' } }),
     );
     expect(severities(rules)).toEqual([
@@ -58,7 +58,7 @@ describe('buildRuleRegistry', () => {
   });
 
   it('fails for an unknown rule ID, naming a similar one', () => {
-    expect(() => registerRules(loaded({ rules: { 'sdc/parse-eror': 'warning' } }))).toThrow(
+    expect(() => resolveRules(loaded({ rules: { 'sdc/parse-eror': 'warning' } }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         path: display,
@@ -69,7 +69,7 @@ describe('buildRuleRegistry', () => {
   });
 
   it('fails for an unknown rule ID with nothing similar, pointing at explain', () => {
-    expect(() => registerRules(loaded({ rules: { 'sdc/undefined-variable': 'off' } }))).toThrow(
+    expect(() => resolveRules(loaded({ rules: { 'sdc/undefined-variable': 'off' } }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         help: 'run sdc-lint explain to list the registered rules',
@@ -78,12 +78,12 @@ describe('buildRuleRegistry', () => {
   });
 
   it('accepts off for lint/stale-suppression', () => {
-    const rules = registerRules(loaded({ rules: { 'lint/stale-suppression': 'off' } }));
-    expect(rules.find(({ id }) => id === 'lint/stale-suppression')?.severity).toBe('off');
+    const rules = resolveRules(loaded({ rules: { 'lint/stale-suppression': 'off' } }));
+    expect(rules.find(({ id }) => id === 'lint/stale-suppression')?.setting).toBe('off');
   });
 
   it.each(['error', 'info'] as const)('rejects %s for lint/stale-suppression', (setting) => {
-    expect(() => registerRules(loaded({ rules: { 'lint/stale-suppression': setting } }))).toThrow(
+    expect(() => resolveRules(loaded({ rules: { 'lint/stale-suppression': setting } }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         message: `config ${display} is invalid at /rules/lint~1stale-suppression: lint/stale-suppression can only be warning or off`,
@@ -96,7 +96,7 @@ describe('buildRuleRegistry', () => {
 
   it('fails for an unknown suppression rule, naming a similar one', () => {
     expect(() =>
-      registerRules(
+      resolveRules(
         loaded({
           suppress: [
             { ...suppression, rule: 'sdc/parse-error' },
@@ -115,7 +115,7 @@ describe('buildRuleRegistry', () => {
 
   it('rejects a suppression of a lint/ rule', () => {
     expect(() =>
-      registerRules(loaded({ suppress: [{ ...suppression, rule: 'lint/stale-suppression' }] })),
+      resolveRules(loaded({ suppress: [{ ...suppression, rule: 'lint/stale-suppression' }] })),
     ).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
@@ -126,8 +126,8 @@ describe('buildRuleRegistry', () => {
   });
 
   it("registers a plugin's rules as <name>/<key>, sorted among the sdc rules", () => {
-    const registry = buildRuleRegistry(loaded({ plugins: [demoPlugin()] }));
-    expect(severities(registry.rules)).toEqual([
+    const ruleSet = resolveRuleSet(loaded({ plugins: [demoPlugin()] }));
+    expect(severities(ruleSet.rules)).toEqual([
       ['demo/no-today', 'warning'],
       ['lint/stale-suppression', 'warning'],
       ['sdc/fragment-parse-error', 'error'],
@@ -136,25 +136,25 @@ describe('buildRuleRegistry', () => {
       ['sdc/uncatalogued-expression', 'info'],
       ['sdc/unknown-function', 'error'],
     ]);
-    expect(registry.rules[0]?.plugin).toBe('demo');
+    expect(ruleSet.rules[0]?.namespace).toBe('demo');
   });
 
   it('lists plugins sorted by name, with sdc and without lint', () => {
     const zeta: LintPlugin = { meta: { name: 'zeta', version: '0.0.1' }, rules: {} };
-    const { plugins } = buildRuleRegistry(loaded({ plugins: [zeta, demoPlugin()] }));
-    expect(plugins).toEqual([
+    const { pluginVersions } = resolveRuleSet(loaded({ plugins: [zeta, demoPlugin()] }));
+    expect(pluginVersions).toEqual([
       { name: 'demo', version: '1.2.3' },
       { name: 'sdc', version: expect.any(String) as string },
       { name: 'zeta', version: '0.0.1' },
     ]);
-    expect(buildRuleRegistry(null).plugins.map(({ name }) => name)).toEqual(['sdc']);
+    expect(resolveRuleSet(null).pluginVersions.map(({ name }) => name)).toEqual(['sdc']);
   });
 
   it('applies a configured severity to a plugin rule', () => {
-    const rules = registerRules(
+    const rules = resolveRules(
       loaded({ plugins: [demoPlugin()], rules: { 'demo/no-today': 'error' } }),
     );
-    expect(rules.find(({ id }) => id === 'demo/no-today')?.severity).toBe('error');
+    expect(rules.find(({ id }) => id === 'demo/no-today')?.setting).toBe('error');
   });
 
   // A demo plugin with one rule, no-today; each argument overrides part of it.
@@ -208,7 +208,7 @@ describe('buildRuleRegistry', () => {
     ],
     ['a missing check', plugin({ 'no-today': rule({}, { check: undefined }) }), `${at}/check`],
   ])('rejects %s, at its pointer', (_, value, pointer) => {
-    expect(() => buildRuleRegistry(loaded({ plugins: [value as LintPlugin] }))).toThrow(
+    expect(() => resolveRuleSet(loaded({ plugins: [value as LintPlugin] }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         path: display,
@@ -221,13 +221,13 @@ describe('buildRuleRegistry', () => {
 
   it('accepts a plugin rule with an absolute docsUrl and complete docs', () => {
     const value = plugin({ 'no-today': rule({ docsUrl: 'https://example.org/no-today', docs }) });
-    const registry = buildRuleRegistry(loaded({ plugins: [value as LintPlugin] }));
-    expect(registry.rules.find(({ id }) => id === 'demo/no-today')?.rule.meta.docs).toEqual(docs);
+    const ruleSet = resolveRuleSet(loaded({ plugins: [value as LintPlugin] }));
+    expect(ruleSet.rules.find(({ id }) => id === 'demo/no-today')?.rule.meta.docs).toEqual(docs);
   });
 
   it.each(['sdc', 'lint'])('rejects the reserved namespace %s', (name) => {
     const plugin = { ...demoPlugin(), meta: { name, version: '1.0.0' } };
-    expect(() => buildRuleRegistry(loaded({ plugins: [plugin] }))).toThrow(
+    expect(() => resolveRuleSet(loaded({ plugins: [plugin] }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         message: expect.stringMatching(
@@ -238,7 +238,7 @@ describe('buildRuleRegistry', () => {
   });
 
   it('rejects a duplicate namespace at the second entry', () => {
-    expect(() => buildRuleRegistry(loaded({ plugins: [demoPlugin(), demoPlugin()] }))).toThrow(
+    expect(() => resolveRuleSet(loaded({ plugins: [demoPlugin(), demoPlugin()] }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         message: `config ${display} is invalid at /plugins/1/meta/name: the namespace demo is already registered`,
@@ -251,13 +251,13 @@ describe('buildRuleRegistry', () => {
 
   it('says the plugin must be listed for an unknown namespace in rules', () => {
     expect(() =>
-      buildRuleRegistry(loaded({ rules: { 'smart-forms/flat-variable-context': 'off' } })),
+      resolveRuleSet(loaded({ rules: { 'smart-forms/flat-variable-context': 'off' } })),
     ).toThrow(expect.objectContaining({ code: 'CONFIG_INVALID', help: mustBeListed }));
   });
 
   it('says the plugin must be listed for an unknown namespace in suppress', () => {
     expect(() =>
-      buildRuleRegistry(
+      resolveRuleSet(
         loaded({ suppress: [{ ...suppression, rule: 'smart-forms/flat-variable-context' }] }),
       ),
     ).toThrow(
@@ -271,7 +271,7 @@ describe('buildRuleRegistry', () => {
 
   it("accepts a suppression of a listed plugin's rule", () => {
     expect(() =>
-      buildRuleRegistry(
+      resolveRuleSet(
         loaded({ plugins: [demoPlugin()], suppress: [{ ...suppression, rule: 'demo/no-today' }] }),
       ),
     ).not.toThrow();

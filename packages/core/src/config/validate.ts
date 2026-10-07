@@ -40,7 +40,7 @@ function describeValue(value: unknown): string {
   return typeof value === 'object' ? 'an object' : `a ${typeof value}`;
 }
 
-// Checks the config's shape. Rule IDs and plugins are checked by the rule registry, which knows them.
+// Checks the config's shape. Rule IDs and plugins are checked by the rule set, which knows them.
 export function validateConfig(
   raw: unknown,
   { display, format }: { display: string; format: ConfigFormat },

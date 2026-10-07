@@ -1,7 +1,7 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
 import { lint } from '../../src/index.js';
 import type { LintRule, RuleContext, RuleFinding } from '../../src/plugins/types.js';
-import type { RegisteredRule } from '../../src/plugins/rule-registry.js';
+import type { ResolvedRule } from '../../src/plugins/rule-set.js';
 import { runRules } from '../../src/run/rules.js';
 import { expressionSite, fragmentSite } from '../support/builders.js';
 import { expectValidReport } from '../support/report.js';
@@ -19,7 +19,7 @@ const doc = {
   sites: [site],
 };
 
-function registered(severity: RegisteredRule['severity'], reported?: 'info'): RegisteredRule {
+function resolved(setting: ResolvedRule['setting'], reported?: 'info'): ResolvedRule {
   const rule: LintRule = {
     meta: { description: 'Reports every site.', defaultSeverity: 'error' },
     check(ctx) {
@@ -32,12 +32,12 @@ function registered(severity: RegisteredRule['severity'], reported?: 'info'): Re
       }
     },
   };
-  return { id: 'test/every-site', plugin: 'test', rule, severity };
+  return { id: 'test/every-site', namespace: 'test', rule, setting };
 }
 
 describe('runRules', () => {
   it('does not run a rule that is off', () => {
-    const rule = registered('off');
+    const rule = resolved('off');
     rule.rule.check = () => {
       throw new Error('ran');
     };
@@ -45,11 +45,11 @@ describe('runRules', () => {
   });
 
   it('reports at the effective severity', () => {
-    expect(runRules(doc, [registered('warning')])).toMatchObject([{ severity: 'warning' }]);
+    expect(runRules(doc, [resolved('warning')])).toMatchObject([{ severity: 'warning' }]);
   });
 
   it('keeps a severity the rule reports', () => {
-    expect(runRules(doc, [registered('warning', 'info')])).toMatchObject([{ severity: 'info' }]);
+    expect(runRules(doc, [resolved('warning', 'info')])).toMatchObject([{ severity: 'info' }]);
   });
 });
 
@@ -61,7 +61,7 @@ describe('runRules on a fragment site', () => {
     fragmentSite(query, '%patient.id', { pointer }),
   ];
 
-  function reportOnce(range?: { startOffset: number; endOffset: number }): RegisteredRule {
+  function reportOnce(range?: { startOffset: number; endOffset: number }): ResolvedRule {
     const rule: LintRule = {
       meta: { description: 'Reports every fragment.', defaultSeverity: 'error' },
       check(ctx) {
@@ -71,10 +71,10 @@ describe('runRules on a fragment site', () => {
         }
       },
     };
-    return { id: 'test/every-fragment', plugin: 'test', rule, severity: 'error' };
+    return { id: 'test/every-fragment', namespace: 'test', rule, setting: 'error' };
   }
 
-  const run = (rule: RegisteredRule) => runRules({ ...doc, sites }, [rule]);
+  const run = (rule: ResolvedRule) => runRules({ ...doc, sites }, [rule]);
 
   it('shows the finding in the query, with the range rebased onto it', () => {
     const [finding] = run(reportOnce({ startOffset: 9, endOffset: 11 }));
@@ -103,12 +103,12 @@ describe('runRules on what a rule reports', () => {
     sites: [textSite, queryFragment],
   };
 
-  function ruleThat(check: (ctx: RuleContext) => unknown): RegisteredRule {
+  function ruleThat(check: (ctx: RuleContext) => unknown): ResolvedRule {
     const rule = {
       meta: { description: 'A test rule.', defaultSeverity: 'error' },
       check,
     } as LintRule;
-    return { id: 'test/rule', plugin: 'test', rule, severity: 'error' };
+    return { id: 'test/rule', namespace: 'test', rule, setting: 'error' };
   }
   const reporting = (finding: unknown) =>
     ruleThat((ctx) => {

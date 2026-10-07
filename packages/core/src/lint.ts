@@ -4,7 +4,7 @@ import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { loadInputs } from './inputs/load-inputs.js';
 import type { AnalysedDocument } from './inputs/read.js';
-import { buildRuleRegistry } from './plugins/rule-registry.js';
+import { resolveRuleSet } from './plugins/rule-set.js';
 import { summarizeExpressionCoverage } from './report/expression-coverage.js';
 import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
@@ -31,7 +31,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     ...(options.configPath === undefined ? {} : { explicitPath: options.configPath }),
   });
   // Also checks the plugins, and the rule IDs rules and suppress name.
-  const registry = buildRuleRegistry(loaded);
+  const ruleSet = resolveRuleSet(loaded);
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const { documents, inputFiles, fileCounts, runKind } = await loadInputs({
     cwd,
@@ -46,11 +46,11 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
   }));
   const outcome = await applySuppressions({
     loaded,
-    rules: registry.rules,
+    rules: ruleSet.rules,
     runKind,
     inputFiles,
     documents: analysedDocuments,
-    findings: analysedDocuments.flatMap((doc) => runRules(doc, registry.rules)),
+    findings: analysedDocuments.flatMap((doc) => runRules(doc, ruleSet.rules)),
     cwd,
   });
 
@@ -59,7 +59,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     status: 'completed',
     run: {
       tool: { name: 'sdc-questionnaire-lint', version: pkg.version },
-      plugins: registry.plugins,
+      plugins: ruleSet.pluginVersions,
       compat: {},
       selection: runKind,
     },

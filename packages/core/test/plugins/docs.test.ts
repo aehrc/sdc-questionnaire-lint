@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildRuleRegistry } from '../../src/plugins/rule-registry.js';
+import { resolveRuleSet } from '../../src/plugins/rule-set.js';
 
 describe('built-in rule docs', () => {
-  it.each(buildRuleRegistry(null).rules.map(({ id, rule }) => [id, rule.meta.docs]))(
+  it.each(resolveRuleSet(null).rules.map(({ id, rule }) => [id, rule.meta.docs]))(
     '%s has every docs field',
     (_, docs) => {
       for (const field of ['checks', 'why', 'exampleMessage', 'fix', 'limitations'] as const) {

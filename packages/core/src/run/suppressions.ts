@@ -1,14 +1,13 @@
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
-import { hasQueryText } from '../analysis/x-fhir-query.js';
 import type { LoadedConfig } from '../config/load.js';
 import type { SuppressionEntry } from '../config/types.js';
 import { invalidConfigFailure } from '../config/validate.js';
 import { describeError, LintFailure } from '../failure.js';
 import { displayPath, type InputFile } from '../inputs/paths.js';
 import type { AnalysedDocument } from '../inputs/read.js';
-import { type RegisteredRule, staleSuppressionId } from '../plugins/rule-registry.js';
+import { completesCheck, staleSuppressionId } from '../plugins/builtin.js';
+import type { ResolvedRule } from '../plugins/rule-set.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../plugins/types.js';
 import type { ConfigFinding, Finding, RunKind } from '../report/types.js';
 import { fileGone, nothingToHide, siteGone } from '../rules/stale-suppression.js';
@@ -24,7 +23,7 @@ export interface SuppressionOutcome {
 
 interface SuppressionRun {
   loaded: LoadedConfig | null;
-  rules: readonly RegisteredRule[];
+  rules: readonly ResolvedRule[];
   runKind: RunKind;
   // Every file the run read: the selected files.
   inputFiles: readonly InputFile[];
@@ -33,18 +32,6 @@ interface SuppressionRun {
   cwd: string;
 }
 
-// Where each built-in rule completes its check at an Expression site. Only there does the absence
-// of its findings make a suppression stale (cli.md § Stale suppressions); a rule missing here, such
-// as a plugin rule, leaves its suppressions not assessed.
-export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => boolean>> = {
-  'sdc/fragment-parse-error': hasQueryText,
-  'sdc/parse-error': hasFhirPathText,
-  'sdc/query-syntax': hasQueryText,
-  'sdc/uncatalogued-expression': () => true,
-  'sdc/unknown-function': (site) =>
-    hasFhirPathText(site) && findFhirPathSyntaxProblem(site.text) === undefined,
-};
-
 type Assessment =
   | { state: 'applied'; hidden: readonly Finding[] }
   | { state: 'stale'; message: string; help: string }
@@ -52,8 +39,8 @@ type Assessment =
 
 const notAssessed: Assessment = { state: 'notAssessed' };
 
-function isEnabled(rules: readonly RegisteredRule[], ruleId: string): boolean {
-  return rules.some(({ id, severity }) => id === ruleId && severity !== 'off');
+function isEnabled(rules: readonly ResolvedRule[], ruleId: string): boolean {
+  return rules.some(({ id, setting }) => id === ruleId && setting !== 'off');
 }
 const listedPointers = 3;
 
@@ -177,7 +164,7 @@ export async function applySuppressions(run: SuppressionRun): Promise<Suppressio
       stale.push({
         kind: 'config',
         ruleId: staleSuppressionId,
-        // Fixed until --strict-suppressions; the rule registry allows only warning or off.
+        // Fixed until --strict-suppressions; the rule set allows only warning or off.
         severity: 'warning',
         message: assessment.message,
         help: assessment.help,

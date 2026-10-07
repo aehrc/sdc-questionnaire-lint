@@ -15,7 +15,7 @@ What holds an expression in a Questionnaire: an Expression object, a whole-strin
 
 **Extension catalog**:
 The linter's list of the SDC extensions that can hold an expression, with the elements each may sit on, its carrier, whether it declares and its use cases.
-_Avoid_: Registry, rule registry (the rules of a run)
+_Avoid_: Registry
 
 **Catalogued location**:
 A place in a Questionnaire that the extension catalog recognises, such as a variable or a calculatedExpression on an item. An expression site found anywhere else is uncatalogued, and only its syntax and function names can be checked.
@@ -48,6 +48,10 @@ How serious a finding is: error, warning or info. Only unsuppressed errors fail 
 
 **Rule off**:
 A configuration choice that stops a rule from running anywhere. It is not a suppression.
+
+**Rule set**:
+The rules of one run: every rule of the built-in plugins and the configured plugins, each with its effective rule setting, the configured one or the rule's default severity.
+_Avoid_: Registry, rule registry
 
 ### Suppressions and runs
 
