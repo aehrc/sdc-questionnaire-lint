@@ -107,7 +107,7 @@ export interface RuleFinding {
   // The affected site, or a JSON Pointer from the root of the input file.
   site?: ExpressionSite;
   pointer?: string;
-  // Diagnostic range within the site's text; for a fragment site, the fragment's text.
+  // Range within the site's text; for a fragment site, within the fragment's text.
   range?: OffsetRange;
   // Overrides the rule's effective severity for this finding.
   severity?: Severity;

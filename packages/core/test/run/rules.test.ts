@@ -331,4 +331,26 @@ describe('plugin findings in a report', () => {
     ]);
     expect(report.run.plugins.map(({ name }) => name)).toEqual(['demo', 'sdc']);
   });
+
+  it('never runs a plugin rule configured off', async () => {
+    const cwd = await tempTree({
+      'sdc-questionnaire-lint.config.mjs': `export default {
+        plugins: [{
+          meta: { name: 'demo', version: '0.0.0' },
+          rules: {
+            boom: {
+              meta: { description: 'Always crashes.', defaultSeverity: 'error' },
+              check() { throw new Error('ran'); },
+            },
+          },
+        }],
+        rules: { 'demo/boom': 'off' },
+      };`,
+      'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+        resourceType: 'Questionnaire',
+        status: 'draft',
+      }),
+    });
+    expect((await lint({ cwd })).status).toBe('completed');
+  });
 });

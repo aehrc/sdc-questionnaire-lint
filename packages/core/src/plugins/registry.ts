@@ -67,7 +67,7 @@ function checkPlugin(value: unknown, index: number, display: string): LintPlugin
   };
   const plugin = isObject(value)
     ? value
-    : fail([], 'expected a plugin object', "list the plugin's default export: plugins: [demo]");
+    : fail([], 'expected a plugin object', "list the plugin's default export: plugins: [myPlugin]");
   const meta = isObject(plugin.meta)
     ? plugin.meta
     : fail(['meta'], 'the plugin has no meta object', 'give the plugin meta: { name, version }');

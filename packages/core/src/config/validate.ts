@@ -122,7 +122,7 @@ export function validateConfig(
       fail(
         ['plugins'],
         `expected an array, got ${describeValue(config.plugins)}`,
-        'list the imported plugins as an array: plugins: [smartForms]',
+        'list the imported plugins as an array: plugins: [myPlugin]',
       );
     }
   }
