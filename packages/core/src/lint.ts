@@ -4,8 +4,7 @@ import { findSites } from './analysis/walker.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { collectInputs } from './inputs/collect.js';
-import { sdcPlugin } from './plugins/builtin.js';
-import { registerRules } from './plugins/registry.js';
+import { buildRegistry } from './plugins/registry.js';
 import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
 import { runRules } from './run/rules.js';
@@ -30,8 +29,8 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     cwd,
     ...(options.configPath === undefined ? {} : { explicitPath: options.configPath }),
   });
-  // Also checks the rule IDs suppress names.
-  const rules = registerRules(loaded);
+  // Also checks the plugins, and the rule IDs rules and suppress name.
+  const registry = buildRegistry(loaded);
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const inputs = await collectInputs({ cwd, cliPaths: options.paths ?? [], runPaths });
   const sources = await findFshSources(runPaths, cwd);
@@ -42,11 +41,11 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
   }));
   const outcome = await applySuppressions({
     loaded,
-    rules,
+    rules: registry.rules,
     selection: inputs.selection,
     inputs: inputs.inputs,
     documents,
-    findings: documents.flatMap((doc) => runRules(doc, rules)),
+    findings: documents.flatMap((doc) => runRules(doc, registry.rules)),
     cwd,
   });
 
@@ -55,7 +54,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     status: 'completed',
     run: {
       tool: { name: 'sdc-questionnaire-lint', version: pkg.version },
-      plugins: [{ name: sdcPlugin.meta.name, version: sdcPlugin.meta.version }],
+      plugins: registry.plugins,
       compat: {},
       selection: inputs.selection,
     },

@@ -1,9 +1,10 @@
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describeError, LintFailure } from '../failure.js';
 import { displayPath } from '../inputs/paths.js';
 import type { LintConfig } from './types.js';
-import { validateConfig } from './validate.js';
+import { type ConfigFormat, validateConfig } from './validate.js';
 
 export interface LoadedConfig {
   // Absolute.
@@ -12,13 +13,65 @@ export interface LoadedConfig {
   dir: string;
   // Relative to the working directory, for reports and messages.
   display: string;
+  format: ConfigFormat;
   config: LintConfig;
 }
 
 const configFileName = 'sdc-questionnaire-lint.config.json';
+const moduleConfigFileName = 'sdc-questionnaire-lint.config.mjs';
+
+async function exists(file: string): Promise<boolean> {
+  try {
+    await access(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// The default config in the working directory, if exactly one exists.
+async function discover(cwd: string): Promise<string | undefined> {
+  const found: string[] = [];
+  for (const name of [configFileName, moduleConfigFileName]) {
+    if (await exists(path.join(cwd, name))) found.push(name);
+  }
+  if (found.length > 1) {
+    throw new LintFailure({
+      code: 'CONFIG_INVALID',
+      message: `found both ${configFileName} and ${moduleConfigFileName} in the current directory`,
+      help: 'choose one with --config, or remove the other file',
+    });
+  }
+  return found[0];
+}
+
+// Imports the module, which runs its code and the plugins it imports.
+async function importConfig(
+  file: string,
+  invalid: (message: string, help: string) => LintFailure,
+  display: string,
+): Promise<unknown> {
+  let module: Record<string, unknown>;
+  try {
+    module = (await import(pathToFileURL(file).href)) as Record<string, unknown>;
+  } catch (error) {
+    throw invalid(
+      `config ${display} failed to load: ${describeError(error)}`,
+      'fix the error in the config module or in a plugin it imports',
+    );
+  }
+  if (!('default' in module)) {
+    throw invalid(
+      `config ${display} has no default export`,
+      'export the config object: export default defineConfig({ … })',
+    );
+  }
+  return module.default;
+}
 
 // The explicit config, or the one in the working directory; parent directories are not searched.
 // An explicit config never falls back to discovery. Returns null when no config is used.
+// An .mjs config runs code, so call this under the stdout guard.
 export async function loadConfig({
   cwd,
   explicitPath,
@@ -26,7 +79,9 @@ export async function loadConfig({
   cwd: string;
   explicitPath?: string;
 }): Promise<LoadedConfig | null> {
-  const file = path.resolve(cwd, explicitPath ?? configFileName);
+  const chosen = explicitPath ?? (await discover(cwd));
+  if (chosen === undefined) return null;
+  const file = path.resolve(cwd, chosen);
   const display = displayPath(file, cwd);
   const invalid = (message: string, help: string): LintFailure =>
     new LintFailure({ code: 'CONFIG_INVALID', path: display, message, help });
@@ -37,7 +92,6 @@ export async function loadConfig({
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === 'ENOENT' || code === 'ENOTDIR') {
-      if (explicitPath === undefined) return null;
       throw invalid(
         `config ${display} does not exist`,
         'check the path; it is relative to the current directory',
@@ -54,11 +108,20 @@ export async function loadConfig({
       'check the permissions of the config file',
     );
   }
+  const loaded = (format: ConfigFormat, raw: unknown): LoadedConfig => ({
+    path: file,
+    dir: path.dirname(file),
+    display,
+    format,
+    config: validateConfig(raw, { display, format }),
+  });
   // Checked after reading, so a mistyped path is reported as missing.
-  if (path.extname(file) !== '.json') {
+  const extension = path.extname(file);
+  if (extension === '.mjs') return loaded('mjs', await importConfig(file, invalid, display));
+  if (extension !== '.json') {
     throw invalid(
-      `config ${display} is not a JSON file`,
-      `use a JSON config, such as ${configFileName}`,
+      `config ${display} is neither a .json nor an .mjs file`,
+      `use ${configFileName}, or ${moduleConfigFileName} to list plugins`,
     );
   }
   let raw: unknown;
@@ -71,5 +134,5 @@ export async function loadConfig({
       'fix the JSON syntax at the position the message gives',
     );
   }
-  return { path: file, dir: path.dirname(file), display, config: validateConfig(raw, display) };
+  return loaded('json', raw);
 }

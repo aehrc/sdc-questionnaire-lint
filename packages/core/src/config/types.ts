@@ -1,5 +1,7 @@
+import type { LintPlugin } from '../plugins/types.js';
 import type { Severity } from '../report/types.js';
 
+// A rule's setting in rules: its severity, or off to not run it.
 export type RuleSetting = Severity | 'off';
 
 // One entry of suppress: hides one rule's findings at the one Expression its selectors match.
@@ -23,6 +25,13 @@ export interface SuppressionEntry {
 export interface LintConfig {
   files?: string[];
   source?: { fsh?: string[] };
+  // Only in an .mjs config. Installing a plugin does not enable it; listing it here does.
+  plugins?: LintPlugin[];
   rules?: Record<string, RuleSetting>;
   suppress?: SuppressionEntry[];
+}
+
+// Types an .mjs config's default export: export default defineConfig({ … }).
+export function defineConfig(config: LintConfig): LintConfig {
+  return config;
 }

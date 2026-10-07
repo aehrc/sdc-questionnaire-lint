@@ -3,6 +3,8 @@ import type { OffsetRange, Severity } from '../report/types.js';
 
 export type { Severity };
 
+// A use case that evaluates an expression: rendering the form, populating it, or extracting
+// resources from its response.
 export type ExpressionUseCase = 'rendering' | 'population' | 'extraction';
 
 // The supporting types below carry what the analysis engine provides so far; they gain fields as
@@ -19,6 +21,7 @@ export interface QuestionnaireDocument {
   readonly localResources: readonly LocalResource[];
 }
 
+// A resource in the same Bundle, which a local reference can target.
 export interface LocalResource {
   readonly pointer: string;
   readonly resource: Readonly<Record<string, unknown>>;
@@ -85,11 +88,17 @@ export interface ExpressionSite {
   readonly fragment?: QueryFragment;
 }
 
+// The names in scope at a site for a use case. A stub until the scope model exists: available
+// is false and names is empty (core-plan §3.1).
 export interface Scope {
   readonly available: boolean;
   readonly names: readonly string[];
 }
 
+// What a rule reports. The runner checks it, and fails the run with RULE_CRASH for an invalid one:
+// message, and help and note when given, must be non-empty; site must be one of ctx.sites; a
+// pointer without a site must lie inside the document's resource; a range needs a site with text
+// and must lie within it.
 export interface RuleFinding {
   // The problem only; the fix goes in help (plan-amendments: §7.4 fix hints).
   message: string;
@@ -98,16 +107,18 @@ export interface RuleFinding {
   // The affected site, or a JSON Pointer from the root of the input file.
   site?: ExpressionSite;
   pointer?: string;
-  // Diagnostic range within the expression text.
+  // Diagnostic range within the site's text; for a fragment site, the fragment's text.
   range?: OffsetRange;
   // Overrides the rule's effective severity for this finding.
   severity?: Severity;
 }
 
+// What check receives for one Questionnaire.
 export interface RuleContext {
   readonly document: QuestionnaireDocument;
   readonly sites: readonly ExpressionSite[];
   scopeAt(site: ExpressionSite, useCase: ExpressionUseCase): Scope;
+  // Always undefined: the config cannot pass rule options yet.
   readonly options: unknown;
   report(finding: RuleFinding): void;
 }
@@ -122,17 +133,21 @@ export interface RuleDocs {
   limitations: string;
 }
 
+// One rule. Its ID is <plugin meta.name>/<key in the plugin's rules>.
 export interface LintRule {
   meta: {
     description: string;
     defaultSeverity: Severity;
+    // An absolute URL, shown by sdc-lint explain <rule-id>.
     docsUrl?: string;
     docs?: RuleDocs;
   };
   // Runs synchronously, once per Questionnaire; must not mutate input or access the network.
+  // A throw or a returned promise fails the run with RULE_CRASH.
   check(ctx: RuleContext): void;
 }
 
+// A plugin: listed in plugins in an .mjs config, it registers its rules under its namespace.
 export interface LintPlugin {
   // name is the rule namespace: smart-forms plus flat-variable-context gives
   // smart-forms/flat-variable-context.

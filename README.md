@@ -29,7 +29,7 @@ sdc-lint lint --show-info                                          # also show i
 
 Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
-**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with five built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error` and `sdc/uncatalogued-expression`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Not built yet: plugins, the scope model and the rules that depend on it, and FSH source mapping. Until then every finding keeps its compiled JSON location.
+**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with five built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error` and `sdc/uncatalogued-expression`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules. Not built yet: the Smart Forms plugin's rules, the scope model and the rules that depend on it, and FSH source mapping. Until then every finding keeps its compiled JSON location.
 
 [examples/health-check](examples/health-check/README.md) is a form with common mistakes and the output the linter gives for it.
 
@@ -41,7 +41,7 @@ Start with these docs:
 
 ## Configuration
 
-`lint` and `explain` use `sdc-questionnaire-lint.config.json` from the current directory when it exists; parent directories are not searched. `--config <path>` names another config instead. Without a config, the built-in rules run at their default severities.
+`lint` and `explain` use `sdc-questionnaire-lint.config.json` or `sdc-questionnaire-lint.config.mjs` from the current directory when it exists; parent directories are not searched, and having both is an error. `--config <path>` names another config instead, `.json` or `.mjs`. Without a config, the built-in rules run at their default severities.
 
 ```json
 {
@@ -55,6 +55,7 @@ Start with these docs:
 - `source.fsh`: the FSH directories, defaulting to `["input/fsh"]`; `[]` omits FSH source lookup.
 - `rules`: a rule ID set to `error`, `warning`, `info` or `off`. A rule that is `off` does not run. `lint/stale-suppression` accepts only `warning` or `off`.
 - `suppress`: suppressions; see below.
+- `plugins`: plugins whose rules run; only in an `.mjs` config. See below.
 
 Paths in the config are relative to the config's directory, not the current one. From the parent of an IG, `sdc-lint lint --config ig/sdc-questionnaire-lint.config.json` checks `ig/fsh-generated/resources`.
 
@@ -62,6 +63,41 @@ Paths in the config are relative to the config's directory, not the current one.
 sdc-lint explain                    # every rule, with its default and effective severity
 sdc-lint explain sdc/parse-error    # what the rule checks, why, an example message and the fix
 ```
+
+### Plugins
+
+A plugin adds rules. Installing one does not enable it: list it in `plugins` in an `.mjs` config, which exports the config with `defineConfig`. A JSON config cannot list plugins, because it cannot load code.
+
+```js
+// sdc-questionnaire-lint.config.mjs
+import { defineConfig } from 'sdc-questionnaire-lint';
+import myPlugin from 'my-sdc-lint-plugin';
+
+export default defineConfig({
+  plugins: [myPlugin],
+  rules: { 'my-plugin/no-today': 'error' },
+});
+```
+
+A plugin is an object with `meta: { name, version }` and `rules`. A rule's ID is `<meta.name>/<key>`: the rule `no-today` of the plugin `my-plugin` is `my-plugin/no-today`. Names and keys use lowercase letters, digits and hyphens; `sdc` and `lint` are reserved. Each rule has `meta: { description, defaultSeverity }`, optionally `docsUrl` and `docs`, and a `check(ctx)` that reports findings with `ctx.report({ site, message })` for each of `ctx.sites` it flags:
+
+```js
+const myPlugin = {
+  meta: { name: 'my-plugin', version: '1.0.0' },
+  rules: {
+    'no-today': {
+      meta: { description: 'Flags today() in expressions.', defaultSeverity: 'warning' },
+      check(ctx) {
+        for (const site of ctx.sites) {
+          if (site.text?.includes('today()')) ctx.report({ site, message: 'This expression uses today().' });
+        }
+      },
+    },
+  },
+};
+```
+
+`check` must be synchronous; it runs once per Questionnaire. A rule that throws, returns a promise or reports an invalid finding, such as one with an empty message, stops the run with exit 2 and `RULE_CRASH` naming the rule. The types `LintPlugin`, `LintRule`, `RuleContext` and `RuleFinding` are exported from the package. Logging from a config or a rule goes to stderr, so it never mixes with the report.
 
 ### Suppressing a finding
 

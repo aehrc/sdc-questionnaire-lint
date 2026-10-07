@@ -32,4 +32,21 @@ export type {
   Summary,
 } from './report/types.js';
 export type { FailureCode } from './failure.js';
-export type { SuppressionEntry } from './config/types.js';
+export { defineConfig } from './config/types.js';
+export type { LintConfig, RuleSetting, SuppressionEntry } from './config/types.js';
+export type {
+  CataloguedLocation,
+  ExpressionCarrier,
+  ExpressionSite,
+  ExpressionUseCase,
+  LintPlugin,
+  LintRule,
+  LocalResource,
+  QueryFragment,
+  QuestionnaireDocument,
+  RuleContext,
+  RuleDocs,
+  RuleFinding,
+  Scope,
+  SiteItem,
+} from './plugins/types.js';
