@@ -1,10 +1,10 @@
 import pkg from '../package.json' with { type: 'json' };
 import { findExpressionSites } from './analysis/expression-sites.js';
-import { countExpressions } from './analysis/fhirpath.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { collectInputs } from './inputs/collect.js';
 import { buildRuleRegistry } from './plugins/rule-registry.js';
+import { summarizeExpressionCoverage } from './report/expression-coverage.js';
 import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
 import { runRules } from './run/rules.js';
@@ -63,7 +63,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       findings: outcome.findings,
       files: inputs.files,
       questionnaires: inputs.documents.length,
-      expressions: countExpressions(documents.flatMap(({ sites }) => sites)),
+      expressions: summarizeExpressionCoverage(documents.flatMap(({ sites }) => sites)),
       suppressedFindings: outcome.suppressedFindings,
       suppressions: outcome.suppressions,
       config: loaded?.display ?? null,
