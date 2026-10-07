@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { findQueryShapeProblem, scanQuery } from '../../src/analysis/query.js';
+import { findQueryShapeProblem, scanQueryFragments } from '../../src/analysis/x-fhir-query.js';
 
-describe('scanQuery', () => {
+describe('scanQueryFragments', () => {
   it('finds no fragments in a plain query', () => {
-    expect(scanQuery('Patient?_id=1')).toEqual({ fragments: [] });
+    expect(scanQueryFragments('Patient?_id=1')).toEqual({ fragments: [] });
   });
 
   it('gives the offsets of each fragment, excluding the braces', () => {
-    expect(scanQuery('Observation?subject={{%patient.id}}&date=gt{{%today}}')).toEqual({
+    expect(scanQueryFragments('Observation?subject={{%patient.id}}&date=gt{{%today}}')).toEqual({
       fragments: [
         { startOffset: 22, endOffset: 33 },
         { startOffset: 45, endOffset: 51 },
@@ -16,31 +16,35 @@ describe('scanQuery', () => {
   });
 
   it('gives the offset of an unclosed {{', () => {
-    expect(scanQuery('Observation?subject={{%patient.id')).toEqual({
+    expect(scanQueryFragments('Observation?subject={{%patient.id')).toEqual({
       fragments: [],
       unclosedAt: 20,
     });
   });
 
   it('keeps the closed fragments before an unclosed {{', () => {
-    expect(scanQuery('{{%a}}x{{%b')).toEqual({
+    expect(scanQueryFragments('{{%a}}x{{%b')).toEqual({
       fragments: [{ startOffset: 2, endOffset: 4 }],
       unclosedAt: 7,
     });
   });
 
   it('gives an empty fragment for {{}}', () => {
-    expect(scanQuery('Patient/{{}}')).toEqual({ fragments: [{ startOffset: 10, endOffset: 10 }] });
+    expect(scanQueryFragments('Patient/{{}}')).toEqual({
+      fragments: [{ startOffset: 10, endOffset: 10 }],
+    });
   });
 
   it('does not end a fragment at a single }', () => {
     const query = "Patient?name={{%a + '}'}}";
-    const [fragment] = scanQuery(query).fragments;
+    const [fragment] = scanQueryFragments(query).fragments;
     expect(query.slice(fragment?.startOffset, fragment?.endOffset)).toBe("%a + '}'");
   });
 
   it('ends a fragment at the first }}, even inside a string', () => {
-    expect(scanQuery("{{'}}'}}")).toEqual({ fragments: [{ startOffset: 2, endOffset: 3 }] });
+    expect(scanQueryFragments("{{'}}'}}")).toEqual({
+      fragments: [{ startOffset: 2, endOffset: 3 }],
+    });
   });
 });
 

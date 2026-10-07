@@ -1,5 +1,5 @@
 import { FHIRPATH } from '../analysis/fhirpath.js';
-import { X_FHIR_QUERY } from '../analysis/query.js';
+import { X_FHIR_QUERY } from '../analysis/x-fhir-query.js';
 import type { LintRule } from '../plugins/types.js';
 
 const unrecognised = 'This expression is in a place the linter does not recognise';

@@ -1,7 +1,7 @@
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
-import { hasQueryText } from '../analysis/query.js';
+import { hasQueryText } from '../analysis/x-fhir-query.js';
 import type { LoadedConfig } from '../config/load.js';
 import type { SuppressionEntry } from '../config/types.js';
 import { invalidConfigFailure } from '../config/validate.js';

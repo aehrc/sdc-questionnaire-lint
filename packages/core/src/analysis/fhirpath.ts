@@ -1,7 +1,7 @@
 import fhirpath from 'fhirpath';
 import type { ExpressionSite } from '../plugins/types.js';
 import type { Summary } from '../report/types.js';
-import { X_FHIR_QUERY } from './query.js';
+import { X_FHIR_QUERY } from './x-fhir-query.js';
 
 export const FHIRPATH = 'text/fhirpath';
 

@@ -1,12 +1,12 @@
-// Regenerates src/analysis/functions.ts from the installed fhirpath.js. Run it after bumping
-// fhirpath; test/analysis/functions.test.ts fails until you do:
+// Regenerates src/analysis/fhirpath-function-catalog.ts from the installed fhirpath.js. Run it
+// after bumping fhirpath; test/analysis/fhirpath-function-catalog.test.ts fails until you do:
 //   npm run generate:functions --workspace sdc-questionnaire-lint
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 export const functionsModule = fileURLToPath(
-  new URL('../src/analysis/functions.ts', import.meta.url),
+  new URL('../src/analysis/fhirpath-function-catalog.ts', import.meta.url),
 );
 
 // The version and the main source file of the installed fhirpath.js, which holds the table.

@@ -9,7 +9,7 @@ export function hasQueryText(site: ExpressionSite): site is ExpressionSite & { t
 }
 
 // Where the {{…}} fragments of an x-fhir-query are.
-export interface QueryScan {
+export interface QueryFragmentScan {
   // The closed fragments, in order: zero-based UTF-16 offsets of the text between the braces.
   fragments: { startOffset: number; endOffset: number }[];
   // The offset of the first {{ with no }} after it; the scan stops there.
@@ -18,8 +18,8 @@ export interface QueryScan {
 
 // Each {{ ends at the next }}, so a }} inside the fragment's FHIRPath, even in a string, ends it
 // early.
-export function scanQuery(text: string): QueryScan {
-  const fragments: QueryScan['fragments'] = [];
+export function scanQueryFragments(text: string): QueryFragmentScan {
+  const fragments: QueryFragmentScan['fragments'] = [];
   let open = text.indexOf('{{');
   while (open !== -1) {
     const close = text.indexOf('}}', open + 2);
@@ -38,6 +38,6 @@ const searchShape = /^(?:\{\{|[?$_]|https?:\/\/|[A-Z][A-Za-z]*(?:$|[/?]|\{\{))/;
 // What is wrong with the shape of a query, or undefined when it has an accepted shape. An unclosed
 // {{ is reported before the shape.
 export function findQueryShapeProblem(text: string): 'unclosed' | 'not-a-search' | undefined {
-  if (scanQuery(text).unclosedAt !== undefined) return 'unclosed';
+  if (scanQueryFragments(text).unclosedAt !== undefined) return 'unclosed';
   return searchShape.test(text) ? undefined : 'not-a-search';
 }

@@ -1,5 +1,9 @@
 import { findFhirPathSyntaxProblem } from '../analysis/fhirpath.js';
-import { findQueryShapeProblem, hasQueryText, scanQuery } from '../analysis/query.js';
+import {
+  findQueryShapeProblem,
+  hasQueryText,
+  scanQueryFragments,
+} from '../analysis/x-fhir-query.js';
 import type { LintRule, RuleFinding } from '../plugins/types.js';
 
 const notASearch =
@@ -19,7 +23,7 @@ function shapeFinding(text: string): Omit<RuleFinding, 'site'> {
 
 // The finding for a {{ with no }}, over the braces.
 function unclosedFinding(text: string): Omit<RuleFinding, 'site'> {
-  const at = scanQuery(text).unclosedAt;
+  const at = scanQueryFragments(text).unclosedAt;
   if (at === undefined) throw new Error(`The query has no unclosed {{: ${text}`);
   return {
     message:
