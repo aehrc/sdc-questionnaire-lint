@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findSites } from '../src/analysis/walker.js';
+import { findExpressionSites } from '../src/analysis/expression-sites.js';
 import { lint, type QuestionnaireFinding } from '../src/index.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../src/plugins/types.js';
 import { expectValidReport } from './support/report.js';
@@ -303,7 +303,7 @@ describe('config', () => {
 });
 
 describe('a plugin rule', () => {
-  it('runs once per Questionnaire, seeing the sites the walker found', async () => {
+  it('runs once per Questionnaire, seeing the expression sites the linter found', async () => {
     const seen: { document: QuestionnaireDocument; sites: readonly ExpressionSite[] }[] = [];
     // The config module reads this while lint imports it in this process.
     (globalThis as { sdcLintSeen?: typeof seen }).sdcLintSeen = seen;
@@ -351,7 +351,7 @@ describe('a plugin rule', () => {
       ['fsh-generated/resources/Questionnaire-A.json', 'A', ''],
     ]);
     for (const { document, sites } of seen) {
-      expect(sites).toEqual(findSites(document));
+      expect(sites).toEqual(findExpressionSites(document));
       expect(sites.map(({ carrier }) => carrier)).toEqual(['expression', 'fragment']);
     }
   });

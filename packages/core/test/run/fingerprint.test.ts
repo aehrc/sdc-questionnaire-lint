@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findSites } from '../../src/analysis/walker.js';
+import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import type { QuestionnaireDocument } from '../../src/plugins/types.js';
 import {
   configFingerprint,
@@ -37,7 +37,7 @@ function document(items: unknown[]): QuestionnaireDocument {
 // Each site's key, by its expression text.
 function keysByText(items: unknown[]): Record<string, string> {
   const doc = document(items);
-  const sites = findSites(doc);
+  const sites = findExpressionSites(doc);
   const keys = siteKeys(doc, sites);
   return Object.fromEntries(sites.map((site) => [site.text ?? '', keys.get(site) ?? '']));
 }
@@ -95,7 +95,7 @@ describe('siteKeys for fragments', () => {
   // Each site's key, in document order.
   function keysOf(extension: unknown[]): string[] {
     const doc = document([{ linkId: 'q', extension }]);
-    const sites = findSites(doc);
+    const sites = findExpressionSites(doc);
     const keys = siteKeys(doc, sites);
     return sites.map((site) => keys.get(site) ?? '');
   }

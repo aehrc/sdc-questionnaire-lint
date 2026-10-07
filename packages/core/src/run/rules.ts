@@ -93,7 +93,7 @@ function describeThrown(error: unknown): string {
 
 // A copy of a reported finding, judged by what the report schema and reporters rely on, or what
 // is wrong with it. Each field is read once, so a rule cannot change it after the check.
-function checkFinding(
+function parseReportedFinding(
   reported: unknown,
   sites: readonly ExpressionSite[],
   { resourcePointer }: QuestionnaireDocument,
@@ -106,7 +106,7 @@ function checkFinding(
   if (severity !== undefined && !isSeverity(severity)) {
     return 'severity is not error, warning or info';
   }
-  // By identity: a copy of a site is not a site the walker found.
+  // By identity: a copy of a site is not an expression site the linter found.
   const found = sites.find((each) => each === site);
   if (site !== undefined && found === undefined) return 'site is not one of ctx.sites';
   if (found === undefined && pointer !== undefined) {
@@ -143,7 +143,7 @@ function checkFinding(
   };
 }
 
-function ruleCrash({ id, plugin }: RegisteredRule, what: string): LintFailure {
+function ruleCrashFailure({ id, plugin }: RegisteredRule, what: string): LintFailure {
   return new LintFailure({
     code: 'RULE_CRASH',
     ruleId: id,
@@ -215,7 +215,7 @@ export function runRules(
           if (problem !== undefined) return;
           let checked: RuleFinding | string;
           try {
-            checked = checkFinding(reported, sites, document);
+            checked = parseReportedFinding(reported, sites, document);
           } catch {
             // A getter on the finding threw.
             checked = 'reading the finding threw an exception';
@@ -231,11 +231,13 @@ export function runRules(
         returned.then(undefined, () => undefined);
       }
     } catch (error) {
-      throw ruleCrash(registered, `crashed: ${describeThrown(error)}`);
+      throw ruleCrashFailure(registered, `crashed: ${describeThrown(error)}`);
     }
-    if (promised) throw ruleCrash(registered, 'returned a promise; check must be synchronous');
+    if (promised) {
+      throw ruleCrashFailure(registered, 'returned a promise; check must be synchronous');
+    }
     if (problem !== undefined) {
-      throw ruleCrash(registered, `reported an invalid finding: ${problem}`);
+      throw ruleCrashFailure(registered, `reported an invalid finding: ${problem}`);
     }
   }
   return findings;

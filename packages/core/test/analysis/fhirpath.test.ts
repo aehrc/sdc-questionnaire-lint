@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
-  checkFhirPathSyntax,
   countExpressions,
+  findFhirPathSyntaxProblem,
   findFunctionCalls,
 } from '../../src/analysis/fhirpath.js';
 import { expressionSite, fragmentSite } from '../support/builders.js';
 
-describe('checkFhirPathSyntax', () => {
+describe('findFhirPathSyntaxProblem', () => {
   it('returns undefined for valid text', () => {
-    expect(checkFhirPathSyntax("%resource.item.where(linkId = 'a').answer.value")).toBeUndefined();
+    expect(
+      findFhirPathSyntaxProblem("%resource.item.where(linkId = 'a').answer.value"),
+    ).toBeUndefined();
   });
 
   it('gives the offset of an error on line 1', () => {
-    expect(checkFhirPathSyntax('a.where(b')).toEqual({
+    expect(findFhirPathSyntaxProblem('a.where(b')).toEqual({
       parserMessage: "missing ')' at '<EOF>'",
       offset: 9,
     });
@@ -20,8 +22,8 @@ describe('checkFhirPathSyntax', () => {
 
   it('gives the offset of an error on line 2, counting from the start of the text', () => {
     // Line 2 starts at offset 5, after "a +\r\n"; the error is at column 2 of it.
-    expect(checkFhirPathSyntax('a +\r\n  / b')).toMatchObject({ offset: 7 });
-    expect(checkFhirPathSyntax('a +\n  b c')).toMatchObject({
+    expect(findFhirPathSyntaxProblem('a +\r\n  / b')).toMatchObject({ offset: 7 });
+    expect(findFhirPathSyntaxProblem('a +\n  b c')).toMatchObject({
       parserMessage: "extraneous input 'c' expecting <EOF>",
       offset: 8,
     });
@@ -29,11 +31,11 @@ describe('checkFhirPathSyntax', () => {
 
   it('throws when valid input overflows the parser stack, instead of blaming the expression', () => {
     const nested = `${'('.repeat(20000)}1${')'.repeat(20000)}`;
-    expect(() => checkFhirPathSyntax(nested)).toThrow(RangeError);
+    expect(() => findFhirPathSyntaxProblem(nested)).toThrow(RangeError);
   });
 
   it('returns no message and no offset when the parser fails without a position', () => {
-    expect(checkFhirPathSyntax('a.b..c')).toEqual({});
+    expect(findFhirPathSyntaxProblem('a.b..c')).toEqual({});
   });
 });
 

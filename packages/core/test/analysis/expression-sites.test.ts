@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findSites } from '../../src/analysis/walker.js';
+import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import type { QuestionnaireDocument } from '../../src/plugins/types.js';
 
 const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
@@ -29,10 +29,10 @@ function sitesOf(resource: Record<string, unknown>) {
     resourcePointer: '',
     localResources: [],
   };
-  return findSites(document);
+  return findExpressionSites(document);
 }
 
-describe('findSites', () => {
+describe('findExpressionSites', () => {
   it('finds variables on the root and on an item, with their names and use cases', () => {
     const sites = sitesOf({
       extension: [extension(VARIABLE, fhirPath('1', 'a'))],
@@ -194,7 +194,7 @@ describe('findSites', () => {
   });
 
   it('prefixes every pointer with the resource pointer of a Bundle entry', () => {
-    const [site] = findSites({
+    const [site] = findExpressionSites({
       file: 'Bundle-B.json',
       resource: {
         resourceType: 'Questionnaire',

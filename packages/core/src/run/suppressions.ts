@@ -1,10 +1,10 @@
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { checkFhirPathSyntax, hasFhirPathText } from '../analysis/fhirpath.js';
-import { hasQueryText } from '../analysis/query.js';
+import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
+import { hasQueryText } from '../analysis/x-fhir-query.js';
 import type { LoadedConfig } from '../config/load.js';
 import type { SuppressionEntry } from '../config/types.js';
-import { configInvalid } from '../config/validate.js';
+import { invalidConfigFailure } from '../config/validate.js';
 import { describeError, LintFailure } from '../failure.js';
 import { displayPath, type InputFile } from '../inputs/paths.js';
 import { type RegisteredRule, staleSuppressionId } from '../plugins/rule-registry.js';
@@ -47,7 +47,7 @@ export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => b
   'sdc/query-syntax': hasQueryText,
   'sdc/uncatalogued-expression': () => true,
   'sdc/unknown-function': (site) =>
-    hasFhirPathText(site) && checkFhirPathSyntax(site.text) === undefined,
+    hasFhirPathText(site) && findFhirPathSyntaxProblem(site.text) === undefined,
 };
 
 type Assessment =
@@ -139,7 +139,7 @@ async function assess(
   if (only === undefined) return { state: 'stale', ...siteGone(entry.rule, file.display) };
   if (matched.length > 1) {
     const documents = new Set(matched.map(({ document }) => document));
-    throw configInvalid(
+    throw invalidConfigFailure(
       loaded.display,
       ['suppress', index],
       `it matches ${String(matched.length)} expressions, at ${listPointers(matched.map(({ site }) => site.pointer))}`,

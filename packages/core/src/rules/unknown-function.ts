@@ -1,5 +1,5 @@
 import { findFunctionCalls, hasFhirPathText } from '../analysis/fhirpath.js';
-import { fhirPathFunctions } from '../analysis/functions.js';
+import { fhirPathFunctions } from '../analysis/fhirpath-function-catalog.js';
 import type { LintRule } from '../plugins/types.js';
 import { closestName } from '../suggest.js';
 

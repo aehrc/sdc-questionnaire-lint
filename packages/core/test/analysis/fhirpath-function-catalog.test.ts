@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import fhirpath from 'fhirpath';
 import { describe, expect, it } from 'vitest';
 import {
-  functionsModule,
+  catalogModule,
   installedFhirPath,
   invocationTableKeys,
-  renderFunctionsModule,
+  renderCatalogModule,
 } from '../../scripts/generate-functions.js';
 
 describe('fhirPathFunctions', () => {
@@ -15,9 +15,9 @@ describe('fhirPathFunctions', () => {
     // Guards against a pattern that stops matching and generates an empty list.
     expect(keys.length).toBeGreaterThan(100);
     expect(
-      readFileSync(functionsModule, 'utf8'),
+      readFileSync(catalogModule, 'utf8'),
       'run: npm run generate:functions --workspace sdc-questionnaire-lint',
-    ).toBe(renderFunctionsModule(version, keys));
+    ).toBe(renderCatalogModule(version, keys));
   });
 
   it('names functions that fhirpath.js rejects even on an empty collection', () => {

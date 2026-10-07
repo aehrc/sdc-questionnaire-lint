@@ -3,7 +3,7 @@ import { isObject } from '../object.js';
 import type { ExpressionSite, QuestionnaireDocument, SiteItem } from '../plugins/types.js';
 import { type CatalogEntry, extensionCatalog, type Owner } from './extension-catalog.js';
 import { FHIRPATH } from './fhirpath.js';
-import { scanQuery, X_FHIR_QUERY } from './query.js';
+import { scanQueryFragments, X_FHIR_QUERY } from './x-fhir-query.js';
 
 type Json = Record<string, unknown>;
 type Segments = readonly (string | number)[];
@@ -38,7 +38,7 @@ function expressionsOf(extension: Json, entry: CatalogEntry): Json[] {
 function fragmentSites(site: ExpressionSite): ExpressionSite[] {
   const query = site.text;
   if (site.language !== X_FHIR_QUERY || query === undefined) return [];
-  return scanQuery(query).fragments.map(({ startOffset, endOffset }) =>
+  return scanQueryFragments(query).fragments.map(({ startOffset, endOffset }) =>
     Object.freeze({
       pointer: site.pointer,
       expressionPointer: site.expressionPointer,
@@ -60,7 +60,7 @@ function fragmentSites(site: ExpressionSite): ExpressionSite[] {
 // of its JSON. Expressions held by catalogued extensions on the root and its items are catalogued
 // sites; any other object with a string language and expression, including in a contained
 // resource, is an uncatalogued site. Each fragment of a query directly follows the query.
-export function findSites(document: QuestionnaireDocument): ExpressionSite[] {
+export function findExpressionSites(document: QuestionnaireDocument): ExpressionSite[] {
   const sites: ExpressionSite[] = [];
   const claims = new Map<Json, Claim>();
   const pointerOf = (segments: Segments): string => document.resourcePointer + toPointer(segments);

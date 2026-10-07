@@ -55,7 +55,7 @@ export interface SiteItem {
   readonly linkId?: string;
 }
 
-// One expression the walker found in a Questionnaire. Sites are read-only and listed in document
+// One expression the linter found in a Questionnaire. Sites are read-only and listed in document
 // order; report a finding with site to point at the expression text.
 export interface ExpressionSite {
   // JSON Pointer from the root of the input file to the expression text, or to the Expression

@@ -13,7 +13,7 @@ export interface CollectedInputs extends ReadResult {
 
 const listedEntries = 3;
 
-function noQuestionnaires(entries: readonly InputEntry[], cwd: string): LintFailure {
+function noQuestionnairesFailure(entries: readonly InputEntry[], cwd: string): LintFailure {
   const shown = entries.slice(0, listedEntries).map((entry) => entry.display);
   const more = entries.length - shown.length;
   const list = more > 0 ? `${shown.join(', ')} and ${String(more)} more` : shown.join(', ');
@@ -49,6 +49,6 @@ export async function collectInputs({
     base: await realpath(runPaths.base),
   });
   const read = await readInputs(files);
-  if (read.documents.length === 0) throw noQuestionnaires(entries, cwd);
+  if (read.documents.length === 0) throw noQuestionnairesFailure(entries, cwd);
   return { selection, ...read };
 }

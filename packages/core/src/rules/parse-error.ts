@@ -1,6 +1,6 @@
 import {
-  checkFhirPathSyntax,
-  type FhirPathSyntaxError,
+  type FhirPathSyntaxProblem,
+  findFhirPathSyntaxProblem,
   hasFhirPathText,
 } from '../analysis/fhirpath.js';
 import type { LintRule, RuleFinding } from '../plugins/types.js';
@@ -21,7 +21,7 @@ function describe(text: string, parserMessage: string | undefined): Described {
       message: `A closing ${bracket} is missing.`,
       // Only when appending it makes the text parse is the end the place to add it; after a
       // trailing // comment, for example, it would land inside the comment.
-      ...(at === '<EOF>' && checkFhirPathSyntax(text + bracket) === undefined
+      ...(at === '<EOF>' && findFhirPathSyntaxProblem(text + bracket) === undefined
         ? { help: `add ${bracket} at the end of the expression` }
         : {}),
     };
@@ -45,9 +45,12 @@ function rangeAt(text: string, offset: number): OffsetRange {
   return { startOffset: offset, endOffset: offset + width };
 }
 
-// The finding for a syntax error in text, without its site; shared with sdc/fragment-parse-error.
-export function syntaxFinding(text: string, error: FhirPathSyntaxError): Omit<RuleFinding, 'site'> {
-  const { parserMessage, offset } = error;
+// The finding for a syntax problem in text, without its site; shared with sdc/fragment-parse-error.
+export function syntaxFinding(
+  text: string,
+  problem: FhirPathSyntaxProblem,
+): Omit<RuleFinding, 'site'> {
+  const { parserMessage, offset } = problem;
   // The first clause only: what the parser saw, not what it expected.
   const clause = parserMessage?.replace(/ expecting [\s\S]*$/, '');
   return {
@@ -87,8 +90,8 @@ export const parseError: LintRule = {
     for (const site of ctx.sites) {
       // Fragments are sdc/fragment-parse-error's.
       if (site.carrier !== 'expression' || !hasFhirPathText(site)) continue;
-      const error = checkFhirPathSyntax(site.text);
-      if (error !== undefined) ctx.report({ site, ...syntaxFinding(site.text, error) });
+      const problem = findFhirPathSyntaxProblem(site.text);
+      if (problem !== undefined) ctx.report({ site, ...syntaxFinding(site.text, problem) });
     }
   },
 };
