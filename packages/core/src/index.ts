@@ -32,3 +32,4 @@ export type {
   Summary,
 } from './report/types.js';
 export type { FailureCode } from './failure.js';
+export type { SuppressionEntry } from './config/types.js';

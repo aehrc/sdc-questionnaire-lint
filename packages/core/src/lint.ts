@@ -10,6 +10,7 @@ import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
 import { runRules } from './run/rules.js';
 import { findFshSources } from './run/sources.js';
+import { applySuppressions } from './run/suppressions.js';
 
 export interface LintOptions {
   // The working directory: CLI paths are relative to it, and reports show paths relative to it.
@@ -29,6 +30,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     cwd,
     ...(options.configPath === undefined ? {} : { explicitPath: options.configPath }),
   });
+  // Also checks the rule IDs suppress names.
   const rules = registerRules(loaded);
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const inputs = await collectInputs({ cwd, cliPaths: options.paths ?? [], runPaths });
@@ -38,7 +40,15 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     document,
     sites: findSites(document),
   }));
-  const findings = documents.flatMap((doc) => runRules(doc, rules));
+  const outcome = await applySuppressions({
+    loaded,
+    rules,
+    selection: inputs.selection,
+    inputs: inputs.inputs,
+    documents,
+    findings: documents.flatMap((doc) => runRules(doc, rules)),
+    cwd,
+  });
 
   return {
     schemaVersion: 1,
@@ -49,14 +59,14 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       compat: {},
       selection: inputs.selection,
     },
-    findings,
+    findings: outcome.findings,
     summary: buildSummary({
-      findings,
+      findings: outcome.findings,
       files: inputs.files,
       questionnaires: inputs.documents.length,
       expressions: countExpressions(documents.flatMap(({ sites }) => sites)),
-      suppressedFindings: 0,
-      suppressions: { applied: 0, stale: 0, notAssessed: 0 },
+      suppressedFindings: outcome.suppressedFindings,
+      suppressions: outcome.suppressions,
       config: loaded?.display ?? null,
       fshSources: sources.fshSources,
       fshSourceLookup: sources.fshSourceLookup,

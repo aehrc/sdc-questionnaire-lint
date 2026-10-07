@@ -29,7 +29,7 @@ sdc-lint lint --show-info                                          # also show i
 
 Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
-**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with five built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error` and `sdc/uncatalogued-expression`. Not built yet: plugins, suppressions, the scope model and the rules that depend on it, and FSH source mapping. Until then every finding keeps its compiled JSON location.
+**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with five built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error` and `sdc/uncatalogued-expression`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Not built yet: plugins, the scope model and the rules that depend on it, and FSH source mapping. Until then every finding keeps its compiled JSON location.
 
 [examples/health-check](examples/health-check/README.md) is a form with common mistakes and the output the linter gives for it.
 
@@ -53,7 +53,8 @@ Start with these docs:
 
 - `files`: the inputs `lint` checks when no paths are given: files, directories or globs. Defaults to `fsh-generated/resources`.
 - `source.fsh`: the FSH directories, defaulting to `["input/fsh"]`; `[]` omits FSH source lookup.
-- `rules`: a rule ID set to `error`, `warning`, `info` or `off`. A rule that is `off` does not run.
+- `rules`: a rule ID set to `error`, `warning`, `info` or `off`. A rule that is `off` does not run. `lint/stale-suppression` accepts only `warning` or `off`.
+- `suppress`: suppressions; see below.
 
 Paths in the config are relative to the config's directory, not the current one. From the parent of an IG, `sdc-lint lint --config ig/sdc-questionnaire-lint.config.json` checks `ig/fsh-generated/resources`.
 
@@ -61,6 +62,39 @@ Paths in the config are relative to the config's directory, not the current one.
 sdc-lint explain                    # every rule, with its default and effective severity
 sdc-lint explain sdc/parse-error    # what the rule checks, why, an example message and the fix
 ```
+
+### Suppressing a finding
+
+A suppression hides one rule's findings at one expression. Add it to `suppress` in the config:
+
+```json
+{
+  "suppress": [
+    {
+      "rule": "sdc/parse-error",
+      "file": "fsh-generated/resources/Questionnaire-intake.json",
+      "linkId": "bmi",
+      "extensionUrl": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+      "reason": "Fixed upstream in the next release of the shared profile."
+    }
+  ]
+}
+```
+
+Every entry needs `rule`, `file` and a non-blank `reason`. `file` and the optional keys select the expression, and every one given must match:
+
+| Key | Matches |
+| :- | :- |
+| `file` | The input file, relative to the config's directory |
+| `linkId` | The enclosing item's linkId |
+| `extensionUrl` | The URL of the extension that holds the expression |
+| `name` | The expression's `name`, such as a variable's name |
+| `resource` | `Questionnaire/<id>`, for a Bundle with several Questionnaires |
+| `pointer` | The expression's JSON Pointer, as the report's `jsonLocation.pointer` shows it; for expressions with no item, such as in a contained resource |
+
+The selectors must match exactly one expression; matching several is a config error. A suppression of an x-fhir-query also covers the FHIRPath in its `{{…}}` fragments.
+
+A suppression is **stale** when the run establishes that it hides nothing: its file was deleted, no expression matches it any more, or its rule checked the expression and found no problem. It is reported as a `lint/stale-suppression` warning at the config entry. A suppression the run cannot judge, such as one for a file outside a targeted run, is **not assessed** and reported only in the counts; [cli.md](docs/cli.md#stale-suppressions) has the full rules.
 
 ## Development
 

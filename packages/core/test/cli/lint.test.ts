@@ -85,6 +85,40 @@ describe('sdc-lint lint', () => {
     });
   });
 
+  describe('with a suppression of a deleted file', () => {
+    const A = 'fsh-generated/resources/Questionnaire-A.json';
+    const suppressionIg = () =>
+      tempTree({
+        'sdc-questionnaire-lint.config.json': JSON.stringify({
+          suppress: [
+            {
+              rule: 'sdc/parse-error',
+              file: 'fsh-generated/resources/Questionnaire-Gone.json',
+              reason: 'demo',
+            },
+          ],
+        }),
+        [A]: JSON.stringify({ resourceType: 'Questionnaire', status: 'draft' }),
+      });
+
+    it('prints a stale warning at the entry in a full run, and exits 0', async () => {
+      const result = runBinary(['lint'], { cwd: await suppressionIg() });
+      expect(result.code).toBe(0);
+      expect(result.stdout).toMatch(
+        /^sdc-questionnaire-lint\.config\.json: warning lint\/stale-suppression A suppression of sdc\/parse-error targets fsh-generated\/resources\/Questionnaire-Gone\.json, which no longer exists\.\n {2}location: \/suppress\/0\n {2}help: remove this entry from suppress\n/,
+      );
+      expect(result.stdout).toContain('Suppressions: 0 applied, 1 stale, 0 not assessed.\n');
+    });
+
+    it('does not assess it in a targeted run', async () => {
+      const result = runBinary(['lint', A], { cwd: await suppressionIg() });
+      expect(result.code).toBe(0);
+      expect(result.stdout).not.toContain('lint/stale-suppression');
+      expect(result.stdout).toMatch(/^0 findings in 1 questionnaire\./);
+      expect(result.stdout).toContain('Suppressions: 0 applied, 0 stale, 1 not assessed.\n');
+    });
+  });
+
   it('exits 2 for a missing path with empty stdout in text mode', () => {
     const result = runBinary(['lint', 'missing.json'], { cwd });
     expect(result).toEqual({

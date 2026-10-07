@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { findSites } from '../../src/analysis/walker.js';
 import type { QuestionnaireDocument } from '../../src/plugins/types.js';
-import { questionnaireFingerprint, siteKeys } from '../../src/run/fingerprint.js';
+import {
+  configFingerprint,
+  questionnaireFingerprint,
+  siteKeys,
+} from '../../src/run/fingerprint.js';
 
 const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
 const VARIABLE = 'http://hl7.org/fhir/StructureDefinition/variable';
@@ -139,5 +143,42 @@ describe('questionnaireFingerprint', () => {
     expect(questionnaireFingerprint({ ...parts, file: 'Questionnaire-R.json' })).not.toBe(
       fingerprint,
     );
+  });
+});
+
+describe('configFingerprint', () => {
+  const ruleId = 'lint/stale-suppression';
+  const entry = {
+    rule: 'sdc/parse-error',
+    file: 'Questionnaire-Q.json',
+    linkId: 'q',
+    reason: 'the host supplies %a',
+  };
+
+  it('does not change with the reason or the position in suppress', () => {
+    const fingerprint = configFingerprint(ruleId, entry);
+    expect(configFingerprint(ruleId, { ...entry, reason: 'another reason' })).toBe(fingerprint);
+    // The index is not an input; an entry moved in the array has the same fields.
+    expect(
+      configFingerprint(ruleId, { reason: 'r', linkId: 'q', file: entry.file, rule: entry.rule }),
+    ).toBe(fingerprint);
+  });
+
+  it.each([
+    ['file', { file: 'Questionnaire-R.json' }],
+    ['rule', { rule: 'sdc/unknown-function' }],
+    ['linkId', { linkId: 'r' }],
+    ['extensionUrl', { extensionUrl: 'http://example.org/x' }],
+    ['name', { name: 'v' }],
+    ['resource', { resource: 'Questionnaire/Q' }],
+    ['pointer', { pointer: '/item/0' }],
+  ])('changes with %s', (_, change) => {
+    expect(configFingerprint(ruleId, { ...entry, ...change })).not.toBe(
+      configFingerprint(ruleId, entry),
+    );
+  });
+
+  it('changes with the reporting rule', () => {
+    expect(configFingerprint('lint/other', entry)).not.toBe(configFingerprint(ruleId, entry));
   });
 });

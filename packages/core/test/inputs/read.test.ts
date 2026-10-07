@@ -55,6 +55,19 @@ describe('readInputs', () => {
     ]);
   });
 
+  it('lists every file read, including skipped files and Bundles with no Questionnaire', async () => {
+    const { result } = await read(kinds);
+    expect(result.inputs.map(({ display }) => display)).toEqual([
+      'Bundle-B.json',
+      'Bundle-ValueSets.json',
+      'Patient-P.json',
+      'Questionnaire-A.json',
+      'array.json',
+      'bom.json',
+      'number.json',
+    ]);
+  });
+
   it('keeps every Bundle entry resource as a local reference target', async () => {
     const { result } = await read(kinds);
     const [first] = result.documents;

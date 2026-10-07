@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { SuppressionEntry } from '../config/types.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../plugins/types.js';
 import type { ResourceIdentity } from '../report/types.js';
 
@@ -50,6 +51,10 @@ export function siteKeys(
   return keys;
 }
 
+function sha256(identity: unknown[]): string {
+  return createHash('sha256').update(JSON.stringify(identity)).digest('hex');
+}
+
 // Rule, file, resource and the site key; never a line number or an array index above the item.
 export function questionnaireFingerprint(parts: {
   ruleId: string;
@@ -66,5 +71,20 @@ export function questionnaireFingerprint(parts: {
     resource.pointer,
     key,
   ];
-  return createHash('sha256').update(JSON.stringify(identity)).digest('hex');
+  return sha256(identity);
+}
+
+// A finding about a suppression entry: the reporting rule, the suppressed rule and the selectors.
+// Never the reason or the entry's index in suppress (report-format.md § Findings and locations).
+export function configFingerprint(ruleId: string, entry: SuppressionEntry): string {
+  return sha256([
+    ruleId,
+    entry.rule,
+    entry.file,
+    entry.linkId ?? null,
+    entry.extensionUrl ?? null,
+    entry.name ?? null,
+    entry.resource ?? null,
+    entry.pointer ?? null,
+  ]);
 }
