@@ -17,7 +17,7 @@ export interface RegisteredRule {
   severity: Severity | 'off';
 }
 
-export interface Registry {
+export interface RuleRegistry {
   // For run.plugins: sorted by name, sdc included, lint excluded.
   plugins: PackageVersion[];
   // Sorted by ID, including rules configured off and lint/stale-suppression.
@@ -42,7 +42,7 @@ function compareStrings(a: string, b: string): number {
 }
 
 // Help for an unknown rule ID, shared by config failures and explain.
-export function unknownRuleHelp(id: string, registry: Registry): string {
+export function unknownRuleHelp(id: string, registry: RuleRegistry): string {
   const similar = closestName(
     id,
     registry.rules.map((rule) => rule.id),
@@ -147,7 +147,7 @@ function checkPlugin(value: unknown, index: number, display: string): LintPlugin
 // The built-in sdc and lint plugins and the config's plugins, with the config's settings
 // applied. Also checks the rule IDs the config's rules and suppress name, so lint and explain
 // fail the same way before any input is read.
-export function buildRegistry(loaded: LoadedConfig | null): Registry {
+export function buildRuleRegistry(loaded: LoadedConfig | null): RuleRegistry {
   const config = loaded?.config ?? {};
   const display = loaded?.display ?? '';
   const fail = (at: (string | number)[], problem: string, help: string): never => {
@@ -173,7 +173,7 @@ export function buildRegistry(loaded: LoadedConfig | null): Registry {
   });
 
   const settings = config.rules ?? {};
-  const registry: Registry = {
+  const registry: RuleRegistry = {
     plugins: plugins
       .filter((plugin) => plugin !== lintPlugin)
       .map(({ meta }) => ({ name: meta.name, version: meta.version }))

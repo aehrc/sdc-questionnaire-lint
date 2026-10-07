@@ -181,7 +181,7 @@ describe('validateConfig', () => {
     );
   });
 
-  it('accepts plugins in an .mjs config, leaving their elements to the registry', () => {
+  it('accepts plugins in an .mjs config, leaving their elements to the rule registry', () => {
     const mjs = { display: 'sdc-questionnaire-lint.config.mjs', format: 'mjs' } as const;
     const config = { plugins: [1] };
     expect(validateConfig(config, mjs)).toEqual(config);

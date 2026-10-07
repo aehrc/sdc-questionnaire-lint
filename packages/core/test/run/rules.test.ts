@@ -1,7 +1,7 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
 import { lint } from '../../src/index.js';
 import type { LintRule, RuleContext, RuleFinding } from '../../src/plugins/types.js';
-import type { RegisteredRule } from '../../src/plugins/registry.js';
+import type { RegisteredRule } from '../../src/plugins/rule-registry.js';
 import { runRules } from '../../src/run/rules.js';
 import { expressionSite, fragmentSite } from '../support/builders.js';
 import { expectValidReport } from '../support/report.js';

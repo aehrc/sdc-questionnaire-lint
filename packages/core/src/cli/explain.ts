@@ -1,6 +1,10 @@
 import { type LoadedConfig, loadConfig } from '../config/load.js';
 import { asLintFailure, LintFailure, renderFailureText } from '../failure.js';
-import { buildRegistry, type RegisteredRule, unknownRuleHelp } from '../plugins/registry.js';
+import {
+  buildRuleRegistry,
+  type RegisteredRule,
+  unknownRuleHelp,
+} from '../plugins/rule-registry.js';
 import { guardStdout } from './output-guard.js';
 import type { CliIo } from './run.js';
 
@@ -81,7 +85,7 @@ async function explain(
     cwd,
     ...(args.configPath === undefined ? {} : { explicitPath: args.configPath }),
   });
-  const registry = buildRegistry(loaded);
+  const registry = buildRuleRegistry(loaded);
   const { ruleId } = args;
   if (ruleId === undefined) return formatRuleList(registry.rules, loaded);
   const rule = registry.rules.find(({ id }) => id === ruleId);

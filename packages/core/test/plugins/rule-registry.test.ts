@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LoadedConfig } from '../../src/config/load.js';
 import type { LintConfig } from '../../src/config/types.js';
-import { buildRegistry, type RegisteredRule } from '../../src/plugins/registry.js';
+import { buildRuleRegistry, type RegisteredRule } from '../../src/plugins/rule-registry.js';
 import type { LintPlugin } from '../../src/plugins/types.js';
 
 const display = 'sdc-questionnaire-lint.config.mjs';
@@ -10,7 +10,7 @@ function loaded(config: LintConfig): LoadedConfig {
   return { path: `/ig/${display}`, dir: '/ig', display, format: 'mjs', config };
 }
 
-const registerRules = (config: LoadedConfig | null) => buildRegistry(config).rules;
+const registerRules = (config: LoadedConfig | null) => buildRuleRegistry(config).rules;
 
 function severities(rules: readonly RegisteredRule[]) {
   return rules.map(({ id, severity }) => [id, severity]);
@@ -28,7 +28,7 @@ function demoPlugin(): LintPlugin {
   };
 }
 
-describe('buildRegistry', () => {
+describe('buildRuleRegistry', () => {
   it('registers every built-in rule at its default severity, sorted by ID', () => {
     const rules = registerRules(null);
     expect(severities(rules)).toEqual([
@@ -126,7 +126,7 @@ describe('buildRegistry', () => {
   });
 
   it("registers a plugin's rules as <name>/<key>, sorted among the sdc rules", () => {
-    const registry = buildRegistry(loaded({ plugins: [demoPlugin()] }));
+    const registry = buildRuleRegistry(loaded({ plugins: [demoPlugin()] }));
     expect(severities(registry.rules)).toEqual([
       ['demo/no-today', 'warning'],
       ['lint/stale-suppression', 'warning'],
@@ -141,13 +141,13 @@ describe('buildRegistry', () => {
 
   it('lists plugins sorted by name, with sdc and without lint', () => {
     const zeta: LintPlugin = { meta: { name: 'zeta', version: '0.0.1' }, rules: {} };
-    const { plugins } = buildRegistry(loaded({ plugins: [zeta, demoPlugin()] }));
+    const { plugins } = buildRuleRegistry(loaded({ plugins: [zeta, demoPlugin()] }));
     expect(plugins).toEqual([
       { name: 'demo', version: '1.2.3' },
       { name: 'sdc', version: expect.any(String) as string },
       { name: 'zeta', version: '0.0.1' },
     ]);
-    expect(buildRegistry(null).plugins.map(({ name }) => name)).toEqual(['sdc']);
+    expect(buildRuleRegistry(null).plugins.map(({ name }) => name)).toEqual(['sdc']);
   });
 
   it('applies a configured severity to a plugin rule', () => {
@@ -208,7 +208,7 @@ describe('buildRegistry', () => {
     ],
     ['a missing check', plugin({ 'no-today': rule({}, { check: undefined }) }), `${at}/check`],
   ])('rejects %s, at its pointer', (_, value, pointer) => {
-    expect(() => buildRegistry(loaded({ plugins: [value as LintPlugin] }))).toThrow(
+    expect(() => buildRuleRegistry(loaded({ plugins: [value as LintPlugin] }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         path: display,
@@ -221,13 +221,13 @@ describe('buildRegistry', () => {
 
   it('accepts a plugin rule with an absolute docsUrl and complete docs', () => {
     const value = plugin({ 'no-today': rule({ docsUrl: 'https://example.org/no-today', docs }) });
-    const registry = buildRegistry(loaded({ plugins: [value as LintPlugin] }));
+    const registry = buildRuleRegistry(loaded({ plugins: [value as LintPlugin] }));
     expect(registry.rules.find(({ id }) => id === 'demo/no-today')?.rule.meta.docs).toEqual(docs);
   });
 
   it.each(['sdc', 'lint'])('rejects the reserved namespace %s', (name) => {
     const plugin = { ...demoPlugin(), meta: { name, version: '1.0.0' } };
-    expect(() => buildRegistry(loaded({ plugins: [plugin] }))).toThrow(
+    expect(() => buildRuleRegistry(loaded({ plugins: [plugin] }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         message: expect.stringMatching(
@@ -238,7 +238,7 @@ describe('buildRegistry', () => {
   });
 
   it('rejects a duplicate namespace at the second entry', () => {
-    expect(() => buildRegistry(loaded({ plugins: [demoPlugin(), demoPlugin()] }))).toThrow(
+    expect(() => buildRuleRegistry(loaded({ plugins: [demoPlugin(), demoPlugin()] }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         message: `config ${display} is invalid at /plugins/1/meta/name: the namespace demo is already registered`,
@@ -251,13 +251,13 @@ describe('buildRegistry', () => {
 
   it('says the plugin must be listed for an unknown namespace in rules', () => {
     expect(() =>
-      buildRegistry(loaded({ rules: { 'smart-forms/flat-variable-context': 'off' } })),
+      buildRuleRegistry(loaded({ rules: { 'smart-forms/flat-variable-context': 'off' } })),
     ).toThrow(expect.objectContaining({ code: 'CONFIG_INVALID', help: mustBeListed }));
   });
 
   it('says the plugin must be listed for an unknown namespace in suppress', () => {
     expect(() =>
-      buildRegistry(
+      buildRuleRegistry(
         loaded({ suppress: [{ ...suppression, rule: 'smart-forms/flat-variable-context' }] }),
       ),
     ).toThrow(
@@ -271,7 +271,7 @@ describe('buildRegistry', () => {
 
   it("accepts a suppression of a listed plugin's rule", () => {
     expect(() =>
-      buildRegistry(
+      buildRuleRegistry(
         loaded({ plugins: [demoPlugin()], suppress: [{ ...suppression, rule: 'demo/no-today' }] }),
       ),
     ).not.toThrow();

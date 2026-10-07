@@ -2,7 +2,7 @@ import { describeError, LintFailure } from '../failure.js';
 import type { InputFile } from '../inputs/paths.js';
 import { jsonPointerPattern } from '../json-pointer.js';
 import { isObject } from '../object.js';
-import type { RegisteredRule } from '../plugins/registry.js';
+import type { RegisteredRule } from '../plugins/rule-registry.js';
 import type {
   ExpressionSite,
   QuestionnaireDocument,

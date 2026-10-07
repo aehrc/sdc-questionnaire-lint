@@ -4,7 +4,7 @@ import { findSites } from './analysis/walker.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { collectInputs } from './inputs/collect.js';
-import { buildRegistry } from './plugins/registry.js';
+import { buildRuleRegistry } from './plugins/rule-registry.js';
 import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
 import { runRules } from './run/rules.js';
@@ -30,7 +30,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     ...(options.configPath === undefined ? {} : { explicitPath: options.configPath }),
   });
   // Also checks the plugins, and the rule IDs rules and suppress name.
-  const registry = buildRegistry(loaded);
+  const registry = buildRuleRegistry(loaded);
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const inputs = await collectInputs({ cwd, cliPaths: options.paths ?? [], runPaths });
   const sources = await findFshSources(runPaths, cwd);

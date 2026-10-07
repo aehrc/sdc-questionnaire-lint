@@ -7,7 +7,7 @@ import { resolveRunPaths } from '../../src/config/paths.js';
 import { collectInputs } from '../../src/inputs/collect.js';
 import { lint } from '../../src/lint.js';
 import { sdcPlugin } from '../../src/plugins/builtin.js';
-import { buildRegistry } from '../../src/plugins/registry.js';
+import { buildRuleRegistry } from '../../src/plugins/rule-registry.js';
 import { configFingerprint } from '../../src/run/fingerprint.js';
 import { runRules } from '../../src/run/rules.js';
 import { applySuppressions, completesCheck } from '../../src/run/suppressions.js';
@@ -53,7 +53,7 @@ interface Run {
 async function assessIn(cwd: string, { suppress, rules, files, paths }: Run) {
   await writeFile(path.join(cwd, configName), JSON.stringify({ rules, files, suppress }));
   const loaded = await loadConfig({ cwd });
-  const registered = buildRegistry(loaded).rules;
+  const registered = buildRuleRegistry(loaded).rules;
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const inputs = await collectInputs({ cwd, cliPaths: paths ?? [], runPaths });
   const documents = inputs.documents.map(({ input, document }) => ({
