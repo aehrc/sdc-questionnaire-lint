@@ -48,20 +48,20 @@ async function discover(cwd: string): Promise<string | undefined> {
 // Imports the module, which runs its code and the plugins it imports.
 async function importConfig(
   file: string,
-  invalidConfigFailure: (message: string, help: string) => LintFailure,
+  configFileFailure: (message: string, help: string) => LintFailure,
   display: string,
 ): Promise<unknown> {
   let module: Record<string, unknown>;
   try {
     module = (await import(pathToFileURL(file).href)) as Record<string, unknown>;
   } catch (error) {
-    throw invalidConfigFailure(
+    throw configFileFailure(
       `config ${display} failed to load: ${describeError(error)}`,
       'fix the error in the config module or in a plugin it imports',
     );
   }
   if (!('default' in module)) {
-    throw invalidConfigFailure(
+    throw configFileFailure(
       `config ${display} has no default export`,
       'export the config object: export default defineConfig({ … })',
     );
@@ -83,7 +83,7 @@ export async function loadConfig({
   if (chosen === undefined) return null;
   const file = path.resolve(cwd, chosen);
   const display = displayPath(file, cwd);
-  const invalidConfigFailure = (message: string, help: string): LintFailure =>
+  const configFileFailure = (message: string, help: string): LintFailure =>
     new LintFailure({ code: 'CONFIG_INVALID', path: display, message, help });
 
   let text: string;
@@ -92,18 +92,18 @@ export async function loadConfig({
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === 'ENOENT' || code === 'ENOTDIR') {
-      throw invalidConfigFailure(
+      throw configFileFailure(
         `config ${display} does not exist`,
         'check the path; it is relative to the current directory',
       );
     }
     if (code === 'EISDIR') {
-      throw invalidConfigFailure(
+      throw configFileFailure(
         `config ${display} is not a file`,
         `pass the path of the config file, such as ${configFileName}`,
       );
     }
-    throw invalidConfigFailure(
+    throw configFileFailure(
       `cannot read config ${display}: ${describeError(error)}`,
       'check the permissions of the config file',
     );
@@ -118,10 +118,10 @@ export async function loadConfig({
   // Checked after reading, so a mistyped path is reported as missing.
   const extension = path.extname(file);
   if (extension === '.mjs') {
-    return loaded('mjs', await importConfig(file, invalidConfigFailure, display));
+    return loaded('mjs', await importConfig(file, configFileFailure, display));
   }
   if (extension !== '.json') {
-    throw invalidConfigFailure(
+    throw configFileFailure(
       `config ${display} is neither a .json nor an .mjs file`,
       `use ${configFileName}, or ${moduleConfigFileName} to list plugins`,
     );
@@ -131,7 +131,7 @@ export async function loadConfig({
     // Tolerate a byte order mark, which JSON.parse rejects.
     raw = JSON.parse(text.startsWith('﻿') ? text.slice(1) : text);
   } catch (error) {
-    throw invalidConfigFailure(
+    throw configFileFailure(
       `config ${display} is not valid JSON: ${describeError(error)}`,
       'fix the JSON syntax at the position the message gives',
     );

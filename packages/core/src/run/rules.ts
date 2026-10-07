@@ -93,7 +93,7 @@ function describeThrown(error: unknown): string {
 
 // A copy of a reported finding, judged by what the report schema and reporters rely on, or what
 // is wrong with it. Each field is read once, so a rule cannot change it after the check.
-function validateReportedFinding(
+function parseReportedFinding(
   reported: unknown,
   sites: readonly ExpressionSite[],
   { resourcePointer }: QuestionnaireDocument,
@@ -215,7 +215,7 @@ export function runRules(
           if (problem !== undefined) return;
           let checked: RuleFinding | string;
           try {
-            checked = validateReportedFinding(reported, sites, document);
+            checked = parseReportedFinding(reported, sites, document);
           } catch {
             // A getter on the finding threw.
             checked = 'reading the finding threw an exception';
