@@ -12,6 +12,8 @@ export interface InputDocument {
 
 export interface ReadResult {
   documents: InputDocument[];
+  // Every file read, in order, whether or not it holds a Questionnaire: the run's selected files.
+  inputs: InputFile[];
   // read: every parsed file; skipped: parsed files with neither a Questionnaire nor a Bundle.
   files: { read: number; skipped: number };
 }
@@ -79,5 +81,5 @@ export async function readInputs(files: readonly InputFile[]): Promise<ReadResul
     if (classified === 'skipped') skipped++;
     else documents.push(...classified.map((document) => ({ input: file, document })));
   }
-  return { documents, files: { read: files.length, skipped } };
+  return { documents, inputs: [...files], files: { read: files.length, skipped } };
 }

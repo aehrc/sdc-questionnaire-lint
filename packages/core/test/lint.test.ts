@@ -238,6 +238,62 @@ describe('config', () => {
     expect(report.summary).toMatchObject({ config: `ig/${config}`, fshSources: ['ig/fsh'] });
   });
 
+  it('reports an applied suppression in the summary counts', async () => {
+    const cwd = await tempTree({
+      [config]: JSON.stringify({
+        suppress: [
+          {
+            rule: 'sdc/parse-error',
+            file: 'fsh-generated/resources/Questionnaire-A.json',
+            linkId: 'q',
+            reason: 'demo',
+          },
+        ],
+      }),
+      'fsh-generated/resources/Questionnaire-A.json': broken,
+    });
+    const report = await lint({ cwd });
+    expectValidReport(report);
+    expect(report.findings).toEqual([]);
+    expect(report.summary).toMatchObject({
+      errors: 0,
+      suppressedFindings: 1,
+      suppressions: { applied: 1, stale: 0, notAssessed: 0 },
+    });
+  });
+
+  it('reports one stale finding per stale entry', async () => {
+    const suppression = (file: string) => ({ rule: 'sdc/parse-error', file, reason: 'demo' });
+    const cwd = await tempTree({
+      [config]: JSON.stringify({
+        suppress: [
+          suppression('fsh-generated/resources/Questionnaire-Gone.json'),
+          { ...suppression('fsh-generated/resources/Questionnaire-A.json'), linkId: 'q' },
+          suppression('elsewhere/Questionnaire-B.json'),
+        ],
+      }),
+      'fsh-generated/resources/Questionnaire-A.json': broken.replace('a.where(', 'a.where(b)'),
+      'elsewhere/Questionnaire-B.json': broken,
+    });
+    const report = await lint({ cwd });
+    expectValidReport(report);
+    expect(report.findings).toMatchObject([
+      {
+        ruleId: 'lint/stale-suppression',
+        configLocation: { file: config, pointer: '/suppress/0' },
+      },
+      {
+        ruleId: 'lint/stale-suppression',
+        configLocation: { file: config, pointer: '/suppress/1' },
+      },
+    ]);
+    expect(report.summary).toMatchObject({
+      warnings: 2,
+      suppressedFindings: 0,
+      suppressions: { applied: 0, stale: 2, notAssessed: 1 },
+    });
+  });
+
   it('fails on an invalid config before looking for inputs', async () => {
     const cwd = await tempTree({ [config]: '{ "rulez": {} }' });
     await expect(lint({ cwd })).rejects.toMatchObject({ code: 'CONFIG_INVALID' });

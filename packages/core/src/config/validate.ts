@@ -6,8 +6,17 @@ import type { LintConfig } from './types.js';
 type Path = readonly (string | number)[];
 
 // Only keys that do something: one accepted and ignored would let an author believe it is in effect.
-const knownKeys = ['files', 'rules', 'source'];
+const knownKeys = ['files', 'rules', 'source', 'suppress'];
 const ruleSettings = ['error', 'warning', 'info', 'off'];
+const requiredSuppressionKeys = ['rule', 'reason', 'file'];
+const selectorKeys = ['linkId', 'extensionUrl', 'name', 'resource', 'pointer'];
+const requiredHelp: Record<string, string> = {
+  rule: 'set rule to the ID of the rule whose findings to hide',
+  reason: 'set reason to why the findings are acceptable here',
+  file: "set file to the input file, relative to the config's directory",
+};
+// The report schema's JSON Pointer pattern.
+const jsonPointer = /^(?:\/(?:[^~/]|~[01])*)*$/;
 
 // CONFIG_INVALID naming the config file and the JSON Pointer of the entry.
 export function configInvalid(
@@ -109,6 +118,55 @@ export function validateConfig(raw: unknown, display: string): LintConfig {
         );
       }
     }
+  }
+
+  if (config.suppress !== undefined) {
+    if (!Array.isArray(config.suppress)) {
+      fail(
+        ['suppress'],
+        `expected an array, got ${describeValue(config.suppress)}`,
+        'list suppressions as an array of objects with rule, file and reason',
+      );
+      return config;
+    }
+    config.suppress.forEach((value: unknown, index) => {
+      const at = ['suppress', index];
+      const entry = expectObject(
+        value,
+        at,
+        '{ "rule": "sdc/parse-error", "file": "…", "reason": "…" }',
+      );
+      for (const key of requiredSuppressionKeys) {
+        if (entry[key] === undefined) fail(at, `${key} is missing`, requiredHelp[key] ?? '');
+      }
+      for (const [key, setting] of Object.entries(entry)) {
+        const required = requiredSuppressionKeys.includes(key);
+        if (!required && !selectorKeys.includes(key)) {
+          fail(
+            [...at, key],
+            `unknown key ${key}`,
+            `the known keys are ${[...requiredSuppressionKeys, ...selectorKeys].join(', ')}`,
+          );
+        }
+        if (typeof setting !== 'string') {
+          fail(
+            [...at, key],
+            `expected a string, got ${describeValue(setting)}`,
+            `make ${key} a string`,
+          );
+        } else if (required && setting.trim() === '') {
+          fail([...at, key], `${key} is blank`, requiredHelp[key] ?? '');
+        } else if (setting === '') {
+          fail([...at, key], `${key} is empty`, `give ${key} a value, or remove it`);
+        } else if (key === 'pointer' && !jsonPointer.test(setting)) {
+          fail(
+            [...at, key],
+            `${JSON.stringify(setting)} is not a JSON Pointer`,
+            "copy the pointer from the finding's jsonLocation.pointer, such as /item/0/extension/0/valueExpression/expression",
+          );
+        }
+      }
+    });
   }
 
   return config;

@@ -12,6 +12,7 @@ describe('sdc-lint explain', () => {
       code: 0,
       stdout:
         'RULE                         DEFAULT  EFFECTIVE  DESCRIPTION\n' +
+        'lint/stale-suppression       warning  warning    Reports a suppression that is no longer needed.\n' +
         'sdc/fragment-parse-error     error    error      Reports a FHIRPath expression embedded in an x-fhir-query that does not parse.\n' +
         'sdc/parse-error              error    error      Reports a FHIRPath expression that does not parse.\n' +
         'sdc/query-syntax             error    error      Reports an x-fhir-query that is not a FHIR search.\n' +
@@ -103,5 +104,54 @@ describe('sdc-lint explain', () => {
     const result = await runInProcess(['explain'], { cwd });
     expect(result).toMatchObject({ code: 2, stdout: '' });
     expect(result.stderr).toMatch(/^error: config \S+ is invalid at \/rules\/sdc~1parse-eror: /);
+  });
+
+  // The directories are empty, so these also show that the suppressions are checked before any
+  // input is read.
+  it('exits 2 for a suppression of an unknown rule', async () => {
+    const cwd = await tempTree({
+      [config]: JSON.stringify({
+        suppress: [{ rule: 'sdc/parse-eror', file: 'Questionnaire-A.json', reason: 'demo' }],
+      }),
+    });
+    const result = await runInProcess(['explain'], { cwd });
+    expect(result).toEqual({
+      code: 2,
+      stdout: '',
+      stderr:
+        `error: config ${config} is invalid at /suppress/0/rule: unknown rule sdc/parse-eror\n` +
+        'help: a rule with a similar name exists: sdc/parse-error\n',
+    });
+  });
+
+  it('exits 2 for a suppression of a lint/ rule', async () => {
+    const cwd = await tempTree({
+      [config]: JSON.stringify({
+        suppress: [
+          { rule: 'lint/stale-suppression', file: 'Questionnaire-A.json', reason: 'demo' },
+        ],
+      }),
+    });
+    const result = await runInProcess(['explain', 'lint/stale-suppression'], { cwd });
+    expect(result).toEqual({
+      code: 2,
+      stdout: '',
+      stderr:
+        `error: config ${config} is invalid at /suppress/0/rule: lint/stale-suppression findings cannot be suppressed\n` +
+        'help: set lint/stale-suppression to off in rules instead\n',
+    });
+  });
+
+  it('prints the documentation of lint/stale-suppression', async () => {
+    const { code, stdout } = await runInProcess(['explain', 'lint/stale-suppression'], {
+      cwd: await tempTree(),
+    });
+    expect(code).toBe(0);
+    expect(stdout).toMatch(
+      /^lint\/stale-suppression\nReports a suppression that is no longer needed\.\n\nDefault severity: warning\. Effective severity: warning\.\n/,
+    );
+    expect(stdout).toContain(
+      'hides nothing: the rule checked this expression and found no problem',
+    );
   });
 });

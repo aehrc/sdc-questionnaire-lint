@@ -16,6 +16,13 @@ _Avoid_: Exception, ignore, disable
 A suppression established to be unnecessary after its target has been checked or confirmed to no longer exist. It is itself reported as a finding; a suppression whose target was not assessed is not stale.
 _Avoid_: Unused suppression, dead suppression
 
+**Full run**:
+A lint run with no paths on the command line, which checks the config's `files` or the default directory. It can confirm that a file named by a suppression was deleted.
+
+**Targeted run**:
+A lint run with paths on the command line, which checks only those files. Suppressions for other files are not assessed.
+_Avoid_: Partial run
+
 **Rule off**:
 A configuration choice that stops a rule from running anywhere. It is not a suppression.
 
