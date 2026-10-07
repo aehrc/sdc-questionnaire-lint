@@ -1,4 +1,4 @@
-import type { LintPlugin } from '../plugins/types.js';
+import type { LintPlugin } from '../plugins/contract.js';
 import type { Severity } from '../report/types.js';
 
 // A rule's setting in rules: its severity, or off to not run it.

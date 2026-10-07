@@ -1,4 +1,4 @@
-import type { LintRule, RuleFinding } from '../plugins/types.js';
+import type { LintRule, RuleFinding } from '../plugins/contract.js';
 
 type Described = Pick<RuleFinding, 'message' | 'help'> & { help: string };
 

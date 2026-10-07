@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { LoadedConfig } from '../../src/config/load.js';
 import type { LintConfig } from '../../src/config/types.js';
 import { type ResolvedRule, resolveRuleSet } from '../../src/plugins/rule-set.js';
-import type { LintPlugin } from '../../src/plugins/types.js';
+import type { LintPlugin } from '../../src/plugins/contract.js';
 
 const display = 'sdc-questionnaire-lint.config.mjs';
 

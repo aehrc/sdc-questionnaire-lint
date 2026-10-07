@@ -1,5 +1,5 @@
 import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
-import type { LintRule } from '../plugins/types.js';
+import type { LintRule } from '../plugins/contract.js';
 import { syntaxFinding } from './parse-error.js';
 
 export const fragmentParseError: LintRule = {

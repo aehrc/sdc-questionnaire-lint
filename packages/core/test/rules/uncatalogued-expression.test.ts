@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ExpressionSite, RuleFinding } from '../../src/plugins/types.js';
+import type { ExpressionSite } from '../../src/analysis/expression-site.js';
+import type { RuleFinding } from '../../src/plugins/contract.js';
 import { uncataloguedExpression } from '../../src/rules/uncatalogued-expression.js';
 import { expressionSite, fragmentSite } from '../support/builders.js';
 

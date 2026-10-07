@@ -5,7 +5,7 @@ import { isObject } from '../object.js';
 import type { PackageVersion } from '../report/types.js';
 import { closestName } from '../suggest.js';
 import { lintPlugin, sdcPlugin, staleSuppressionId } from './builtin.js';
-import type { LintPlugin, LintRule } from './types.js';
+import type { LintPlugin, LintRule } from './contract.js';
 
 export interface ResolvedRule {
   // sdc/parse-error

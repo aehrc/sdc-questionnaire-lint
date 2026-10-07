@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import type { QuestionnaireDocument } from '../../src/analysis/expression-site.js';
 import { findExpressionSites } from '../../src/analysis/expression-sites.js';
-import type { QuestionnaireDocument } from '../../src/plugins/types.js';
 
 const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
 const VARIABLE = 'http://hl7.org/fhir/StructureDefinition/variable';

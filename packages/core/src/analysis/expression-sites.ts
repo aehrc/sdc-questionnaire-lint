@@ -1,6 +1,6 @@
 import { toPointer } from '../json-pointer.js';
 import { isObject } from '../object.js';
-import type { ExpressionSite, QuestionnaireDocument, SiteItem } from '../plugins/types.js';
+import type { ExpressionSite, QuestionnaireDocument, SiteItem } from './expression-site.js';
 import { type CatalogEntry, extensionCatalog, type Owner } from './extension-catalog.js';
 import { FHIRPATH } from './fhirpath.js';
 import { scanQueryFragments, X_FHIR_QUERY } from './x-fhir-query.js';

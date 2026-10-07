@@ -3,7 +3,7 @@ import {
   findFhirPathSyntaxProblem,
   hasFhirPathText,
 } from '../analysis/fhirpath.js';
-import type { LintRule, RuleFinding } from '../plugins/types.js';
+import type { LintRule, RuleFinding } from '../plugins/contract.js';
 import type { OffsetRange } from '../report/types.js';
 
 type Described = Pick<RuleFinding, 'message' | 'help'>;

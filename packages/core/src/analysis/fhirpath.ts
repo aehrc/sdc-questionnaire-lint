@@ -1,5 +1,5 @@
 import fhirpath from 'fhirpath';
-import type { ExpressionSite } from '../plugins/types.js';
+import type { ExpressionSite } from './expression-site.js';
 
 export const FHIRPATH = 'text/fhirpath';
 

@@ -1,3 +1,4 @@
+import type { ExpressionSite } from '../../src/analysis/expression-site.js';
 import type {
   CompletedReport,
   ConfigFinding,
@@ -5,7 +6,6 @@ import type {
   QuestionnaireFinding,
   Summary,
 } from '../../src/index.js';
-import type { ExpressionSite } from '../../src/plugins/types.js';
 
 // A schema-valid unmapped Questionnaire finding; override any field.
 export function questionnaireFinding(

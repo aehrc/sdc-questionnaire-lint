@@ -1,5 +1,6 @@
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
+import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import type { LoadedConfig } from '../config/load.js';
 import type { SuppressionEntry } from '../config/types.js';
 import { invalidConfigFailure } from '../config/validate.js';
@@ -8,7 +9,6 @@ import { displayPath, type InputFile } from '../inputs/paths.js';
 import type { AnalysedDocument } from '../inputs/read.js';
 import { completesCheck, staleSuppressionId } from '../plugins/builtin.js';
 import type { ResolvedRule } from '../plugins/rule-set.js';
-import type { ExpressionSite, QuestionnaireDocument } from '../plugins/types.js';
 import type { ConfigFinding, Finding, RunKind } from '../report/types.js';
 import { fileGone, nothingToHide, siteGone } from '../rules/stale-suppression.js';
 import { configFingerprint } from './fingerprint.js';

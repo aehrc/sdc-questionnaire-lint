@@ -1,15 +1,10 @@
+import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import { describeError, LintFailure } from '../failure.js';
 import type { AnalysedDocument } from '../inputs/read.js';
 import { jsonPointerPattern } from '../json-pointer.js';
 import { isObject } from '../object.js';
 import type { ResolvedRule } from '../plugins/rule-set.js';
-import type {
-  ExpressionSite,
-  QuestionnaireDocument,
-  RuleContext,
-  RuleFinding,
-  Severity,
-} from '../plugins/types.js';
+import type { RuleContext, RuleFinding, Severity } from '../plugins/contract.js';
 import type {
   ExpressionExcerpt,
   OffsetRange,

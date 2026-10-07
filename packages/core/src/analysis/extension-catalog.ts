@@ -1,4 +1,4 @@
-import type { ExpressionCarrier, ExpressionUseCase } from '../plugins/types.js';
+import type { ExpressionCarrier, ExpressionUseCase } from './expression-site.js';
 
 // The catalog of SDC extensions the linter understands: the kinds of location an expression may
 // sit in, not the expressions of any one Questionnaire (core-plan §3.1 calls it the registry).

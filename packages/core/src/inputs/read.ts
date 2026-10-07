@@ -1,7 +1,11 @@
 import { readFile } from 'node:fs/promises';
+import type {
+  ExpressionSite,
+  LocalResource,
+  QuestionnaireDocument,
+} from '../analysis/expression-site.js';
 import { describeError, LintFailure } from '../failure.js';
 import { isObject } from '../object.js';
-import type { ExpressionSite, LocalResource, QuestionnaireDocument } from '../plugins/types.js';
 import type { InputFile } from './paths.js';
 
 // A Questionnaire and the file it was read from, which rules never see.
