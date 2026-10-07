@@ -1,3 +1,5 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { FailedReport } from '../../src/index.js';
@@ -251,6 +253,22 @@ describe('sdc-lint lint', () => {
         'error: rule demo/no-today crashed: boom\n' +
           'help: this is a bug in the demo plugin; report it to its maintainers\n',
       );
+    });
+
+    it('keeps logging from an async rule out of JSON stdout after the run fails', async () => {
+      const cwd = await pluginIg(
+        "await new Promise((resolve) => setTimeout(resolve, 50)); console.log('late');",
+      );
+      // check must be async for the await.
+      const config = path.join(cwd, 'sdc-questionnaire-lint.config.mjs');
+      await writeFile(
+        config,
+        (await readFile(config, 'utf8')).replace('check(ctx)', 'async check(ctx)'),
+      );
+      const result = runBinary(['lint', '--format', 'json'], { cwd });
+      expect(result.code).toBe(2);
+      expect(failed(result.stdout).failure).toMatchObject({ code: 'RULE_CRASH' });
+      expect(result.stderr).toMatch(/\nlate\n$/);
     });
 
     it('keeps logging from the config and from check out of JSON stdout', async () => {

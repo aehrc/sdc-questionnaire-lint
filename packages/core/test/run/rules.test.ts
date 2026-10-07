@@ -187,6 +187,29 @@ describe('runRules on what a rule reports', () => {
       "range is not within the site's text: expected integer offsets with 0 <= startOffset <= endOffset <= 7",
     ],
     ['a finding that is not an object', () => 'm', 'the finding is not an object'],
+    [
+      'a pointer that is not a string',
+      () => ({ pointer: 1n, message: 'm' }),
+      'pointer is not a string',
+    ],
+    [
+      'a circular pointer',
+      () => {
+        const pointer: Record<string, unknown> = {};
+        pointer.self = pointer;
+        return { pointer, message: 'm' };
+      },
+      'pointer is not a string',
+    ],
+    [
+      'a finding whose getter throws',
+      () => ({
+        get message(): string {
+          throw new Error('getter');
+        },
+      }),
+      'reading the finding threw an exception',
+    ],
   ])('gives RULE_CRASH for %s', (_, finding, problem) => {
     expect(() => runRules(inBundle, [reporting(finding(inBundle.sites))])).toThrow(
       invalid(problem),
@@ -233,6 +256,39 @@ describe('runRules on what a rule reports', () => {
     );
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(unhandled).toBeUndefined();
+  });
+
+  it('gives RULE_CRASH for a thenable whose then throws', () => {
+    const thenable = ruleThat(() => ({
+      then() {
+        throw new Error('boom');
+      },
+    }));
+    expect(() => runRules(inBundle, [thenable])).toThrow(crash('rule test/rule crashed: boom'));
+  });
+
+  it('gives RULE_CRASH for a thrown value that cannot be described', () => {
+    const throwing = ruleThat(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- a plugin may throw anything.
+      throw {
+        toString(): string {
+          throw new Error('toString');
+        },
+      };
+    });
+    expect(() => runRules(inBundle, [throwing])).toThrow(
+      crash('rule test/rule crashed: a value that cannot be described'),
+    );
+  });
+
+  it('keeps the range it checked when the rule changes it afterwards', () => {
+    const rule = ruleThat((ctx) => {
+      const range = { startOffset: 0, endOffset: 5 };
+      ctx.report({ site: textSite, message: 'Ranged.', range });
+      range.endOffset = 99;
+    });
+    const [finding] = runRules(inBundle, [rule]);
+    expect(finding?.expression?.range).toEqual({ startOffset: 0, endOffset: 5 });
   });
 
   it('gives RULE_CRASH with the message of a thrown error, without a stack', () => {
