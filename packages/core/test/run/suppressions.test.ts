@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import { loadConfig } from '../../src/config/load.js';
 import { resolveRunPaths } from '../../src/config/paths.js';
-import { collectInputs } from '../../src/inputs/collect.js';
+import { loadInputs } from '../../src/inputs/load-inputs.js';
 import { lint } from '../../src/lint.js';
 import { sdcPlugin } from '../../src/plugins/builtin.js';
 import { buildRuleRegistry } from '../../src/plugins/rule-registry.js';
@@ -55,7 +55,7 @@ async function assessIn(cwd: string, { suppress, rules, files, paths }: Run) {
   const loaded = await loadConfig({ cwd });
   const registered = buildRuleRegistry(loaded).rules;
   const runPaths = resolveRunPaths({ cwd, config: loaded });
-  const inputs = await collectInputs({ cwd, cliPaths: paths ?? [], runPaths });
+  const inputs = await loadInputs({ cwd, cliPaths: paths ?? [], runPaths });
   const documents = inputs.documents.map(({ input, document }) => ({
     input,
     document,
@@ -65,8 +65,8 @@ async function assessIn(cwd: string, { suppress, rules, files, paths }: Run) {
   const outcome = await applySuppressions({
     loaded,
     rules: registered,
-    selection: inputs.selection,
-    inputs: inputs.inputs,
+    runKind: inputs.runKind,
+    inputFiles: inputs.inputFiles,
     documents,
     findings,
     cwd,

@@ -22,7 +22,7 @@ export interface InputFile {
 
 // Resolves symlinks so each file is read once, however many entries selected it. Sorted by display
 // path, by code unit. Both directories must be canonical.
-export async function canonicalFiles(
+export async function canonicalizeInputFiles(
   files: readonly string[],
   { cwd, base }: { cwd: string; base: string },
 ): Promise<InputFile[]> {

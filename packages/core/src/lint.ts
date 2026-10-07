@@ -2,7 +2,8 @@ import pkg from '../package.json' with { type: 'json' };
 import { findExpressionSites } from './analysis/expression-sites.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
-import { collectInputs } from './inputs/collect.js';
+import { loadInputs } from './inputs/load-inputs.js';
+import type { AnalysedDocument } from './inputs/read.js';
 import { buildRuleRegistry } from './plugins/rule-registry.js';
 import { summarizeExpressionCoverage } from './report/expression-coverage.js';
 import { buildSummary } from './report/summary.js';
@@ -32,9 +33,13 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
   // Also checks the plugins, and the rule IDs rules and suppress name.
   const registry = buildRuleRegistry(loaded);
   const runPaths = resolveRunPaths({ cwd, config: loaded });
-  const inputs = await collectInputs({ cwd, cliPaths: options.paths ?? [], runPaths });
+  const { documents, inputFiles, fileCounts, runKind } = await loadInputs({
+    cwd,
+    cliPaths: options.paths ?? [],
+    runPaths,
+  });
   const sources = await findFshSources(runPaths, cwd);
-  const documents = inputs.documents.map(({ input, document }) => ({
+  const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => ({
     input,
     document,
     sites: findExpressionSites(document),
@@ -42,10 +47,10 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
   const outcome = await applySuppressions({
     loaded,
     rules: registry.rules,
-    selection: inputs.selection,
-    inputs: inputs.inputs,
-    documents,
-    findings: documents.flatMap((doc) => runRules(doc, registry.rules)),
+    runKind,
+    inputFiles,
+    documents: analysedDocuments,
+    findings: analysedDocuments.flatMap((doc) => runRules(doc, registry.rules)),
     cwd,
   });
 
@@ -56,14 +61,14 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       tool: { name: 'sdc-questionnaire-lint', version: pkg.version },
       plugins: registry.plugins,
       compat: {},
-      selection: inputs.selection,
+      selection: runKind,
     },
     findings: outcome.findings,
     summary: buildSummary({
       findings: outcome.findings,
-      files: inputs.files,
-      questionnaires: inputs.documents.length,
-      expressions: summarizeExpressionCoverage(documents.flatMap(({ sites }) => sites)),
+      files: fileCounts,
+      questionnaires: documents.length,
+      expressions: summarizeExpressionCoverage(analysedDocuments.flatMap(({ sites }) => sites)),
       suppressedFindings: outcome.suppressedFindings,
       suppressions: outcome.suppressions,
       config: loaded?.display ?? null,

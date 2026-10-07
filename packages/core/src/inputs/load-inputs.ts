@@ -3,12 +3,13 @@ import path from 'node:path';
 import type { RunPaths } from '../config/paths.js';
 import { LintFailure } from '../failure.js';
 import { expandEntries } from './expand.js';
-import { canonicalFiles, displayPath } from './paths.js';
+import type { RunKind } from '../report/types.js';
+import { canonicalizeInputFiles, displayPath } from './paths.js';
 import { readInputs, type ReadResult } from './read.js';
-import { type InputEntry, selectInputs } from './select.js';
+import { type InputEntry, selectInputEntries } from './select.js';
 
-export interface CollectedInputs extends ReadResult {
-  selection: 'targeted' | 'full';
+export interface LoadedInputs extends ReadResult {
+  runKind: RunKind;
 }
 
 const listedEntries = 3;
@@ -34,7 +35,7 @@ function noQuestionnairesFailure(entries: readonly InputEntry[], cwd: string): L
 }
 
 // Selects, expands, deduplicates and reads the inputs for one run.
-export async function collectInputs({
+export async function loadInputs({
   cwd,
   cliPaths,
   runPaths,
@@ -42,13 +43,13 @@ export async function collectInputs({
   cwd: string;
   cliPaths: readonly string[];
   runPaths: RunPaths;
-}): Promise<CollectedInputs> {
-  const { selection, entries } = selectInputs({ cwd, cliPaths, runPaths });
-  const files = await canonicalFiles(await expandEntries(entries), {
+}): Promise<LoadedInputs> {
+  const { runKind, entries } = selectInputEntries({ cwd, cliPaths, runPaths });
+  const files = await canonicalizeInputFiles(await expandEntries(entries), {
     cwd: await realpath(cwd),
     base: await realpath(runPaths.base),
   });
   const read = await readInputs(files);
   if (read.documents.length === 0) throw noQuestionnairesFailure(entries, cwd);
-  return { selection, ...read };
+  return { runKind, ...read };
 }

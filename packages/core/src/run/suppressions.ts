@@ -7,9 +7,10 @@ import type { SuppressionEntry } from '../config/types.js';
 import { invalidConfigFailure } from '../config/validate.js';
 import { describeError, LintFailure } from '../failure.js';
 import { displayPath, type InputFile } from '../inputs/paths.js';
+import type { AnalysedDocument } from '../inputs/read.js';
 import { type RegisteredRule, staleSuppressionId } from '../plugins/rule-registry.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../plugins/types.js';
-import type { ConfigFinding, Finding } from '../report/types.js';
+import type { ConfigFinding, Finding, RunKind } from '../report/types.js';
 import { fileGone, nothingToHide, siteGone } from '../rules/stale-suppression.js';
 import { configFingerprint } from './fingerprint.js';
 
@@ -21,19 +22,13 @@ export interface SuppressionOutcome {
   suppressions: { applied: number; stale: number; notAssessed: number };
 }
 
-interface RunDocument {
-  input: InputFile;
-  document: QuestionnaireDocument;
-  sites: readonly ExpressionSite[];
-}
-
 interface SuppressionRun {
   loaded: LoadedConfig | null;
   rules: readonly RegisteredRule[];
-  selection: 'full' | 'targeted';
+  runKind: RunKind;
   // Every file the run read: the selected files.
-  inputs: readonly InputFile[];
-  documents: readonly RunDocument[];
+  inputFiles: readonly InputFile[];
+  documents: readonly AnalysedDocument[];
   findings: readonly Finding[];
   cwd: string;
 }
@@ -75,7 +70,7 @@ async function targetFile(
   try {
     canonical = await realpath(target);
   } catch (error) {
-    if (run.selection === 'targeted') return undefined;
+    if (run.runKind === 'targeted') return undefined;
     const code = (error as NodeJS.ErrnoException).code;
     if (code === 'ENOENT' || code === 'ENOTDIR') return 'gone';
     const display = displayPath(target, run.cwd);
@@ -86,7 +81,7 @@ async function targetFile(
       help: 'check the permissions of the directories above it',
     });
   }
-  return run.inputs.find((input) => input.path === canonical);
+  return run.inputFiles.find((input) => input.path === canonical);
 }
 
 function questionnaireName(document: QuestionnaireDocument): string | undefined {

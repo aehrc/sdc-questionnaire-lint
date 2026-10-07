@@ -99,7 +99,7 @@ async function explain(
   return formatRuleDocs(rule, loaded);
 }
 
-// Loads the config and registers rules as lint does, but never collects inputs or runs rules.
+// Loads the config and registers rules as lint does, but never loads inputs or runs rules.
 // Output is text only; failures go to stderr.
 export async function runExplain(
   args: { ruleId?: string; configPath?: string },

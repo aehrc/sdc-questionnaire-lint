@@ -1,5 +1,5 @@
 import { describeError, LintFailure } from '../failure.js';
-import type { InputFile } from '../inputs/paths.js';
+import type { AnalysedDocument } from '../inputs/read.js';
 import { jsonPointerPattern } from '../json-pointer.js';
 import { isObject } from '../object.js';
 import type { RegisteredRule } from '../plugins/rule-registry.js';
@@ -155,7 +155,7 @@ function ruleCrashFailure({ id, plugin }: RegisteredRule, what: string): LintFai
 // Calls each rule that is not off once on the document, at its effective severity. Built-in and
 // plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH.
 export function runRules(
-  doc: { input: InputFile; document: QuestionnaireDocument; sites: readonly ExpressionSite[] },
+  doc: AnalysedDocument,
   rules: readonly RegisteredRule[],
 ): QuestionnaireFinding[] {
   const { input, document, sites } = doc;

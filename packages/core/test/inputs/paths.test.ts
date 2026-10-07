@@ -1,8 +1,8 @@
 import { realpath, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { collectInputs } from '../../src/inputs/collect.js';
-import { canonicalFiles, displayPath } from '../../src/inputs/paths.js';
+import { loadInputs } from '../../src/inputs/load-inputs.js';
+import { canonicalizeInputFiles, displayPath } from '../../src/inputs/paths.js';
 import { resolveRunPaths } from '../../src/config/paths.js';
 import { tempTree } from '../support/tmp.js';
 
@@ -17,15 +17,15 @@ describe('displayPath', () => {
   });
 });
 
-describe('canonicalFiles', () => {
+describe('canonicalizeInputFiles', () => {
   it('reads a file selected by a literal, a directory and a glob once', async () => {
     const cwd = await tempTree({ 'resources/a.json': questionnaire });
-    const inputs = await collectInputs({
+    const inputs = await loadInputs({
       cwd,
       cliPaths: ['resources/a.json', 'resources', 'resources/*.json'],
       runPaths: resolveRunPaths({ cwd, config: null }),
     });
-    expect(inputs.files.read).toBe(1);
+    expect(inputs.fileCounts.read).toBe(1);
     expect(inputs.documents).toHaveLength(1);
   });
 
@@ -33,7 +33,7 @@ describe('canonicalFiles', () => {
     const cwd = await realpath(await tempTree({ 'a.json': questionnaire }));
     await symlink(path.join(cwd, 'a.json'), path.join(cwd, 'link.json'));
     expect(
-      await canonicalFiles([path.join(cwd, 'link.json'), path.join(cwd, 'a.json')], {
+      await canonicalizeInputFiles([path.join(cwd, 'link.json'), path.join(cwd, 'a.json')], {
         cwd,
         base: cwd,
       }),
@@ -46,7 +46,7 @@ describe('canonicalFiles', () => {
     const cwd = await realpath(
       await tempTree(Object.fromEntries(names.map((name) => [name, '{}']))),
     );
-    const files = await canonicalFiles(
+    const files = await canonicalizeInputFiles(
       names.map((name) => path.join(cwd, name)),
       { cwd, base: cwd },
     );
@@ -61,7 +61,7 @@ describe('canonicalFiles', () => {
   it('renders relative paths beneath a symlinked temporary root', async () => {
     // On macOS the temporary directory is a symlink into /private.
     const cwd = await tempTree({ 'resources/a.json': questionnaire });
-    const inputs = await collectInputs({
+    const inputs = await loadInputs({
       cwd,
       cliPaths: ['resources/a.json'],
       runPaths: resolveRunPaths({ cwd, config: null }),

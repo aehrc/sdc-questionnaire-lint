@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { describeError, LintFailure } from '../failure.js';
 import { isObject } from '../object.js';
-import type { LocalResource, QuestionnaireDocument } from '../plugins/types.js';
+import type { ExpressionSite, LocalResource, QuestionnaireDocument } from '../plugins/types.js';
 import type { InputFile } from './paths.js';
 
 // A Questionnaire and the file it was read from, which rules never see.
@@ -10,12 +10,17 @@ export interface InputDocument {
   document: QuestionnaireDocument;
 }
 
+// An input document with the expression sites found in it.
+export interface AnalysedDocument extends InputDocument {
+  sites: readonly ExpressionSite[];
+}
+
 export interface ReadResult {
   documents: InputDocument[];
   // Every file read, in order, whether or not it holds a Questionnaire: the run's selected files.
-  inputs: InputFile[];
+  inputFiles: InputFile[];
   // read: every parsed file; skipped: parsed files with neither a Questionnaire nor a Bundle.
-  files: { read: number; skipped: number };
+  fileCounts: { read: number; skipped: number };
 }
 
 async function parseFile(file: InputFile): Promise<unknown> {
@@ -81,5 +86,5 @@ export async function readInputs(files: readonly InputFile[]): Promise<ReadResul
     if (classified === 'skipped') skipped++;
     else documents.push(...classified.map((document) => ({ input: file, document })));
   }
-  return { documents, inputs: [...files], files: { read: files.length, skipped } };
+  return { documents, inputFiles: [...files], fileCounts: { read: files.length, skipped } };
 }
