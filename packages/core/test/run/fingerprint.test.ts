@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import type { QuestionnaireDocument } from '../../src/analysis/expression-site.js';
 import { findExpressionSites } from '../../src/analysis/expression-sites.js';
-import type { QuestionnaireDocument } from '../../src/plugins/types.js';
 import {
   configFingerprint,
   questionnaireFingerprint,

@@ -1,4 +1,4 @@
-import type { ExpressionSite } from '../plugins/types.js';
+import type { ExpressionSite } from './expression-site.js';
 
 export const X_FHIR_QUERY = 'application/x-fhir-query';
 

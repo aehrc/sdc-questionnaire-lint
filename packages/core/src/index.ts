@@ -39,14 +39,16 @@ export type {
   ExpressionCarrier,
   ExpressionSite,
   ExpressionUseCase,
-  LintPlugin,
-  LintRule,
   LocalResource,
   QueryFragment,
   QuestionnaireDocument,
+  Scope,
+  SiteItem,
+} from './analysis/expression-site.js';
+export type {
+  LintPlugin,
+  LintRule,
   RuleContext,
   RuleDocs,
   RuleFinding,
-  Scope,
-  SiteItem,
-} from './plugins/types.js';
+} from './plugins/contract.js';

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
+import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import type { SuppressionEntry } from '../config/types.js';
-import type { ExpressionSite, QuestionnaireDocument } from '../plugins/types.js';
 import type { ResourceIdentity } from '../report/types.js';
 
 // A site's identity from its own fields, without array indexes above its item where the item has

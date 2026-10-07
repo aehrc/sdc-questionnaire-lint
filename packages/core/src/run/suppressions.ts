@@ -1,15 +1,15 @@
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
-import { hasQueryText } from '../analysis/x-fhir-query.js';
+import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import type { LoadedConfig } from '../config/load.js';
 import type { SuppressionEntry } from '../config/types.js';
 import { invalidConfigFailure } from '../config/validate.js';
 import { describeError, LintFailure } from '../failure.js';
 import { displayPath, type InputFile } from '../inputs/paths.js';
-import { type RegisteredRule, staleSuppressionId } from '../plugins/rule-registry.js';
-import type { ExpressionSite, QuestionnaireDocument } from '../plugins/types.js';
-import type { ConfigFinding, Finding } from '../report/types.js';
+import type { AnalysedDocument } from '../inputs/read.js';
+import { completesCheck, staleSuppressionId } from '../plugins/builtin.js';
+import type { ResolvedRule } from '../plugins/rule-set.js';
+import type { ConfigFinding, Finding, RunKind } from '../report/types.js';
 import { fileGone, nothingToHide, siteGone } from '../rules/stale-suppression.js';
 import { configFingerprint } from './fingerprint.js';
 
@@ -21,34 +21,16 @@ export interface SuppressionOutcome {
   suppressions: { applied: number; stale: number; notAssessed: number };
 }
 
-interface RunDocument {
-  input: InputFile;
-  document: QuestionnaireDocument;
-  sites: readonly ExpressionSite[];
-}
-
 interface SuppressionRun {
   loaded: LoadedConfig | null;
-  rules: readonly RegisteredRule[];
-  selection: 'full' | 'targeted';
+  rules: readonly ResolvedRule[];
+  runKind: RunKind;
   // Every file the run read: the selected files.
-  inputs: readonly InputFile[];
-  documents: readonly RunDocument[];
+  inputFiles: readonly InputFile[];
+  documents: readonly AnalysedDocument[];
   findings: readonly Finding[];
   cwd: string;
 }
-
-// Where each built-in rule completes its check at an Expression site. Only there does the absence
-// of its findings make a suppression stale (cli.md § Stale suppressions); a rule missing here, such
-// as a plugin rule, leaves its suppressions not assessed.
-export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => boolean>> = {
-  'sdc/fragment-parse-error': hasQueryText,
-  'sdc/parse-error': hasFhirPathText,
-  'sdc/query-syntax': hasQueryText,
-  'sdc/uncatalogued-expression': () => true,
-  'sdc/unknown-function': (site) =>
-    hasFhirPathText(site) && findFhirPathSyntaxProblem(site.text) === undefined,
-};
 
 type Assessment =
   | { state: 'applied'; hidden: readonly Finding[] }
@@ -57,8 +39,8 @@ type Assessment =
 
 const notAssessed: Assessment = { state: 'notAssessed' };
 
-function isEnabled(rules: readonly RegisteredRule[], ruleId: string): boolean {
-  return rules.some(({ id, severity }) => id === ruleId && severity !== 'off');
+function isEnabled(rules: readonly ResolvedRule[], ruleId: string): boolean {
+  return rules.some(({ id, setting }) => id === ruleId && setting !== 'off');
 }
 const listedPointers = 3;
 
@@ -75,7 +57,7 @@ async function targetFile(
   try {
     canonical = await realpath(target);
   } catch (error) {
-    if (run.selection === 'targeted') return undefined;
+    if (run.runKind === 'targeted') return undefined;
     const code = (error as NodeJS.ErrnoException).code;
     if (code === 'ENOENT' || code === 'ENOTDIR') return 'gone';
     const display = displayPath(target, run.cwd);
@@ -86,7 +68,7 @@ async function targetFile(
       help: 'check the permissions of the directories above it',
     });
   }
-  return run.inputs.find((input) => input.path === canonical);
+  return run.inputFiles.find((input) => input.path === canonical);
 }
 
 function questionnaireName(document: QuestionnaireDocument): string | undefined {
@@ -182,7 +164,7 @@ export async function applySuppressions(run: SuppressionRun): Promise<Suppressio
       stale.push({
         kind: 'config',
         ruleId: staleSuppressionId,
-        // Fixed until --strict-suppressions; the rule registry allows only warning or off.
+        // Fixed until --strict-suppressions; the rule set allows only warning or off.
         severity: 'warning',
         message: assessment.message,
         help: assessment.help,

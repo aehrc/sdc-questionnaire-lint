@@ -1,6 +1,6 @@
 import { findFunctionCalls, hasFhirPathText } from '../analysis/fhirpath.js';
 import { fhirPathFunctions } from '../analysis/fhirpath-function-catalog.js';
-import type { LintRule } from '../plugins/types.js';
+import type { LintRule } from '../plugins/contract.js';
 import { closestName } from '../suggest.js';
 
 // Keyword operators are table keys, but name() does not parse when name is a keyword.

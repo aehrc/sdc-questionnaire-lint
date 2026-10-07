@@ -1,10 +1,11 @@
 import pkg from '../package.json' with { type: 'json' };
 import { findExpressionSites } from './analysis/expression-sites.js';
-import { countExpressions } from './analysis/fhirpath.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
-import { collectInputs } from './inputs/collect.js';
-import { buildRuleRegistry } from './plugins/rule-registry.js';
+import { loadInputs } from './inputs/load-inputs.js';
+import type { AnalysedDocument } from './inputs/read.js';
+import { resolveRuleSet } from './plugins/rule-set.js';
+import { summarizeExpressionCoverage } from './report/expression-coverage.js';
 import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
 import { runRules } from './run/rules.js';
@@ -30,22 +31,26 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     ...(options.configPath === undefined ? {} : { explicitPath: options.configPath }),
   });
   // Also checks the plugins, and the rule IDs rules and suppress name.
-  const registry = buildRuleRegistry(loaded);
+  const ruleSet = resolveRuleSet(loaded);
   const runPaths = resolveRunPaths({ cwd, config: loaded });
-  const inputs = await collectInputs({ cwd, cliPaths: options.paths ?? [], runPaths });
+  const { documents, inputFiles, fileCounts, runKind } = await loadInputs({
+    cwd,
+    cliPaths: options.paths ?? [],
+    runPaths,
+  });
   const sources = await findFshSources(runPaths, cwd);
-  const documents = inputs.documents.map(({ input, document }) => ({
+  const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => ({
     input,
     document,
     sites: findExpressionSites(document),
   }));
   const outcome = await applySuppressions({
     loaded,
-    rules: registry.rules,
-    selection: inputs.selection,
-    inputs: inputs.inputs,
-    documents,
-    findings: documents.flatMap((doc) => runRules(doc, registry.rules)),
+    rules: ruleSet.rules,
+    runKind,
+    inputFiles,
+    documents: analysedDocuments,
+    findings: analysedDocuments.flatMap((doc) => runRules(doc, ruleSet.rules)),
     cwd,
   });
 
@@ -54,16 +59,16 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     status: 'completed',
     run: {
       tool: { name: 'sdc-questionnaire-lint', version: pkg.version },
-      plugins: registry.plugins,
+      plugins: ruleSet.pluginVersions,
       compat: {},
-      selection: inputs.selection,
+      selection: runKind,
     },
     findings: outcome.findings,
     summary: buildSummary({
       findings: outcome.findings,
-      files: inputs.files,
-      questionnaires: inputs.documents.length,
-      expressions: countExpressions(documents.flatMap(({ sites }) => sites)),
+      files: fileCounts,
+      questionnaires: documents.length,
+      expressions: summarizeExpressionCoverage(analysedDocuments.flatMap(({ sites }) => sites)),
       suppressedFindings: outcome.suppressedFindings,
       suppressions: outcome.suppressions,
       config: loaded?.display ?? null,

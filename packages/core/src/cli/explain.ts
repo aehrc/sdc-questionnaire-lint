@@ -1,10 +1,6 @@
 import { type LoadedConfig, loadConfig } from '../config/load.js';
 import { asLintFailure, LintFailure, renderFailureText } from '../failure.js';
-import {
-  buildRuleRegistry,
-  type RegisteredRule,
-  unknownRuleHelp,
-} from '../plugins/rule-registry.js';
+import { type ResolvedRule, resolveRuleSet, unknownRuleHelp } from '../plugins/rule-set.js';
 import { guardStdout } from './output-guard.js';
 import type { CliIo } from './run.js';
 
@@ -14,13 +10,13 @@ function configLine(loaded: LoadedConfig | null): string {
 
 // One aligned row per registered rule, including rules configured off. EFFECTIVE reads off for a
 // rule that does not run, so it carries the enabled status too.
-function formatRuleList(rules: readonly RegisteredRule[], loaded: LoadedConfig | null): string {
+function formatRuleList(rules: readonly ResolvedRule[], loaded: LoadedConfig | null): string {
   const rows = [
     ['RULE', 'DEFAULT', 'EFFECTIVE', 'DESCRIPTION'],
-    ...rules.map(({ id, rule, severity }) => [
+    ...rules.map(({ id, rule, setting }) => [
       id,
       rule.meta.defaultSeverity,
-      severity,
+      setting,
       rule.meta.description,
     ]),
   ];
@@ -47,7 +43,7 @@ function indent(text: string): string {
 }
 
 function formatRuleDocs(
-  { id, plugin, rule, severity }: RegisteredRule,
+  { id, namespace, rule, setting }: ResolvedRule,
   loaded: LoadedConfig | null,
 ): string {
   const { description, defaultSeverity, docsUrl, docs } = rule.meta;
@@ -55,12 +51,12 @@ function formatRuleDocs(
     id,
     description,
     '',
-    `Default severity: ${defaultSeverity}. Effective severity: ${severity}.`,
+    `Default severity: ${defaultSeverity}. Effective severity: ${setting}.`,
   ];
   if (docsUrl !== undefined) lines.push(`Documentation: ${docsUrl}`);
   // Every built-in rule has docs (test/plugins/docs.test.ts); a plugin rule may have none.
   if (docs === undefined) {
-    lines.push('', `The ${plugin} plugin ships no bundled documentation for this rule.`);
+    lines.push('', `The ${namespace} plugin ships no bundled documentation for this rule.`);
   } else {
     for (const [heading, text] of [
       ['What it checks', docs.checks],
@@ -85,21 +81,21 @@ async function explain(
     cwd,
     ...(args.configPath === undefined ? {} : { explicitPath: args.configPath }),
   });
-  const registry = buildRuleRegistry(loaded);
+  const ruleSet = resolveRuleSet(loaded);
   const { ruleId } = args;
-  if (ruleId === undefined) return formatRuleList(registry.rules, loaded);
-  const rule = registry.rules.find(({ id }) => id === ruleId);
+  if (ruleId === undefined) return formatRuleList(ruleSet.rules, loaded);
+  const rule = ruleSet.rules.find(({ id }) => id === ruleId);
   if (rule === undefined) {
     throw new LintFailure({
       code: 'USAGE_ERROR',
       message: `unknown rule ${ruleId}`,
-      help: unknownRuleHelp(ruleId, registry),
+      help: unknownRuleHelp(ruleId, ruleSet),
     });
   }
   return formatRuleDocs(rule, loaded);
 }
 
-// Loads the config and registers rules as lint does, but never collects inputs or runs rules.
+// Loads the config and registers rules as lint does, but never loads inputs or runs rules.
 // Output is text only; failures go to stderr.
 export async function runExplain(
   args: { ruleId?: string; configPath?: string },

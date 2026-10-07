@@ -121,11 +121,13 @@ export interface RunCompat {
   [namespace: string]: Record<string, string>;
 }
 
+export type RunKind = 'full' | 'targeted';
+
 export interface RunMetadata {
   tool: { name: 'sdc-questionnaire-lint'; version: string };
   plugins: PackageVersion[];
   compat: RunCompat;
-  selection: 'full' | 'targeted';
+  selection: RunKind;
 }
 
 export interface Summary {

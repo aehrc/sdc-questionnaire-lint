@@ -1,15 +1,10 @@
+import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import { describeError, LintFailure } from '../failure.js';
-import type { InputFile } from '../inputs/paths.js';
+import type { AnalysedDocument } from '../inputs/read.js';
 import { jsonPointerPattern } from '../json-pointer.js';
 import { isObject } from '../object.js';
-import type { RegisteredRule } from '../plugins/rule-registry.js';
-import type {
-  ExpressionSite,
-  QuestionnaireDocument,
-  RuleContext,
-  RuleFinding,
-  Severity,
-} from '../plugins/types.js';
+import type { ResolvedRule } from '../plugins/rule-set.js';
+import type { RuleContext, RuleFinding, Severity } from '../plugins/contract.js';
 import type {
   ExpressionExcerpt,
   OffsetRange,
@@ -143,20 +138,20 @@ function parseReportedFinding(
   };
 }
 
-function ruleCrashFailure({ id, plugin }: RegisteredRule, what: string): LintFailure {
+function ruleCrashFailure({ id, namespace }: ResolvedRule, what: string): LintFailure {
   return new LintFailure({
     code: 'RULE_CRASH',
     ruleId: id,
     message: `rule ${id} ${what}`,
-    help: `this is a bug in the ${plugin} plugin; report it to its maintainers`,
+    help: `this is a bug in the ${namespace} plugin; report it to its maintainers`,
   });
 }
 
 // Calls each rule that is not off once on the document, at its effective severity. Built-in and
 // plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH.
 export function runRules(
-  doc: { input: InputFile; document: QuestionnaireDocument; sites: readonly ExpressionSite[] },
-  rules: readonly RegisteredRule[],
+  doc: AnalysedDocument,
+  rules: readonly ResolvedRule[],
 ): QuestionnaireFinding[] {
   const { input, document, sites } = doc;
   const keys = siteKeys(document, sites);
@@ -196,9 +191,9 @@ export function runRules(
     };
   }
 
-  for (const registered of rules) {
-    const { id, rule, severity } = registered;
-    if (severity === 'off') continue;
+  for (const resolved of rules) {
+    const { id, rule, setting } = resolved;
+    if (setting === 'off') continue;
     // report() never throws, so a rule cannot swallow its own invalid finding: the first problem
     // is kept here, later reports are ignored, and the run fails once check returns.
     let problem: string | undefined;
@@ -221,7 +216,7 @@ export function runRules(
             checked = 'reading the finding threw an exception';
           }
           if (typeof checked === 'string') problem = checked;
-          else findings.push(toFinding(id, severity, checked));
+          else findings.push(toFinding(id, setting, checked));
         },
       });
       // Inside the try: reading then, or calling it, runs plugin code too.
@@ -231,13 +226,13 @@ export function runRules(
         returned.then(undefined, () => undefined);
       }
     } catch (error) {
-      throw ruleCrashFailure(registered, `crashed: ${describeThrown(error)}`);
+      throw ruleCrashFailure(resolved, `crashed: ${describeThrown(error)}`);
     }
     if (promised) {
-      throw ruleCrashFailure(registered, 'returned a promise; check must be synchronous');
+      throw ruleCrashFailure(resolved, 'returned a promise; check must be synchronous');
     }
     if (problem !== undefined) {
-      throw ruleCrashFailure(registered, `reported an invalid finding: ${problem}`);
+      throw ruleCrashFailure(resolved, `reported an invalid finding: ${problem}`);
     }
   }
   return findings;

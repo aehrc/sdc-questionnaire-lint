@@ -4,7 +4,7 @@ import {
   hasQueryText,
   scanQueryFragments,
 } from '../analysis/x-fhir-query.js';
-import type { LintRule, RuleFinding } from '../plugins/types.js';
+import type { LintRule, RuleFinding } from '../plugins/contract.js';
 
 const notASearch =
   "This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills " +

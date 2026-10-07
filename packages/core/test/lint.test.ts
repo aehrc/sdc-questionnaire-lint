@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import type { ExpressionSite, QuestionnaireDocument } from '../src/analysis/expression-site.js';
 import { findExpressionSites } from '../src/analysis/expression-sites.js';
 import { lint, type QuestionnaireFinding } from '../src/index.js';
-import type { ExpressionSite, QuestionnaireDocument } from '../src/plugins/types.js';
 import { expectValidReport } from './support/report.js';
 import { tempTree } from './support/tmp.js';
 

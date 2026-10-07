@@ -1,7 +1,5 @@
 import fhirpath from 'fhirpath';
-import type { ExpressionSite } from '../plugins/types.js';
-import type { Summary } from '../report/types.js';
-import { X_FHIR_QUERY } from './x-fhir-query.js';
+import type { ExpressionSite } from './expression-site.js';
 
 export const FHIRPATH = 'text/fhirpath';
 
@@ -141,19 +139,4 @@ export function findFunctionCalls(text: string): FunctionCall[] | undefined {
   };
   visit(parsed.tree);
   return calls;
-}
-
-// Approximates report-format.md § Run metadata and summary. A catalogued site with text is
-// analysed when its language has an analysis. FHIRPath, a fragment included, gets the syntax
-// check, which always completes, and the function check, which either runs or is prevented by an
-// established syntax error. An x-fhir-query gets its shape check, counted apart from its
-// fragments. Uncatalogued sites still lack scope analysis, and other languages have no analysis.
-export function countExpressions(sites: readonly ExpressionSite[]): Summary['expressions'] {
-  const analysed = sites.filter(
-    (site) =>
-      site.catalogued &&
-      site.text !== undefined &&
-      (site.language === FHIRPATH || site.language === X_FHIR_QUERY),
-  ).length;
-  return { analysed, unchecked: sites.length - analysed };
 }

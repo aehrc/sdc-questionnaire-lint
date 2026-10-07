@@ -1,7 +1,7 @@
 import { chmod, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { canonicalFiles } from '../../src/inputs/paths.js';
+import { canonicalizeInputFiles } from '../../src/inputs/paths.js';
 import { readInputs } from '../../src/inputs/read.js';
 import { tempTree } from '../support/tmp.js';
 
@@ -30,7 +30,7 @@ const kinds = {
 
 async function read(files: Record<string, string>) {
   const cwd = await realpath(await tempTree(files));
-  const inputs = await canonicalFiles(
+  const inputs = await canonicalizeInputFiles(
     Object.keys(files).map((name) => path.join(cwd, name)),
     { cwd, base: cwd },
   );
@@ -40,7 +40,7 @@ async function read(files: Record<string, string>) {
 describe('readInputs', () => {
   it('classifies each kind of file and counts read and skipped files', async () => {
     const { result } = await read(kinds);
-    expect(result.files).toEqual({ read: 7, skipped: 3 });
+    expect(result.fileCounts).toEqual({ read: 7, skipped: 3 });
     expect(
       result.documents.map(({ document }) => [
         document.file,
@@ -57,7 +57,7 @@ describe('readInputs', () => {
 
   it('lists every file read, including skipped files and Bundles with no Questionnaire', async () => {
     const { result } = await read(kinds);
-    expect(result.inputs.map(({ display }) => display)).toEqual([
+    expect(result.inputFiles.map(({ display }) => display)).toEqual([
       'Bundle-B.json',
       'Bundle-ValueSets.json',
       'Patient-P.json',
@@ -97,7 +97,7 @@ describe('readInputs', () => {
     async () => {
       const cwd = await realpath(await tempTree({ 'a.json': '{}' }));
       await chmod(path.join(cwd, 'a.json'), 0o000);
-      const files = await canonicalFiles([path.join(cwd, 'a.json')], { cwd, base: cwd });
+      const files = await canonicalizeInputFiles([path.join(cwd, 'a.json')], { cwd, base: cwd });
       await expect(readInputs(files)).rejects.toMatchObject({
         code: 'INPUT_UNREADABLE',
         path: 'a.json',

@@ -1,36 +1,28 @@
 import type { LoadedConfig } from '../config/load.js';
+import type { RuleSetting } from '../config/types.js';
 import { invalidConfigFailure } from '../config/validate.js';
 import { isObject } from '../object.js';
 import type { PackageVersion } from '../report/types.js';
-import { staleSuppression } from '../rules/stale-suppression.js';
 import { closestName } from '../suggest.js';
-import { sdcPlugin } from './builtin.js';
-import type { LintPlugin, LintRule, Severity } from './types.js';
+import { lintPlugin, sdcPlugin, staleSuppressionId } from './builtin.js';
+import type { LintPlugin, LintRule } from './contract.js';
 
-export interface RegisteredRule {
+export interface ResolvedRule {
   // sdc/parse-error
   id: string;
   // The namespace of the plugin providing the rule.
-  plugin: string;
+  namespace: string;
   rule: LintRule;
   // Effective: the configured setting, or the rule's default severity.
-  severity: Severity | 'off';
+  setting: RuleSetting;
 }
 
-export interface RuleRegistry {
+export interface RuleSet {
   // For run.plugins: sorted by name, sdc included, lint excluded.
-  plugins: PackageVersion[];
+  pluginVersions: PackageVersion[];
   // Sorted by ID, including rules configured off and lint/stale-suppression.
-  rules: RegisteredRule[];
+  rules: ResolvedRule[];
 }
-
-export const staleSuppressionId = 'lint/stale-suppression';
-
-// Holds lint/stale-suppression, whose findings come from the suppression assessment.
-const lintPlugin: LintPlugin = {
-  meta: { name: 'lint', version: sdcPlugin.meta.version },
-  rules: { 'stale-suppression': staleSuppression },
-};
 
 // The two halves of the report schema's rule ID pattern.
 const namePattern = /^[a-z][a-z0-9-]*$/;
@@ -42,17 +34,17 @@ function compareStrings(a: string, b: string): number {
 }
 
 // Help for an unknown rule ID, shared by config failures and explain.
-export function unknownRuleHelp(id: string, registry: RuleRegistry): string {
+export function unknownRuleHelp(id: string, ruleSet: RuleSet): string {
   const similar = closestName(
     id,
-    registry.rules.map((rule) => rule.id),
+    ruleSet.rules.map((rule) => rule.id),
   );
   if (similar !== undefined) return `a rule with a similar name exists: ${similar}`;
   const slash = id.indexOf('/');
   const namespace = id.slice(0, slash);
   const registered = [
-    ...registry.plugins.map(({ name }) => name),
-    ...registry.rules.map(({ plugin }) => plugin),
+    ...ruleSet.pluginVersions.map(({ name }) => name),
+    ...ruleSet.rules.map(({ namespace }) => namespace),
   ];
   if (slash > 0 && !registered.includes(namespace)) {
     return `the plugin providing ${namespace}/ rules must be listed in plugins in an .mjs config`;
@@ -147,7 +139,7 @@ function validatePlugin(value: unknown, index: number, display: string): LintPlu
 // The built-in sdc and lint plugins and the config's plugins, with the config's settings
 // applied. Also checks the rule IDs the config's rules and suppress name, so lint and explain
 // fail the same way before any input is read.
-export function buildRuleRegistry(loaded: LoadedConfig | null): RuleRegistry {
+export function resolveRuleSet(loaded: LoadedConfig | null): RuleSet {
   const config = loaded?.config ?? {};
   const display = loaded?.display ?? '';
   const fail = (at: (string | number)[], problem: string, help: string): never => {
@@ -173,8 +165,8 @@ export function buildRuleRegistry(loaded: LoadedConfig | null): RuleRegistry {
   });
 
   const settings = config.rules ?? {};
-  const registry: RuleRegistry = {
-    plugins: plugins
+  const ruleSet: RuleSet = {
+    pluginVersions: plugins
       .filter((plugin) => plugin !== lintPlugin)
       .map(({ meta }) => ({ name: meta.name, version: meta.version }))
       .sort((a, b) => compareStrings(a.name, b.name)),
@@ -184,19 +176,19 @@ export function buildRuleRegistry(loaded: LoadedConfig | null): RuleRegistry {
           const id = `${meta.name}/${key}`;
           return {
             id,
-            plugin: meta.name,
+            namespace: meta.name,
             rule,
-            severity: settings[id] ?? rule.meta.defaultSeverity,
+            setting: settings[id] ?? rule.meta.defaultSeverity,
           };
         }),
       )
       .sort((a, b) => compareStrings(a.id, b.id)),
   };
 
-  const ruleIds: string[] = registry.rules.map(({ id }) => id);
+  const ruleIds: string[] = ruleSet.rules.map(({ id }) => id);
   for (const [id, setting] of Object.entries(settings)) {
     if (!ruleIds.includes(id)) {
-      fail(['rules', id], `unknown rule ${id}`, unknownRuleHelp(id, registry));
+      fail(['rules', id], `unknown rule ${id}`, unknownRuleHelp(id, ruleSet));
     }
     // Its severity is fixed until --strict-suppressions (cli.md § Stale suppressions).
     if (id === staleSuppressionId && setting !== 'warning' && setting !== 'off') {
@@ -208,7 +200,7 @@ export function buildRuleRegistry(loaded: LoadedConfig | null): RuleRegistry {
     if (rule.startsWith('lint/')) {
       fail(at, `${rule} findings cannot be suppressed`, `set ${rule} to off in rules instead`);
     }
-    if (!ruleIds.includes(rule)) fail(at, `unknown rule ${rule}`, unknownRuleHelp(rule, registry));
+    if (!ruleIds.includes(rule)) fail(at, `unknown rule ${rule}`, unknownRuleHelp(rule, ruleSet));
   });
-  return registry;
+  return ruleSet;
 }
