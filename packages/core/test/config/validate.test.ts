@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateConfig } from '../../src/config/validate.js';
 
 const display = 'sdc-questionnaire-lint.config.json';
+const json = { display, format: 'json' } as const;
 
 describe('validateConfig', () => {
   it.each([
@@ -23,7 +24,7 @@ describe('validateConfig', () => {
       '"fatal" is not a rule setting',
     ],
   ])('rejects %s, naming the entry', (_, raw, where, problem) => {
-    expect(() => validateConfig(raw, display)).toThrow(
+    expect(() => validateConfig(raw, json)).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         path: display,
@@ -33,13 +34,15 @@ describe('validateConfig', () => {
   });
 
   it('lists the known keys for an unknown key', () => {
-    expect(() => validateConfig({ rulez: {} }, display)).toThrow(
-      expect.objectContaining({ help: 'the known keys are files, rules, source, suppress' }),
+    expect(() => validateConfig({ rulez: {} }, json)).toThrow(
+      expect.objectContaining({
+        help: 'the known keys are files, plugins, rules, source, suppress',
+      }),
     );
   });
 
   it('names the expected shape for a key that is not an object', () => {
-    expect(() => validateConfig({ rules: [] }, display)).toThrow(
+    expect(() => validateConfig({ rules: [] }, json)).toThrow(
       expect.objectContaining({
         help: 'make rules an object, such as { "sdc/parse-error": "warning" }',
       }),
@@ -116,7 +119,7 @@ describe('validateConfig', () => {
       '"/a~2" is not a JSON Pointer',
     ],
   ])('rejects %s in suppress, naming the entry', (_, raw, where, problem) => {
-    expect(() => validateConfig(raw, display)).toThrow(
+    expect(() => validateConfig(raw, json)).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         message: `config ${display} is invalid at ${where}: ${problem}`,
@@ -125,7 +128,7 @@ describe('validateConfig', () => {
   });
 
   it('lists the known keys of a suppression for an unknown key', () => {
-    expect(() => validateConfig({ suppress: [{ ...entry, declaration: 'x' }] }, display)).toThrow(
+    expect(() => validateConfig({ suppress: [{ ...entry, declaration: 'x' }] }, json)).toThrow(
       expect.objectContaining({
         help: 'the known keys are rule, reason, file, linkId, extensionUrl, name, resource, pointer',
       }),
@@ -146,7 +149,7 @@ describe('validateConfig', () => {
         },
       ],
     };
-    expect(validateConfig(config, display)).toEqual(config);
+    expect(validateConfig(config, json)).toEqual(config);
   });
 
   it('accepts a config, with source.fsh [] omitting source lookup', () => {
@@ -155,6 +158,32 @@ describe('validateConfig', () => {
       source: { fsh: [] },
       rules: { 'sdc/parse-error': 'off' },
     };
-    expect(validateConfig(config, display)).toEqual(config);
+    expect(validateConfig(config, json)).toEqual(config);
+  });
+
+  it('rejects plugins in a JSON config, which cannot load code', () => {
+    expect(() => validateConfig({ plugins: [] }, json)).toThrow(
+      expect.objectContaining({
+        code: 'CONFIG_INVALID',
+        message: `config ${display} is invalid at /plugins: plugins can only be listed in an .mjs config, because a JSON config cannot load code`,
+      }),
+    );
+  });
+
+  it('rejects plugins that is not an array in an .mjs config', () => {
+    const mjs = { display: 'sdc-questionnaire-lint.config.mjs', format: 'mjs' } as const;
+    expect(() => validateConfig({ plugins: {} }, mjs)).toThrow(
+      expect.objectContaining({
+        code: 'CONFIG_INVALID',
+        message:
+          'config sdc-questionnaire-lint.config.mjs is invalid at /plugins: expected an array, got an object',
+      }),
+    );
+  });
+
+  it('accepts plugins in an .mjs config, leaving their elements to the rule registry', () => {
+    const mjs = { display: 'sdc-questionnaire-lint.config.mjs', format: 'mjs' } as const;
+    const config = { plugins: [1] };
+    expect(validateConfig(config, mjs)).toEqual(config);
   });
 });

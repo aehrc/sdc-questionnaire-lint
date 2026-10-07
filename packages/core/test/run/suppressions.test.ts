@@ -5,8 +5,9 @@ import { findSites } from '../../src/analysis/walker.js';
 import { loadConfig } from '../../src/config/load.js';
 import { resolveRunPaths } from '../../src/config/paths.js';
 import { collectInputs } from '../../src/inputs/collect.js';
+import { lint } from '../../src/lint.js';
 import { sdcPlugin } from '../../src/plugins/builtin.js';
-import { registerRules } from '../../src/plugins/registry.js';
+import { buildRuleRegistry } from '../../src/plugins/rule-registry.js';
 import { configFingerprint } from '../../src/run/fingerprint.js';
 import { runRules } from '../../src/run/rules.js';
 import { applySuppressions, completesCheck } from '../../src/run/suppressions.js';
@@ -52,7 +53,7 @@ interface Run {
 async function assessIn(cwd: string, { suppress, rules, files, paths }: Run) {
   await writeFile(path.join(cwd, configName), JSON.stringify({ rules, files, suppress }));
   const loaded = await loadConfig({ cwd });
-  const registered = registerRules(loaded);
+  const registered = buildRuleRegistry(loaded).rules;
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const inputs = await collectInputs({ cwd, cliPaths: paths ?? [], runPaths });
   const documents = inputs.documents.map(({ input, document }) => ({
@@ -303,6 +304,27 @@ describe('applySuppressions: whether the rule completed its check', () => {
   it('knows where every sdc rule completes its check', () => {
     const ids = Object.keys(sdcPlugin.rules).map((name) => `${sdcPlugin.meta.name}/${name}`);
     expect(Object.keys(completesCheck).sort()).toEqual(ids.sort());
+  });
+
+  it('is not assessed for a plugin rule that reports nothing', async () => {
+    const cwd = await tempTree({
+      [A]: fixed,
+      'sdc-questionnaire-lint.config.mjs': `export default {
+        plugins: [{
+          meta: { name: 'demo', version: '0.0.0' },
+          rules: {
+            quiet: {
+              meta: { description: 'Reports nothing.', defaultSeverity: 'error' },
+              check() {},
+            },
+          },
+        }],
+        suppress: [${JSON.stringify(entry({ rule: 'demo/quiet' }))}],
+      };`,
+    });
+    const report = await lint({ cwd });
+    expect(report.findings).toEqual([]);
+    expect(report.summary.suppressions).toEqual(counts(0, 0, 1));
   });
 
   it('counts a would-be stale entry as not assessed when lint/stale-suppression is off', async () => {

@@ -184,6 +184,9 @@ A resource in the same Bundle as the Questionnaire, available when resolving ref
 **Registry**
 The table of SDC locations the linter understands: each entry's extension URL, the elements it may sit on, its carrier, whether it declares, its allowed languages and its use cases. Supporting a new location is a new entry, not walker code.
 
+**Rule registry**
+`buildRuleRegistry` in [rule-registry.ts](packages/core/src/plugins/rule-registry.ts): every rule from the built-in and configured plugins, with its effective severity, and the plugins that provide them. Not the Registry above, which is about expression locations.
+
 **Registered location**
 See [CONTEXT.md](CONTEXT.md). In code, `RegisteredLocation` holds the extension URL and, for a complex extension, the sub-extension URL.
 

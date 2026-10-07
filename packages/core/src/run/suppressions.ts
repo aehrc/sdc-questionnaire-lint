@@ -7,7 +7,7 @@ import type { SuppressionEntry } from '../config/types.js';
 import { configInvalid } from '../config/validate.js';
 import { describeError, LintFailure } from '../failure.js';
 import { displayPath, type InputFile } from '../inputs/paths.js';
-import { type RegisteredRule, staleSuppressionId } from '../plugins/registry.js';
+import { type RegisteredRule, staleSuppressionId } from '../plugins/rule-registry.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../plugins/types.js';
 import type { ConfigFinding, Finding } from '../report/types.js';
 import { fileGone, nothingToHide, siteGone } from '../rules/stale-suppression.js';
@@ -182,7 +182,7 @@ export async function applySuppressions(run: SuppressionRun): Promise<Suppressio
       stale.push({
         kind: 'config',
         ruleId: staleSuppressionId,
-        // Fixed until --strict-suppressions; the registry allows only warning or off.
+        // Fixed until --strict-suppressions; the rule registry allows only warning or off.
         severity: 'warning',
         message: assessment.message,
         help: assessment.help,

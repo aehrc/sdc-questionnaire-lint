@@ -1,6 +1,11 @@
 import { type LoadedConfig, loadConfig } from '../config/load.js';
 import { asLintFailure, LintFailure, renderFailureText } from '../failure.js';
-import { type RegisteredRule, registerRules, unknownRuleHelp } from '../plugins/registry.js';
+import {
+  buildRuleRegistry,
+  type RegisteredRule,
+  unknownRuleHelp,
+} from '../plugins/rule-registry.js';
+import { guardStdout } from './output-guard.js';
 import type { CliIo } from './run.js';
 
 function configLine(loaded: LoadedConfig | null): string {
@@ -42,18 +47,21 @@ function indent(text: string): string {
 }
 
 function formatRuleDocs(
-  { id, rule, severity }: RegisteredRule,
+  { id, plugin, rule, severity }: RegisteredRule,
   loaded: LoadedConfig | null,
 ): string {
-  const { description, defaultSeverity, docs } = rule.meta;
+  const { description, defaultSeverity, docsUrl, docs } = rule.meta;
   const lines = [
     id,
     description,
     '',
     `Default severity: ${defaultSeverity}. Effective severity: ${severity}.`,
   ];
-  // Every built-in rule has docs (test/plugins/docs.test.ts); plugin rules arrive with plugins.
-  if (docs !== undefined) {
+  if (docsUrl !== undefined) lines.push(`Documentation: ${docsUrl}`);
+  // Every built-in rule has docs (test/plugins/docs.test.ts); a plugin rule may have none.
+  if (docs === undefined) {
+    lines.push('', `The ${plugin} plugin ships no bundled documentation for this rule.`);
+  } else {
     for (const [heading, text] of [
       ['What it checks', docs.checks],
       ['Why it matters', docs.why],
@@ -68,6 +76,29 @@ function formatRuleDocs(
   return lines.join('\n');
 }
 
+// The listing, or the named rule's documentation.
+async function explain(
+  args: { ruleId?: string; configPath?: string },
+  cwd: string,
+): Promise<string> {
+  const loaded = await loadConfig({
+    cwd,
+    ...(args.configPath === undefined ? {} : { explicitPath: args.configPath }),
+  });
+  const registry = buildRuleRegistry(loaded);
+  const { ruleId } = args;
+  if (ruleId === undefined) return formatRuleList(registry.rules, loaded);
+  const rule = registry.rules.find(({ id }) => id === ruleId);
+  if (rule === undefined) {
+    throw new LintFailure({
+      code: 'USAGE_ERROR',
+      message: `unknown rule ${ruleId}`,
+      help: unknownRuleHelp(ruleId, registry),
+    });
+  }
+  return formatRuleDocs(rule, loaded);
+}
+
 // Loads the config and registers rules as lint does, but never collects inputs or runs rules.
 // Output is text only; failures go to stderr.
 export async function runExplain(
@@ -75,28 +106,16 @@ export async function runExplain(
   io: CliIo,
 ): Promise<0 | 2> {
   try {
-    const loaded = await loadConfig({
-      cwd: io.cwd,
-      ...(args.configPath === undefined ? {} : { explicitPath: args.configPath }),
-    });
-    const rules = registerRules(loaded);
-    const { ruleId } = args;
-    if (ruleId === undefined) {
-      io.stdout.write(formatRuleList(rules, loaded));
-      return 0;
+    let text: string;
+    // Loading an .mjs config runs its code, whose output goes to stderr. The listing goes through
+    // io.stdout, which the guard never patches.
+    const restore = guardStdout(io.stderr);
+    try {
+      text = await explain(args, io.cwd);
+    } finally {
+      restore();
     }
-    const rule = rules.find(({ id }) => id === ruleId);
-    if (rule === undefined) {
-      throw new LintFailure({
-        code: 'USAGE_ERROR',
-        message: `unknown rule ${ruleId}`,
-        help: unknownRuleHelp(
-          ruleId,
-          rules.map(({ id }) => id),
-        ),
-      });
-    }
-    io.stdout.write(formatRuleDocs(rule, loaded));
+    io.stdout.write(text);
     return 0;
   } catch (error) {
     io.stderr.write(renderFailureText(asLintFailure(error)));

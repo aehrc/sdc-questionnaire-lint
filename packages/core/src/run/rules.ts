@@ -1,9 +1,12 @@
+import { describeError, LintFailure } from '../failure.js';
 import type { InputFile } from '../inputs/paths.js';
+import { jsonPointerPattern } from '../json-pointer.js';
 import { isObject } from '../object.js';
-import type { RegisteredRule } from '../plugins/registry.js';
+import type { RegisteredRule } from '../plugins/rule-registry.js';
 import type {
   ExpressionSite,
   QuestionnaireDocument,
+  RuleContext,
   RuleFinding,
   Severity,
 } from '../plugins/types.js';
@@ -57,8 +60,100 @@ function excerpt(
   return { text: site.text, ...(range === undefined ? {} : { range }) };
 }
 
-// Calls each rule that is not off once on the document, at its effective severity. Built-in rules
-// are trusted: what they report is not checked, and a crash propagates as a linter bug.
+const severities: readonly unknown[] = ['error', 'warning', 'info'];
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value !== '';
+}
+
+function isSeverity(value: unknown): value is Severity {
+  return severities.includes(value);
+}
+
+function isOffset(value: unknown): value is number {
+  return Number.isInteger(value);
+}
+
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (
+    (typeof value === 'object' || typeof value === 'function') &&
+    value !== null &&
+    typeof (value as { then?: unknown }).then === 'function'
+  );
+}
+
+// The message of a value a rule threw, which may itself throw when read.
+function describeThrown(error: unknown): string {
+  try {
+    return describeError(error);
+  } catch {
+    return 'a value that cannot be described';
+  }
+}
+
+// A copy of a reported finding, judged by what the report schema and reporters rely on, or what
+// is wrong with it. Each field is read once, so a rule cannot change it after the check.
+function checkFinding(
+  reported: unknown,
+  sites: readonly ExpressionSite[],
+  { resourcePointer }: QuestionnaireDocument,
+): RuleFinding | string {
+  if (!isObject(reported)) return 'the finding is not an object';
+  const { message, help, note, severity, site, pointer, range } = reported;
+  if (!isNonEmptyString(message)) return 'message is not a non-empty string';
+  if (help !== undefined && !isNonEmptyString(help)) return 'help is not a non-empty string';
+  if (note !== undefined && !isNonEmptyString(note)) return 'note is not a non-empty string';
+  if (severity !== undefined && !isSeverity(severity)) {
+    return 'severity is not error, warning or info';
+  }
+  // By identity: a copy of a site is not a site the walker found.
+  const found = sites.find((each) => each === site);
+  if (site !== undefined && found === undefined) return 'site is not one of ctx.sites';
+  if (found === undefined && pointer !== undefined) {
+    if (typeof pointer !== 'string') return 'pointer is not a string';
+    if (!jsonPointerPattern.test(pointer)) {
+      return `pointer ${JSON.stringify(pointer)} is not a JSON Pointer`;
+    }
+    if (pointer !== resourcePointer && !pointer.startsWith(`${resourcePointer}/`)) {
+      return `pointer ${pointer} is outside the resource at ${resourcePointer}`;
+    }
+  }
+  let offsets: OffsetRange | undefined;
+  if (range !== undefined) {
+    // A fragment site's text is the fragment's; the runner rebases the range onto its query.
+    const text = found?.text;
+    if (text === undefined) return 'range needs a site with text';
+    const { startOffset: start, endOffset: end } = isObject(range) ? range : {};
+    if (!isOffset(start) || !isOffset(end) || start < 0 || start > end || end > text.length) {
+      return (
+        "range is not within the site's text: expected integer offsets with " +
+        `0 <= startOffset <= endOffset <= ${String(text.length)}`
+      );
+    }
+    offsets = { startOffset: start, endOffset: end };
+  }
+  return {
+    message,
+    ...(help === undefined ? {} : { help }),
+    ...(note === undefined ? {} : { note }),
+    ...(severity === undefined ? {} : { severity }),
+    ...(found === undefined ? {} : { site: found }),
+    ...(found !== undefined || typeof pointer !== 'string' ? {} : { pointer }),
+    ...(offsets === undefined ? {} : { range: offsets }),
+  };
+}
+
+function ruleCrash({ id, plugin }: RegisteredRule, what: string): LintFailure {
+  return new LintFailure({
+    code: 'RULE_CRASH',
+    ruleId: id,
+    message: `rule ${id} ${what}`,
+    help: `this is a bug in the ${plugin} plugin; report it to its maintainers`,
+  });
+}
+
+// Calls each rule that is not off once on the document, at its effective severity. Built-in and
+// plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH.
 export function runRules(
   doc: { input: InputFile; document: QuestionnaireDocument; sites: readonly ExpressionSite[] },
   rules: readonly RegisteredRule[],
@@ -101,18 +196,47 @@ export function runRules(
     };
   }
 
-  for (const { id, rule, severity } of rules) {
+  for (const registered of rules) {
+    const { id, rule, severity } = registered;
     if (severity === 'off') continue;
-    rule.check({
-      document,
-      sites,
-      // A stub until the scope model exists (core-plan §3.1).
-      scopeAt: () => ({ available: false, names: [] }),
-      options: undefined,
-      report: (reported) => {
-        findings.push(toFinding(id, severity, reported));
-      },
-    });
+    // report() never throws, so a rule cannot swallow its own invalid finding: the first problem
+    // is kept here, later reports are ignored, and the run fails once check returns.
+    let problem: string | undefined;
+    let promised = false;
+    try {
+      // Typed void, but a plugin's check may still return a promise.
+      const returned = (rule as { check(ctx: RuleContext): unknown }).check({
+        document,
+        sites,
+        // A stub until the scope model exists (core-plan §3.1).
+        scopeAt: () => ({ available: false, names: [] }),
+        options: undefined,
+        report: (reported) => {
+          if (problem !== undefined) return;
+          let checked: RuleFinding | string;
+          try {
+            checked = checkFinding(reported, sites, document);
+          } catch {
+            // A getter on the finding threw.
+            checked = 'reading the finding threw an exception';
+          }
+          if (typeof checked === 'string') problem = checked;
+          else findings.push(toFinding(id, severity, checked));
+        },
+      });
+      // Inside the try: reading then, or calling it, runs plugin code too.
+      if (isThenable(returned)) {
+        promised = true;
+        // Handled, so a rejection is never unhandled; whatever the rule does later is discarded.
+        returned.then(undefined, () => undefined);
+      }
+    } catch (error) {
+      throw ruleCrash(registered, `crashed: ${describeThrown(error)}`);
+    }
+    if (promised) throw ruleCrash(registered, 'returned a promise; check must be synchronous');
+    if (problem !== undefined) {
+      throw ruleCrash(registered, `reported an invalid finding: ${problem}`);
+    }
   }
   return findings;
 }

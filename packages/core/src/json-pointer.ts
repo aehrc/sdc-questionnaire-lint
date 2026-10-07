@@ -4,3 +4,6 @@ export function toPointer(segments: readonly (string | number)[]): string {
     .map((segment) => `/${String(segment).replaceAll('~', '~0').replaceAll('/', '~1')}`)
     .join('');
 }
+
+// The report schema's JSON Pointer pattern.
+export const jsonPointerPattern = /^(?:\/(?:[^~/]|~[01])*)*$/;

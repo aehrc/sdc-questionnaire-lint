@@ -154,4 +154,73 @@ describe('sdc-lint explain', () => {
       'hides nothing: the rule checked this expression and found no problem',
     );
   });
+
+  describe('with a plugin', () => {
+    function pluginConfig(meta: Record<string, unknown>) {
+      return tempTree({
+        'sdc-questionnaire-lint.config.mjs': `export default {
+          plugins: [{
+            meta: { name: 'demo', version: '0.0.0' },
+            rules: {
+              'no-today': {
+                meta: ${JSON.stringify({ description: 'Flags today().', defaultSeverity: 'warning', ...meta })},
+                check() {},
+              },
+            },
+          }],
+        };`,
+      });
+    }
+
+    it('lists plugin rules among the sdc rules', async () => {
+      const { code, stdout } = await runInProcess(['explain'], { cwd: await pluginConfig({}) });
+      expect(code).toBe(0);
+      expect(stdout).toMatch(
+        /^RULE +DEFAULT +EFFECTIVE +DESCRIPTION\ndemo\/no-today +warning +warning +Flags today\(\)\.\nlint\/stale-suppression /,
+      );
+    });
+
+    it('says when a plugin rule ships no documentation', async () => {
+      const cwd = await pluginConfig({});
+      const { code, stdout } = await runInProcess(['explain', 'demo/no-today'], { cwd });
+      expect(code).toBe(0);
+      expect(stdout).toBe(
+        'demo/no-today\n' +
+          'Flags today().\n\n' +
+          'Default severity: warning. Effective severity: warning.\n\n' +
+          'The demo plugin ships no bundled documentation for this rule.\n\n' +
+          'Config: sdc-questionnaire-lint.config.mjs.\n',
+      );
+    });
+
+    it('shows the docsUrl', async () => {
+      const cwd = await pluginConfig({ docsUrl: 'https://example.org/no-today' });
+      const { stdout } = await runInProcess(['explain', 'demo/no-today'], { cwd });
+      expect(stdout).toContain(
+        'Default severity: warning. Effective severity: warning.\n' +
+          'Documentation: https://example.org/no-today\n',
+      );
+    });
+
+    it('exits 2 for a rule of a plugin that is not listed', async () => {
+      const result = await runInProcess(['explain', 'smart-forms/x'], { cwd: await tempTree() });
+      expect(result).toEqual({
+        code: 2,
+        stdout: '',
+        stderr:
+          'error: unknown rule smart-forms/x\n' +
+          'help: the plugin providing smart-forms/ rules must be listed in plugins in an .mjs config\n',
+      });
+    });
+
+    it('sends logging from the config to stderr', async () => {
+      const cwd = await tempTree({
+        'sdc-questionnaire-lint.config.mjs': "console.log('hello');\nexport default {};\n",
+      });
+      const { code, stdout, stderr } = await runInProcess(['explain'], { cwd });
+      expect(code).toBe(0);
+      expect(stdout).toMatch(/^RULE /);
+      expect(stderr).toBe('hello\n');
+    });
+  });
 });

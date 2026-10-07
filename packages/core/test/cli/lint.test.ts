@@ -1,3 +1,5 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { FailedReport } from '../../src/index.js';
@@ -179,5 +181,106 @@ describe('sdc-lint lint', () => {
     expect(result.code).toBe(2);
     expect(failed(result.stdout).failure).toMatchObject({ code: 'INTERNAL_ERROR' });
     expect(result.stderr).not.toMatch(/\n\s+at /);
+  });
+
+  describe('with a plugin', () => {
+    // An .mjs config listing an inline demo plugin whose one rule runs body as check(ctx).
+    function pluginIg(body: string, severity = 'warning', preamble = '') {
+      return tempTree({
+        'sdc-questionnaire-lint.config.mjs': `${preamble}
+          export default {
+            plugins: [{
+              meta: { name: 'demo', version: '0.0.0' },
+              rules: {
+                'no-today': {
+                  meta: { description: 'Flags today().', defaultSeverity: '${severity}' },
+                  check(ctx) { ${body} },
+                },
+              },
+            }],
+          };`,
+        'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+          resourceType: 'Questionnaire',
+          id: 'A',
+          status: 'draft',
+          item: [
+            {
+              linkId: 'age',
+              extension: [
+                {
+                  url: 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression',
+                  valueExpression: { language: 'text/fhirpath', expression: 'today()' },
+                },
+              ],
+            },
+          ],
+        }),
+      });
+    }
+    const reportToday = `
+      for (const site of ctx.sites) {
+        if (site.text?.includes('today()')) ctx.report({ site, message: 'This expression uses today().' });
+      }`;
+
+    it('exits 0 for a warning, naming the plugin in the footer', async () => {
+      const result = runBinary(['lint'], { cwd: await pluginIg(reportToday) });
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain('warning demo/no-today This expression uses today().\n');
+      expect(result.stdout).toMatch(/Plugins: demo@0\.0\.0, sdc@\S+\n/);
+    });
+
+    it('exits 1 for an error, with a complete JSON report', async () => {
+      const cwd = await pluginIg(reportToday, 'error');
+      const result = runBinary(['lint', '--format', 'json'], { cwd });
+      expect(result.code).toBe(1);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        status: 'completed',
+        findings: [{ ruleId: 'demo/no-today', severity: 'error' }],
+      });
+    });
+
+    it('exits 2 for a crash, with a failed JSON report and stderr naming the rule', async () => {
+      const cwd = await pluginIg("throw new Error('boom');");
+      const result = runBinary(['lint', '--format', 'json'], { cwd });
+      expect(result.code).toBe(2);
+      expect(failed(result.stdout).failure).toEqual({
+        code: 'RULE_CRASH',
+        ruleId: 'demo/no-today',
+        message: 'rule demo/no-today crashed: boom',
+        help: 'this is a bug in the demo plugin; report it to its maintainers',
+      });
+      expect(result.stderr).toBe(
+        'error: rule demo/no-today crashed: boom\n' +
+          'help: this is a bug in the demo plugin; report it to its maintainers\n',
+      );
+    });
+
+    it('keeps logging from an async rule out of JSON stdout after the run fails', async () => {
+      const cwd = await pluginIg(
+        "await new Promise((resolve) => setTimeout(resolve, 50)); console.log('late');",
+      );
+      // check must be async for the await.
+      const config = path.join(cwd, 'sdc-questionnaire-lint.config.mjs');
+      await writeFile(
+        config,
+        (await readFile(config, 'utf8')).replace('check(ctx)', 'async check(ctx)'),
+      );
+      const result = runBinary(['lint', '--format', 'json'], { cwd });
+      expect(result.code).toBe(2);
+      expect(failed(result.stdout).failure).toMatchObject({ code: 'RULE_CRASH' });
+      expect(result.stderr).toMatch(/\nlate\n$/);
+    });
+
+    it('keeps logging from the config and from check out of JSON stdout', async () => {
+      const cwd = await pluginIg(
+        "console.log('rule says hello'); process.stdout.write('rule writes\\n');",
+        'warning',
+        "console.info('config says hello');",
+      );
+      const result = runBinary(['lint', '--format', 'json'], { cwd });
+      expect(result.code).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({ status: 'completed' });
+      expect(result.stderr).toBe('config says hello\nrule says hello\nrule writes\n');
+    });
   });
 });

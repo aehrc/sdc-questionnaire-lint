@@ -1,12 +1,14 @@
 import pkg from '../../package.json' with { type: 'json' };
 import { asLintFailure, LintFailure, renderFailureJson, renderFailureText } from '../failure.js';
 import { lint } from '../lint.js';
+import type { CompletedReport } from '../report/types.js';
 import { formatJsonReport } from '../report/json.js';
 import { formatTextReport } from '../report/text.js';
 import { type ParsedArgs, parseCliArgs } from './args.js';
 import { colourEnabled } from './colour.js';
 import { runExplain } from './explain.js';
 import { helpText } from './help.js';
+import { guardStdout } from './output-guard.js';
 
 export interface CliIo {
   cwd: string;
@@ -26,11 +28,20 @@ export function runCli(argv: readonly string[], io: CliIo): Promise<0 | 1 | 2> {
 // Buffers the whole report and writes it once; a failure discards partial results.
 async function runLint(args: Extract<ParsedArgs, { kind: 'lint' }>, io: CliIo): Promise<0 | 1 | 2> {
   try {
-    const report = await lint({
-      cwd: io.cwd,
-      paths: args.paths,
-      ...(args.configPath === undefined ? {} : { configPath: args.configPath }),
-    });
+    let report: CompletedReport;
+    // The run executes config and plugin code, whose output goes to stderr. The report goes through
+    // io.stdout, which the guard never patches. The binary keeps its own guard on for the whole
+    // process; this one covers in-process callers.
+    const restore = guardStdout(io.stderr);
+    try {
+      report = await lint({
+        cwd: io.cwd,
+        paths: args.paths,
+        ...(args.configPath === undefined ? {} : { configPath: args.configPath }),
+      });
+    } finally {
+      restore();
+    }
     io.stdout.write(
       args.format === 'json'
         ? formatJsonReport(report)

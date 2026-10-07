@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { findSites } from '../src/analysis/walker.js';
 import { lint, type QuestionnaireFinding } from '../src/index.js';
+import type { ExpressionSite, QuestionnaireDocument } from '../src/plugins/types.js';
 import { expectValidReport } from './support/report.js';
 import { tempTree } from './support/tmp.js';
 
@@ -297,5 +299,60 @@ describe('config', () => {
   it('fails on an invalid config before looking for inputs', async () => {
     const cwd = await tempTree({ [config]: '{ "rulez": {} }' });
     await expect(lint({ cwd })).rejects.toMatchObject({ code: 'CONFIG_INVALID' });
+  });
+});
+
+describe('a plugin rule', () => {
+  it('runs once per Questionnaire, seeing the sites the walker found', async () => {
+    const seen: { document: QuestionnaireDocument; sites: readonly ExpressionSite[] }[] = [];
+    // The config module reads this while lint imports it in this process.
+    (globalThis as { sdcLintSeen?: typeof seen }).sdcLintSeen = seen;
+    const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
+    const withQuery = (id: string) => ({
+      resourceType: 'Questionnaire',
+      id,
+      status: 'draft',
+      extension: [
+        {
+          url: `${sdc}itemPopulationContext`,
+          valueExpression: {
+            name: 'obs',
+            language: 'application/x-fhir-query',
+            expression: 'Observation?subject={{%patient.id}}',
+          },
+        },
+      ],
+    });
+    const cwd = await tempTree({
+      'sdc-questionnaire-lint.config.mjs': `export default {
+        plugins: [{
+          meta: { name: 'demo', version: '0.0.0' },
+          rules: {
+            record: {
+              meta: { description: 'Records what it sees.', defaultSeverity: 'info' },
+              check(ctx) { globalThis.sdcLintSeen.push({ document: ctx.document, sites: ctx.sites }); },
+            },
+          },
+        }],
+      };`,
+      'fsh-generated/resources/Questionnaire-A.json': JSON.stringify(withQuery('A')),
+      'fsh-generated/resources/Bundle-B.json': JSON.stringify({
+        resourceType: 'Bundle',
+        type: 'collection',
+        entry: [{ resource: withQuery('B1') }, { resource: withQuery('B2') }],
+      }),
+    });
+    await lint({ cwd });
+    expect(
+      seen.map(({ document }) => [document.file, document.resource.id, document.resourcePointer]),
+    ).toEqual([
+      ['fsh-generated/resources/Bundle-B.json', 'B1', '/entry/0/resource'],
+      ['fsh-generated/resources/Bundle-B.json', 'B2', '/entry/1/resource'],
+      ['fsh-generated/resources/Questionnaire-A.json', 'A', ''],
+    ]);
+    for (const { document, sites } of seen) {
+      expect(sites).toEqual(findSites(document));
+      expect(sites.map(({ carrier }) => carrier)).toEqual(['expression', 'fragment']);
+    }
   });
 });
