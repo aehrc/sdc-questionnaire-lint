@@ -60,7 +60,7 @@ function fragmentSites(site: ExpressionSite): ExpressionSite[] {
 // of its JSON. Expressions held by catalogued extensions on the root and its items are catalogued
 // sites; any other object with a string language and expression, including in a contained
 // resource, is an uncatalogued site. Each fragment of a query directly follows the query.
-export function findSites(document: QuestionnaireDocument): ExpressionSite[] {
+export function findExpressionSites(document: QuestionnaireDocument): ExpressionSite[] {
   const sites: ExpressionSite[] = [];
   const claims = new Map<Json, Claim>();
   const pointerOf = (segments: Segments): string => document.resourcePointer + toPointer(segments);

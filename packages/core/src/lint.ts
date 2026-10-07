@@ -1,6 +1,6 @@
 import pkg from '../package.json' with { type: 'json' };
+import { findExpressionSites } from './analysis/expression-sites.js';
 import { countExpressions } from './analysis/fhirpath.js';
-import { findSites } from './analysis/walker.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { collectInputs } from './inputs/collect.js';
@@ -37,7 +37,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
   const documents = inputs.documents.map(({ input, document }) => ({
     input,
     document,
-    sites: findSites(document),
+    sites: findExpressionSites(document),
   }));
   const outcome = await applySuppressions({
     loaded,

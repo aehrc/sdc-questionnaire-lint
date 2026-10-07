@@ -2,7 +2,7 @@ import type { ExpressionCarrier, ExpressionUseCase } from '../plugins/types.js';
 
 // The catalog of SDC extensions the linter understands: the kinds of location an expression may
 // sit in, not the expressions of any one Questionnaire (core-plan §3.1 calls it the registry).
-// Supporting another location is a new entry here, not walker code.
+// Supporting another location is a new entry here, not new code in expression-sites.ts.
 
 // The element an extension sits on: the Questionnaire root or an item.
 export type Owner = 'root' | 'item';

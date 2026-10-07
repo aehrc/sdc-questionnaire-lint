@@ -1,7 +1,7 @@
 import { chmod, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { findSites } from '../../src/analysis/walker.js';
+import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import { loadConfig } from '../../src/config/load.js';
 import { resolveRunPaths } from '../../src/config/paths.js';
 import { collectInputs } from '../../src/inputs/collect.js';
@@ -59,7 +59,7 @@ async function assessIn(cwd: string, { suppress, rules, files, paths }: Run) {
   const documents = inputs.documents.map(({ input, document }) => ({
     input,
     document,
-    sites: findSites(document),
+    sites: findExpressionSites(document),
   }));
   const findings = documents.flatMap((doc) => runRules(doc, registered));
   const outcome = await applySuppressions({

@@ -106,7 +106,7 @@ function validateReportedFinding(
   if (severity !== undefined && !isSeverity(severity)) {
     return 'severity is not error, warning or info';
   }
-  // By identity: a copy of a site is not a site the walker found.
+  // By identity: a copy of a site is not an expression site the linter found.
   const found = sites.find((each) => each === site);
   if (site !== undefined && found === undefined) return 'site is not one of ctx.sites';
   if (found === undefined && pointer !== undefined) {
