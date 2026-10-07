@@ -38,6 +38,7 @@ Start with these docs:
 - [Core plan](docs/core-plan.md) and [amendments](docs/plan-amendments.md) — scope and decisions; amendments take precedence.
 - [CLI contract](docs/cli.md) — commands, configuration, exit codes and automation recipes.
 - [Report format](docs/report-format.md), [JSON Schema](docs/schemas/lint-report.schema.json) and [examples](docs/examples/reports/README.md) — machine integration.
+- [How the linter works](docs/architecture.md) — the pipeline of one lint run through the source, for contributors.
 
 ## Configuration
 
