@@ -1,5 +1,5 @@
-import { checkFhirPathSyntax } from '../analysis/fhirpath.js';
-import { hasQueryText, queryShapeProblem, scanQuery } from '../analysis/query.js';
+import { findFhirPathSyntaxProblem } from '../analysis/fhirpath.js';
+import { findQueryShapeProblem, hasQueryText, scanQuery } from '../analysis/query.js';
 import type { LintRule, RuleFinding } from '../plugins/types.js';
 
 const notASearch =
@@ -11,7 +11,7 @@ function shapeFinding(text: string): Omit<RuleFinding, 'site'> {
   return {
     message: notASearch,
     help:
-      checkFhirPathSyntax(text) === undefined
+      findFhirPathSyntaxProblem(text) === undefined
         ? 'set the language to text/fhirpath; this expression is FHIRPath'
         : 'write a FHIR search such as Observation?subject={{%patient.id}}',
   };
@@ -58,7 +58,7 @@ export const querySyntax: LintRule = {
   check(ctx) {
     for (const site of ctx.sites) {
       if (!hasQueryText(site)) continue;
-      const problem = queryShapeProblem(site.text);
+      const problem = findQueryShapeProblem(site.text);
       if (problem === 'unclosed') ctx.report({ site, ...unclosedFinding(site.text) });
       if (problem === 'not-a-search') ctx.report({ site, ...shapeFinding(site.text) });
     }

@@ -11,8 +11,8 @@ export function hasFhirPathText(site: ExpressionSite): site is ExpressionSite & 
   return site.language === FHIRPATH && site.text !== undefined;
 }
 
-// A FHIRPath syntax error, as far as the parser describes it.
-export interface FhirPathSyntaxError {
+// A FHIRPath syntax problem, as far as the parser describes it.
+export interface FhirPathSyntaxProblem {
   // The parser's message for its first error, such as missing ')' at '<EOF>'; absent when the
   // parser failed without one.
   parserMessage?: string;
@@ -59,8 +59,8 @@ function parse(text: string): { tree: ParseNode } | { error: unknown } {
   }
 }
 
-// The syntax error in text, or undefined when it parses.
-export function checkFhirPathSyntax(text: string): FhirPathSyntaxError | undefined {
+// The syntax problem in text, or undefined when it parses.
+export function findFhirPathSyntaxProblem(text: string): FhirPathSyntaxProblem | undefined {
   const parsed = parse(text);
   if ('tree' in parsed) return undefined;
   const message = parsed.error instanceof Error ? parsed.error.message : '';

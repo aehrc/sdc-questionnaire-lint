@@ -19,7 +19,7 @@ const requiredHelp: Record<string, string> = {
 };
 
 // CONFIG_INVALID naming the config file and the JSON Pointer of the entry.
-export function configInvalid(
+export function invalidConfigFailure(
   display: string,
   at: Path,
   problem: string,
@@ -46,7 +46,7 @@ export function validateConfig(
   { display, format }: { display: string; format: ConfigFormat },
 ): LintConfig {
   const fail = (at: Path, problem: string, help: string): never => {
-    throw configInvalid(display, at, problem, help);
+    throw invalidConfigFailure(display, at, problem, help);
   };
   const expectObject = (value: unknown, at: Path, example: string): Record<string, unknown> =>
     isObject(value)

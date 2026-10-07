@@ -1,4 +1,4 @@
-import { checkFhirPathSyntax, hasFhirPathText } from '../analysis/fhirpath.js';
+import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
 import type { LintRule } from '../plugins/types.js';
 import { syntaxFinding } from './parse-error.js';
 
@@ -28,8 +28,8 @@ export const fragmentParseError: LintRule = {
   check(ctx) {
     for (const site of ctx.sites) {
       if (site.carrier !== 'fragment' || !hasFhirPathText(site)) continue;
-      const error = checkFhirPathSyntax(site.text);
-      if (error !== undefined) ctx.report({ site, ...syntaxFinding(site.text, error) });
+      const problem = findFhirPathSyntaxProblem(site.text);
+      if (problem !== undefined) ctx.report({ site, ...syntaxFinding(site.text, problem) });
     }
   },
 };

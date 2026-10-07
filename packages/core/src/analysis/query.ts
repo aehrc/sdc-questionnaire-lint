@@ -37,7 +37,7 @@ const searchShape = /^(?:\{\{|[?$_]|https?:\/\/|[A-Z][A-Za-z]*(?:$|[/?]|\{\{))/;
 
 // What is wrong with the shape of a query, or undefined when it has an accepted shape. An unclosed
 // {{ is reported before the shape.
-export function queryShapeProblem(text: string): 'unclosed' | 'not-a-search' | undefined {
+export function findQueryShapeProblem(text: string): 'unclosed' | 'not-a-search' | undefined {
   if (scanQuery(text).unclosedAt !== undefined) return 'unclosed';
   return searchShape.test(text) ? undefined : 'not-a-search';
 }

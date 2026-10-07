@@ -1,5 +1,5 @@
 import type { LoadedConfig } from '../config/load.js';
-import { configInvalid } from '../config/validate.js';
+import { invalidConfigFailure } from '../config/validate.js';
 import { isObject } from '../object.js';
 import type { PackageVersion } from '../report/types.js';
 import { staleSuppression } from '../rules/stale-suppression.js';
@@ -61,9 +61,9 @@ export function unknownRuleHelp(id: string, registry: RuleRegistry): string {
 }
 
 // Checks the shape of the plugin at plugins/<index>; a failure points into the exported config.
-function checkPlugin(value: unknown, index: number, display: string): LintPlugin {
+function validatePlugin(value: unknown, index: number, display: string): LintPlugin {
   const fail = (at: (string | number)[], problem: string, help: string): never => {
-    throw configInvalid(display, ['plugins', index, ...at], problem, help);
+    throw invalidConfigFailure(display, ['plugins', index, ...at], problem, help);
   };
   const plugin = isObject(value)
     ? value
@@ -151,12 +151,12 @@ export function buildRuleRegistry(loaded: LoadedConfig | null): RuleRegistry {
   const config = loaded?.config ?? {};
   const display = loaded?.display ?? '';
   const fail = (at: (string | number)[], problem: string, help: string): never => {
-    throw configInvalid(display, at, problem, help);
+    throw invalidConfigFailure(display, at, problem, help);
   };
 
   const plugins = [sdcPlugin, lintPlugin];
   (config.plugins ?? []).forEach((value: unknown, index) => {
-    const plugin = checkPlugin(value, index, display);
+    const plugin = validatePlugin(value, index, display);
     const { name } = plugin.meta;
     const at = ['plugins', index, 'meta', 'name'];
     if (name === sdcPlugin.meta.name || name === lintPlugin.meta.name) {

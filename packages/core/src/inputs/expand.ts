@@ -16,7 +16,7 @@ function isMissing(error: unknown): boolean {
   return code === 'ENOENT' || code === 'ENOTDIR';
 }
 
-function unreadable(display: string, error: unknown): LintFailure {
+function unreadableInputFailure(display: string, error: unknown): LintFailure {
   return new LintFailure({
     code: 'INPUT_UNREADABLE',
     path: display,
@@ -88,7 +88,7 @@ async function crawl(base: string, pattern: string, display: string): Promise<st
   });
   // A base that does not exist simply matches nothing.
   const failed = errors.find(({ error }) => !isMissing(error));
-  if (failed) throw unreadable(display, failed.error);
+  if (failed) throw unreadableInputFailure(display, failed.error);
   return files.map((file) => path.normalize(file));
 }
 
@@ -98,14 +98,14 @@ async function expandEntry(entry: InputEntry): Promise<string[]> {
     const stats = await stat(entry.absolute);
     kind = stats.isFile() ? 'file' : stats.isDirectory() ? 'directory' : 'other';
   } catch (error) {
-    if (!isMissing(error)) throw unreadable(entry.display, error);
+    if (!isMissing(error)) throw unreadableInputFailure(entry.display, error);
     kind = 'missing';
   }
 
   // An existing path is literal, even inside .git or node_modules, and even with glob characters.
   if (kind === 'file') return [entry.absolute];
   if (kind === 'other') {
-    throw unreadable(entry.display, new Error('not a file or directory'));
+    throw unreadableInputFailure(entry.display, new Error('not a file or directory'));
   }
   // The default directory may be missing or empty; the no-Questionnaires failure explains that.
   if (entry.origin === 'default') {

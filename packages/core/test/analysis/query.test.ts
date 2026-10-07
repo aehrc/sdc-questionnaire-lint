@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { queryShapeProblem, scanQuery } from '../../src/analysis/query.js';
+import { findQueryShapeProblem, scanQuery } from '../../src/analysis/query.js';
 
 describe('scanQuery', () => {
   it('finds no fragments in a plain query', () => {
@@ -44,7 +44,7 @@ describe('scanQuery', () => {
   });
 });
 
-describe('queryShapeProblem', () => {
+describe('findQueryShapeProblem', () => {
   it.each([
     'Patient',
     'Observation?code=x',
@@ -57,20 +57,20 @@ describe('queryShapeProblem', () => {
     'https://example.org/fhir/Patient?x=1',
     'http://example.org/fhir/Patient',
   ])('accepts %j', (query) => {
-    expect(queryShapeProblem(query)).toBeUndefined();
+    expect(findQueryShapeProblem(query)).toBeUndefined();
   });
 
   it.each(['%patient.id', 'Patient.name.given', 'today()', 'observation?code=x', ''])(
     'rejects %j as not a search',
     (query) => {
-      expect(queryShapeProblem(query)).toBe('not-a-search');
+      expect(findQueryShapeProblem(query)).toBe('not-a-search');
     },
   );
 
   it.each(['Observation?subject={{%patient.id', '%patient.id {{'])(
     'reports an unclosed {{ in %j, before the shape',
     (query) => {
-      expect(queryShapeProblem(query)).toBe('unclosed');
+      expect(findQueryShapeProblem(query)).toBe('unclosed');
     },
   );
 });
