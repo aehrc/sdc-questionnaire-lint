@@ -6,8 +6,8 @@ Stack: TypeScript, Node 22+, tsup, Vitest; fhirpath.js pinned to 4.10.1.
 
 ## Docs
 
-- [CONTEXT.md](CONTEXT.md) defines the core terms. Use its terms in code, messages and docs.
-- [GLOSSARY.md](GLOSSARY.md) explains FHIR, SDC, Smart Forms, FSH and the rest of the project's vocabulary. Read it when a term is unfamiliar.
+- [GLOSSARY.md](GLOSSARY.md) defines the core terms. Use its terms in code, messages and docs.
+- [docs/vocabulary.md](docs/vocabulary.md) explains FHIR, SDC, Smart Forms, FSH and the rest of the project's vocabulary. Read it when a term is unfamiliar.
 - [docs/core-plan.md](docs/core-plan.md) is the spec. Read the relevant section before working on scope, a rule, the plugin contract, configuration, suppressions, source mapping, the CLI or the IG integration.
 - [docs/plan-amendments.md](docs/plan-amendments.md) lists decisions that override the plan. Read it every time you read the plan.
 - [docs/cli.md](docs/cli.md) is the CLI contract: commands, flags, defaults, output formats and exit codes. Read it before working on the CLI or a reporter.
