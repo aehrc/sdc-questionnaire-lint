@@ -1,3 +1,4 @@
+import { compareStrings } from '../compare.js';
 import type { LoadedConfig } from '../config/load.js';
 import type { RuleSetting } from '../config/types.js';
 import { invalidConfigFailure } from '../config/validate.js';
@@ -28,10 +29,6 @@ export interface RuleSet {
 const namePattern = /^[a-z][a-z0-9-]*$/;
 const severities: readonly string[] = ['error', 'warning', 'info'];
 const docsFields = ['checks', 'why', 'exampleMessage', 'fix', 'limitations'] as const;
-
-function compareStrings(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
 
 // Help for an unknown rule ID, shared by config failures and explain.
 export function unknownRuleHelp(id: string, ruleSet: RuleSet): string {

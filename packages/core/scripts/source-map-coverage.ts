@@ -16,7 +16,7 @@ import { expressionLiterals, namesExtension } from '../src/source/expression-lit
 import { parseFshDocument, type FshDocument } from '../src/source/fsh-document.js';
 import { fshFiles } from '../src/source/fsh-files.js';
 import { decodeFshString } from '../src/source/fsh-string.js';
-import { locateExpression } from '../src/source/locate.js';
+import { expressionOwner, locateExpression, sourceContext } from '../src/source/locate.js';
 import { readSushiIndex } from '../src/source/sushi-index.js';
 
 const minimumMapped = 95;
@@ -57,15 +57,14 @@ async function main(igDirectory: string): Promise<number> {
   const runPaths = resolveRunPaths({ cwd, config: await loadConfig({ cwd }) });
   const { documents } = await loadInputs({ cwd, cliPaths: [], runPaths });
   const sources = await findFshSources(runPaths, cwd);
-  const context = {
-    index: await readSushiIndex(runPaths.sushiIndex),
-    files: fshFiles(sources.directories),
+  const context = sourceContext(
+    await readSushiIndex(runPaths.sushiIndex),
+    fshFiles(sources.directories),
     cwd,
-  };
-  const aliases = new Map(
-    (await context.files.all()).flatMap(({ document }) => [...document.aliases]),
   );
-  // FSH files as read from disk again, independently of the mapper's cache.
+  // The checks below share the mapper's owner lookup and aliases, but read the FSH files from
+  // disk again, independently of the mapper's cache.
+  const aliases = await context.files.aliases();
   const reread = new Map<string, FshDocument>();
   const fshAt = async (file: string): Promise<FshDocument> => {
     let document = reread.get(file);
@@ -110,13 +109,7 @@ async function main(igDirectory: string): Promise<number> {
       }
 
       // The literal there must carry the expression's anchors.
-      const owner =
-        site.carrier === 'fragment'
-          ? sites.find(
-              (each) =>
-                each.carrier !== 'fragment' && each.expressionPointer === site.expressionPointer,
-            )
-          : site;
+      const owner = expressionOwner(sites, site);
       const literal = fsh.definitions
         .filter(({ keyword }) => keyword === 'Instance')
         .flatMap(expressionLiterals)

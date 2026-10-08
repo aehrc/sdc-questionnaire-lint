@@ -5,7 +5,9 @@ import { decodeFshString } from './fsh-string.js';
 // The strings an Instance assigns to an Expression's expression, each with what identifies that
 // Expression without array indices: its item's linkId, its extension and its name. Indices cannot
 // be compared with the compiled JSON, because SUSHI orders slices of extension differently from
-// how the rules number them (core-plan §7.2).
+// how the rules number them (core-plan §7.2). A string a later rule assigns over, and a string in
+// a contained resource, which is another resource, never reach the Instance's own expressions,
+// so they are left out.
 
 export interface ExpressionLiteral {
   // The "…" or """…""" literal, quotes included, at offset in the document's text.
@@ -45,22 +47,37 @@ function keyOf(parts: readonly PathPart[]): string {
   );
 }
 
-export function expressionLiterals(definition: FshDefinition): ExpressionLiteral[] {
+// Each definition's literals, worked out once.
+const literalsOf = new WeakMap<FshDefinition, readonly ExpressionLiteral[]>();
+
+export function expressionLiterals(definition: FshDefinition): readonly ExpressionLiteral[] {
+  let literals = literalsOf.get(definition);
+  if (literals === undefined) {
+    literals = findExpressionLiterals(definition);
+    literalsOf.set(definition, literals);
+  }
+  return literals;
+}
+
+function findExpressionLiterals(definition: FshDefinition): ExpressionLiteral[] {
   const rules = resolvePaths(definition);
 
-  // The decoded string last assigned at each path key, as SUSHI keeps the last assignment.
+  // The decoded string last assigned at each path key, as SUSHI keeps the last assignment, and
+  // the position of the rule that assigned it.
   const strings = new Map<string, string>();
-  for (const { rule, path } of rules) {
-    if (rule.kind !== 'assignment') continue;
+  const lastAssignment = new Map<string, number>();
+  rules.forEach(({ rule, path }, position) => {
+    if (rule.kind !== 'assignment') return;
     const { value } = rule;
     const decoded =
       value.kind === 'string' && !value.literal.startsWith('"""')
         ? decodeFshString(value.literal)?.value
         : undefined;
     const key = keyOf(parsePath(path));
+    lastAssignment.set(key, position);
     if (decoded === undefined) strings.delete(key);
     else strings.set(key, decoded);
-  }
+  });
 
   // The string assigned to the element named field under parts.
   const assigned = (parts: readonly PathPart[], field: string): string | undefined =>
@@ -73,10 +90,11 @@ export function expressionLiterals(definition: FshDefinition): ExpressionLiteral
     return slice ?? assigned(parts.slice(0, position + 1), 'url');
   }
 
-  return rules.flatMap(({ rule, path }): ExpressionLiteral[] => {
+  return rules.flatMap(({ rule, path }, position): ExpressionLiteral[] => {
     if (rule.kind !== 'assignment' || rule.value.kind !== 'string') return [];
     const parts = parsePath(path);
-    if (parts.at(-1)?.base !== 'expression') return [];
+    if (parts.at(-1)?.base !== 'expression' || parts[0]?.base === 'contained') return [];
+    if (lastAssignment.get(keyOf(parts)) !== position) return [];
 
     // The item path is the leading item parts; the extension and sub-extension follow it.
     const firstOther = parts.findIndex(({ base }) => base !== 'item');

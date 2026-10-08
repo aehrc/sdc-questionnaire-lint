@@ -164,7 +164,7 @@ describe('findDefinition by searching the FSH directories', () => {
     expect(found(result)).toBe('b.fsh HealthCheck');
   });
 
-  it('reports source-unavailable when no FSH directory exists', async () => {
-    expect(found(await lookup({}, root, ['missing']))).toBe('source-unavailable');
+  it('finds nothing when no FSH directory exists', async () => {
+    expect(found(await lookup({}, root, ['missing']))).toBe('not-found');
   });
 });

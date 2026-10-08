@@ -154,17 +154,19 @@ export interface FindingOrigin {
   readonly site?: ExpressionSite;
 }
 
+// The key a finding keeps its origin under. A copy such as { ...finding } keeps it, JSON output
+// never shows it, and the source mapper removes it (source/map-findings.ts).
+export const findingOrigin: unique symbol = Symbol('findingOrigin');
+
+export type TracedFinding = QuestionnaireFinding & { readonly [findingOrigin]?: FindingOrigin };
+
 // Calls each rule that is not off once on the document, at its effective severity. Built-in and
-// plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH. When
-// origins is given, it records the origin of each finding.
-export function runRules(
-  doc: AnalysedDocument,
-  rules: readonly ResolvedRule[],
-  origins?: Map<QuestionnaireFinding, FindingOrigin>,
-): QuestionnaireFinding[] {
+// plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH. Each
+// finding carries its origin.
+export function runRules(doc: AnalysedDocument, rules: readonly ResolvedRule[]): TracedFinding[] {
   const { input, document, sites } = doc;
   const keys = siteKeys(document, sites);
-  const findings: QuestionnaireFinding[] = [];
+  const findings: TracedFinding[] = [];
 
   function toFinding(id: string, severity: Severity, reported: RuleFinding): QuestionnaireFinding {
     const { site } = reported;
@@ -226,11 +228,12 @@ export function runRules(
           }
           if (typeof checked === 'string') problem = checked;
           else {
-            const finding = toFinding(id, setting, checked);
-            findings.push(finding);
-            origins?.set(finding, {
-              document: doc,
-              ...(checked.site === undefined ? {} : { site: checked.site }),
+            findings.push({
+              ...toFinding(id, setting, checked),
+              [findingOrigin]: {
+                document: doc,
+                ...(checked.site === undefined ? {} : { site: checked.site }),
+              },
             });
           }
         },

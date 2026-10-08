@@ -15,21 +15,52 @@ describe('examples/health-check', () => {
     const findings = report.findings as QuestionnaireFinding[];
     // Findings sort by file, then FSH position; the one finding without an FSH line comes first.
     expect(
-      findings.map(({ ruleId, jsonLocation, sourceLocation }) => [
+      findings.map(({ ruleId, message, jsonLocation, sourceLocation }) => [
         ruleId,
         jsonLocation.linkId,
         sourceLocation.status === 'mapped'
           ? `${sourceLocation.location.file}:${String(sourceLocation.location.line)}`
           : sourceLocation.reason,
+        message,
       ]),
     ).toEqual([
-      ['sdc/parse-error', 'bmi', 'multiline'],
-      ['sdc/query-syntax', 'height', 'input/fsh/HealthCheck.fsh:36'],
-      ['sdc/unknown-function', 'bmi', 'input/fsh/HealthCheck.fsh:48'],
-      ['sdc/parse-error', 'smoking', 'input/fsh/HealthCheck.fsh:64'],
-      ['sdc/fragment-parse-error', 'smoking', 'input/fsh/HealthCheck.fsh:69'],
-      ['sdc/uncatalogued-expression', 'smoking', 'input/fsh/HealthCheck.fsh:75'],
-      ['sdc/parse-error', 'packs', 'input/fsh/HealthCheck.fsh:84'],
+      ['sdc/parse-error', 'bmi', 'multiline', 'This FHIRPath expression has a syntax error.'],
+      [
+        'sdc/query-syntax',
+        'height',
+        'input/fsh/HealthCheck.fsh:36',
+        "This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills stay empty.",
+      ],
+      [
+        'sdc/unknown-function',
+        'bmi',
+        'input/fsh/HealthCheck.fsh:48',
+        'fist() is not a FHIRPath function, so this expression fails when the form runs.',
+      ],
+      [
+        'sdc/parse-error',
+        'smoking',
+        'input/fsh/HealthCheck.fsh:64',
+        'The character " is not valid here.',
+      ],
+      [
+        'sdc/fragment-parse-error',
+        'smoking',
+        'input/fsh/HealthCheck.fsh:69',
+        'A closing ) is missing.',
+      ],
+      [
+        'sdc/uncatalogued-expression',
+        'smoking',
+        'input/fsh/HealthCheck.fsh:75',
+        'This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.',
+      ],
+      [
+        'sdc/parse-error',
+        'packs',
+        'input/fsh/HealthCheck.fsh:84',
+        'The expression ends before it is complete.',
+      ],
     ]);
     expect(report.summary.expressions).toEqual({ analysed: 13, unchecked: 1 });
   });

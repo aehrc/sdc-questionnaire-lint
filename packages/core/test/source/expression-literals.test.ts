@@ -31,6 +31,16 @@ describe('expressionLiterals', () => {
     ]);
   });
 
+  it('leaves out a string a later rule assigns over, and strings in contained resources', () => {
+    expect(
+      literals(
+        '* extension[variable].valueExpression.expression = "%old"',
+        '* contained[0].extension[variable].valueExpression.expression = "%contained"',
+        '* extension[variable].valueExpression.expression = "%new"',
+      ).map(({ literal }) => literal),
+    ).toEqual(['"%new"']);
+  });
+
   it('tells two variables of one item apart by name', () => {
     expect(
       literals(

@@ -5,7 +5,7 @@ import { valueAt } from '../json-pointer.js';
 import { isObject } from '../object.js';
 import type { ExpressionExcerpt, SourceLocation, SourceMapResult } from '../report/types.js';
 import { resourceAt } from '../run/rules.js';
-import { findDefinition } from './definitions.js';
+import { findDefinition, type DefinitionLookup, type LookupTarget } from './definitions.js';
 import {
   expressionLiterals,
   namesExtension,
@@ -18,9 +18,10 @@ import type { SushiIndexEntry } from './sushi-index.js';
 
 // Locates a finding's expression in the FSH Instance it was compiled from (core-plan §7.1 and
 // plan-amendments.md § From the source-mapping design). Text that occurs once in the resource's
-// JSON and once in the Instance maps exactly. Repeated text maps only when the item's linkId, the
-// extension and the Expression's name single out one literal and one expression; otherwise, and
-// whenever the evidence is missing, the finding keeps its JSON location and a reason.
+// JSON and once in the Instance maps exactly, when the literal's item linkId, extension and
+// Expression name are the expression's. Repeated text maps only when those anchors single out one
+// literal and one expression; otherwise, and whenever the evidence is missing, the finding keeps
+// its JSON location and a reason.
 
 export interface LocateTarget {
   readonly document: AnalysedDocument;
@@ -30,11 +31,34 @@ export interface LocateTarget {
   readonly expression: ExpressionExcerpt | undefined;
 }
 
+// What one run maps against. Findings in one resource share its definition, so each resource's
+// definition is looked up once.
 export interface SourceContext {
-  readonly index: readonly SushiIndexEntry[];
   readonly files: FshFiles;
   // Canonical; source locations are shown relative to it.
   readonly cwd: string;
+  definitionOf(target: LookupTarget): Promise<DefinitionLookup>;
+}
+
+export function sourceContext(
+  index: readonly SushiIndexEntry[],
+  files: FshFiles,
+  cwd: string,
+): SourceContext {
+  const definitions = new Map<string, Promise<DefinitionLookup>>();
+  return {
+    files,
+    cwd,
+    definitionOf(target) {
+      const key = JSON.stringify([target.inputPath, target.resource.pointer]);
+      let lookup = definitions.get(key);
+      if (lookup === undefined) {
+        lookup = findDefinition(target, index, files);
+        definitions.set(key, lookup);
+      }
+      return lookup;
+    },
+  };
 }
 
 type UnmappedReason = Extract<SourceMapResult, { status: 'unmapped' }>['reason'];
@@ -63,21 +87,27 @@ interface Anchors {
   readonly name: string | undefined;
 }
 
+// The urls of the extensions on the way from the resource to an uncatalogued site's Expression.
+// As in ExpressionLiteral, the first is the extension and the second the sub-extension.
+function extensionUrls(
+  { resource, resourcePointer }: AnalysedDocument['document'],
+  site: ExpressionSite,
+): (string | undefined)[] {
+  // The first segment is the empty one before the leading slash.
+  const segments = site.expressionPointer.slice(resourcePointer.length).split('/');
+  return segments.flatMap((segment, position) => {
+    if (segment !== 'extension' && segment !== 'modifierExtension') return [];
+    const extension = valueAt(resource, segments.slice(0, position + 2).join('/'));
+    return [isObject(extension) && typeof extension.url === 'string' ? extension.url : undefined];
+  });
+}
+
 function anchorsOf({ document }: AnalysedDocument, site: ExpressionSite): Anchors {
-  let url = site.location?.url;
-  // An uncatalogued site's extension is the object holding its Expression, when it has a url.
-  if (url === undefined) {
-    const expression = site.expressionPointer.slice(document.resourcePointer.length);
-    const holder = valueAt(document.resource, expression.replace(/\/[^/]*$/, ''));
-    if (isObject(holder) && typeof holder.url === 'string') url = holder.url;
-  }
-  return {
-    linkId: site.item?.linkId,
-    element: site.element,
-    url,
-    subExtension: site.location?.subExtension,
-    name: site.name,
-  };
+  const [url, subExtension] =
+    site.location === undefined
+      ? extensionUrls(document, site)
+      : [site.location.url, site.location.subExtension];
+  return { linkId: site.item?.linkId, element: site.element, url, subExtension, name: site.name };
 }
 
 function sameAnchors(a: Anchors, b: Anchors): boolean {
@@ -108,21 +138,28 @@ function literalMatches(
   );
 }
 
-async function allAliases(files: FshFiles): Promise<Map<string, string>> {
-  return new Map((await files.all()).flatMap(({ document }) => [...document.aliases]));
+// The site a finding is located by: a fragment's is the expression whose query holds it, which
+// also holds the Expression's name.
+export function expressionOwner(
+  sites: readonly ExpressionSite[],
+  site: ExpressionSite,
+): ExpressionSite | undefined {
+  return site.carrier === 'fragment'
+    ? sites.find(
+        (each) => each.carrier !== 'fragment' && each.expressionPointer === site.expressionPointer,
+      )
+    : site;
 }
 
-// Where the reported range of the expression lies in the file. The literal is read again from the
-// file and decoded, and so is the source of the range; when either is not the expression's text,
-// there is no location.
+// Where the reported range of the expression lies in the file. The literal is decoded to learn
+// where each character came from, and the source of the range is decoded again; when either is
+// not the expression's text, there is no location.
 function locationOf(
-  literal: ExpressionLiteral,
+  { literal: written, offset }: ExpressionLiteral,
   { text, range = { startOffset: 0, endOffset: text.length } }: ExpressionExcerpt,
   file: FshFile,
   cwd: string,
 ): SourceLocation | undefined {
-  const { text: source, lineStarts } = file.document;
-  const written = source.slice(literal.offset, literal.offset + literal.literal.length);
   const decoded = decodeFshString(written);
   if (decoded?.value !== text) return undefined;
 
@@ -136,8 +173,9 @@ function locationOf(
     return undefined;
   }
 
-  const from = positionAt(lineStarts, literal.offset + start);
-  const to = positionAt(lineStarts, literal.offset + end);
+  const { lineStarts } = file.document;
+  const from = positionAt(lineStarts, offset + start);
+  const to = positionAt(lineStarts, offset + end);
   return {
     file: displayPath(file.path, cwd),
     line: from.line,
@@ -151,24 +189,12 @@ export async function locateExpression(
   { document, site, expression }: LocateTarget,
   context: SourceContext,
 ): Promise<SourceMapResult> {
-  if ((await context.files.directories()).length === 0) return unmapped('source-unavailable');
   if (site === undefined || expression === undefined) return unmapped('not-found');
-  // A fragment is found through its query, which also holds the Expression's name.
-  const owner =
-    site.carrier === 'fragment'
-      ? document.sites.find(
-          (each) =>
-            each.carrier !== 'fragment' && each.expressionPointer === site.expressionPointer,
-        )
-      : site;
+  const owner = expressionOwner(document.sites, site);
   if (owner === undefined) return unmapped('not-found');
 
   const resource = resourceAt(document.document, owner.pointer);
-  const found = await findDefinition(
-    { resource, inputPath: document.input.path },
-    context.index,
-    context.files,
-  );
+  const found = await context.definitionOf({ resource, inputPath: document.input.path });
   if ('reason' in found) return unmapped(found.reason);
 
   const { text } = expression;
@@ -181,29 +207,27 @@ export async function locateExpression(
   const inFsh = expressionLiterals(found.definition).filter(
     (literal) => decode(literal.literal) === text,
   );
-
-  let selected: ExpressionLiteral | undefined;
-  let confidence: 'exact' | 'anchored';
-  if (inJson.length === 1 && inFsh.length === 1) {
-    [selected] = inFsh;
-    confidence = 'exact';
-  } else {
-    if (inFsh.length === 0) return unmapped('not-found');
-    // Rules a RuleSet inserts are not in the definition, and they shift its soft indices.
-    if (found.definition.rules.some(({ kind }) => kind === 'insert')) return unmapped('ambiguous');
-    const anchors = anchorsOf(document, owner);
-    const aliases = await allAliases(context.files);
-    const fsh = inFsh.filter((literal) => literalMatches(literal, anchors, aliases));
-    const json = inJson.filter((each) => sameAnchors(anchorsOf(document, each), anchors));
-    if (fsh.length !== 1 || json.length !== 1) return unmapped('ambiguous');
-    [selected] = fsh;
-    confidence = 'anchored';
+  if (inFsh.length === 0) return unmapped('not-found');
+  const unique = inJson.length === 1 && inFsh.length === 1;
+  // Rules a RuleSet inserts are not in the definition, and they shift its soft indices.
+  if (!unique && found.definition.rules.some(({ kind }) => kind === 'insert')) {
+    return unmapped('ambiguous');
   }
-  if (selected === undefined) return unmapped('not-found');
+
+  // Unique text maps only to a literal with the expression's anchors: the one literal may be
+  // another Expression's, when a RuleSet wrote the text in the JSON.
+  const anchors = anchorsOf(document, owner);
+  const aliases = await context.files.aliases();
+  const fsh = inFsh.filter((literal) => literalMatches(literal, anchors, aliases));
+  const json = inJson.filter((each) => sameAnchors(anchorsOf(document, each), anchors));
+  const [selected] = fsh;
+  if (selected === undefined || fsh.length !== 1 || json.length !== 1) {
+    return unmapped(unique ? 'not-found' : 'ambiguous');
+  }
   if (isMultiline(selected.literal)) return unmapped('multiline');
 
   const location = locationOf(selected, expression, found.file, context.cwd);
   return location === undefined
     ? unmapped('not-found')
-    : { status: 'mapped', confidence, location };
+    : { status: 'mapped', confidence: unique ? 'exact' : 'anchored', location };
 }

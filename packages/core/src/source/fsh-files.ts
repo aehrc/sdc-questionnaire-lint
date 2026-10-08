@@ -1,5 +1,6 @@
 import { readFile, realpath } from 'node:fs/promises';
 import { glob } from 'tinyglobby';
+import { compareStrings } from '../compare.js';
 import { parseFshDocument, type FshDocument } from './fsh-document.js';
 
 // The FSH files of one run, each read and parsed at most once, and only when needed. A file or
@@ -18,9 +19,12 @@ export interface FshFiles {
   file(path: string): Promise<FshFile | undefined>;
   // Every .fsh file below the directories, by path, skipping .git, node_modules and symlinks.
   all(): Promise<readonly FshFile[]>;
+  // The aliases of every file, by name; a later file's alias replaces an earlier one's.
+  aliases(): Promise<ReadonlyMap<string, string>>;
 }
 
-async function canonical(path: string): Promise<string | undefined> {
+// The canonical path, or undefined when it cannot be resolved.
+export async function canonical(path: string): Promise<string | undefined> {
   try {
     return await realpath(path);
   } catch {
@@ -49,6 +53,7 @@ export function fshFiles(directories: readonly string[]): FshFiles {
   const files = new Map<string, Promise<FshFile | undefined>>();
   let canonicalDirectories: Promise<string[]> | undefined;
   let everyFile: Promise<FshFile[]> | undefined;
+  let everyAlias: Promise<Map<string, string>> | undefined;
 
   function file(path: string): Promise<FshFile | undefined> {
     let read = files.get(path);
@@ -71,14 +76,20 @@ export function fshFiles(directories: readonly string[]): FshFiles {
 
   async function readAll(): Promise<FshFile[]> {
     const listed = await Promise.all((await canonicalDirectoriesOnce()).map(listFsh));
-    const paths = [...new Set(listed.flat())].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    const paths = [...new Set(listed.flat())].sort(compareStrings);
     const read = await Promise.all(paths.map(file));
     return read.filter((each) => each !== undefined);
   }
 
+  const all = (): Promise<FshFile[]> => (everyFile ??= readAll());
+
   return {
     directories: canonicalDirectoriesOnce,
     file,
-    all: () => (everyFile ??= readAll()),
+    all,
+    aliases: () =>
+      (everyAlias ??= all().then(
+        (read) => new Map(read.flatMap(({ document }) => [...document.aliases])),
+      )),
   };
 }

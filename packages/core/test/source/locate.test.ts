@@ -7,7 +7,7 @@ import type { AnalysedDocument } from '../../src/inputs/read.js';
 import type { OffsetRange, SourceMapResult } from '../../src/report/types.js';
 import { parseFshDocument } from '../../src/source/fsh-document.js';
 import { fshFiles } from '../../src/source/fsh-files.js';
-import { locateExpression } from '../../src/source/locate.js';
+import { locateExpression, sourceContext } from '../../src/source/locate.js';
 import { tempTree } from '../support/tmp.js';
 
 const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
@@ -40,7 +40,6 @@ async function locate(
   questionnaire: Record<string, unknown>,
   pick: (sites: readonly ExpressionSite[]) => ExpressionSite | undefined,
   range?: OffsetRange,
-  { fshDirectory = 'input/fsh' } = {},
 ): Promise<Located> {
   const dir = await realpath(
     await tempTree({ 'input/fsh/Q.fsh': fsh, 'Questionnaire-Q.json': '{}' }),
@@ -76,7 +75,7 @@ async function locate(
         : { text: site.text, ...(range === undefined ? {} : { range }) };
   const result = await locateExpression(
     { document: analysed, site, expression },
-    { index: [], files: fshFiles([path.join(dir, fshDirectory)]), cwd: dir },
+    sourceContext([], fshFiles([path.join(dir, 'input/fsh')]), dir),
   );
   if (result.status === 'unmapped') return { result };
   const { lineStarts, text } = parseFshDocument(fsh);
@@ -208,6 +207,70 @@ describe('locateExpression', () => {
     expect(located.result).toMatchObject({ confidence: 'anchored', location: { line: 6 } });
   });
 
+  it('anchors an uncatalogued expression in a complex extension by both urls', async () => {
+    const complex = 'http://example.org/complex';
+    const fsh = [
+      '* item[+].linkId = "a"',
+      `* item[=].extension[${complex}].extension[expr].valueExpression.expression = "%x"`,
+      '* item[+].linkId = "b"',
+      `* item[=].extension[${complex}].extension[expr].valueExpression.expression = "%x"`,
+    ].join('\n');
+    const located = await locate(
+      header + fsh,
+      {
+        item: ['a', 'b'].map((linkId) => ({
+          linkId,
+          extension: [{ url: complex, extension: [extension('expr', '%x')] }],
+        })),
+      },
+      byText('%x', 1),
+    );
+    expect(located.result).toMatchObject({ confidence: 'anchored', location: { line: 6 } });
+  });
+
+  it('does not map unique text to a literal a later rule assigns over', async () => {
+    // The JSON's %a + 1 is the one CalcRules writes; the literal in the Instance is replaced.
+    const fsh = [
+      '* item[+].linkId = "a"',
+      '* item[+].linkId = "b"',
+      '* item[1].extension[variable].valueExpression.expression = "%a + 1"',
+      '* item[1].extension[variable].valueExpression.expression = "%b"',
+      '* insert CalcRules',
+    ].join('\n');
+    const located = await locate(
+      header + fsh,
+      {
+        item: [
+          { linkId: 'a', extension: [extension(variable, '%a + 1')] },
+          { linkId: 'b', extension: [extension(variable, '%b')] },
+        ],
+      },
+      byText('%a + 1'),
+    );
+    expect(located.result).toEqual({ status: 'unmapped', reason: 'not-found' });
+  });
+
+  it("does not map unique text to a literal without the expression's anchors", async () => {
+    // CalcRules writes %a + 1 on item a and replaces the literal on item b.
+    const fsh = [
+      '* item[+].linkId = "a"',
+      '* item[+].linkId = "b"',
+      '* item[=].extension[variable].valueExpression.expression = "%a + 1"',
+      '* insert CalcRules',
+    ].join('\n');
+    const located = await locate(
+      header + fsh,
+      {
+        item: [
+          { linkId: 'a', extension: [extension(variable, '%a + 1')] },
+          { linkId: 'b', extension: [extension(variable, '%b')] },
+        ],
+      },
+      byText('%a + 1'),
+    );
+    expect(located.result).toEqual({ status: 'unmapped', reason: 'not-found' });
+  });
+
   it('leaves repeated text ambiguous when anchors cannot tell the expressions apart', async () => {
     const fsh = [
       '* extension[variable][+].valueExpression.expression = "%x"',
@@ -259,7 +322,7 @@ describe('locateExpression', () => {
   it("maps a fragment's range inside {{…}} of its query", async () => {
     const query = 'Observation?code={{%code}}&patient={{%patient.id}}';
     const located = await locate(
-      `${header}* extension[sdc-questionnaire-itemPopulationContext].valueExpression.expression = "${query}"\n`,
+      `${header}* extension[sdc-questionnaire-itemPopulationContext].valueExpression.name = "obs"\n* extension[sdc-questionnaire-itemPopulationContext].valueExpression.expression = "${query}"\n`,
       {
         extension: [
           {
@@ -306,16 +369,5 @@ describe('locateExpression', () => {
   it('reports not-found for a finding with no expression', async () => {
     const located = await locate(header, {}, () => undefined);
     expect(located.result).toEqual({ status: 'unmapped', reason: 'not-found' });
-  });
-
-  it('reports source-unavailable when the FSH directory does not exist', async () => {
-    const located = await locate(
-      header,
-      { extension: [extension(variable, '%a')] },
-      byText('%a'),
-      undefined,
-      { fshDirectory: 'missing' },
-    );
-    expect(located.result).toEqual({ status: 'unmapped', reason: 'source-unavailable' });
   });
 });

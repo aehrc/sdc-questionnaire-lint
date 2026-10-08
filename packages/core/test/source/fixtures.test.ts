@@ -11,7 +11,7 @@ import { findFshSources } from '../../src/run/sources.js';
 import { parseFshDocument } from '../../src/source/fsh-document.js';
 import { fshFiles } from '../../src/source/fsh-files.js';
 import { decodeFshString } from '../../src/source/fsh-string.js';
-import { locateExpression } from '../../src/source/locate.js';
+import { locateExpression, sourceContext } from '../../src/source/locate.js';
 import { readSushiIndex } from '../../src/source/sushi-index.js';
 
 // The SUSHI-compiled projects in fixtures/source-map (see its README).
@@ -23,11 +23,11 @@ async function locateEverySite(project: string): Promise<[string, string][]> {
   const cwd = await realpath(path.join(fixtures, project));
   const runPaths = resolveRunPaths({ cwd, config: null });
   const { documents } = await loadInputs({ cwd, cliPaths: [], runPaths });
-  const context = {
-    index: await readSushiIndex(runPaths.sushiIndex),
-    files: fshFiles((await findFshSources(runPaths, cwd)).directories),
+  const context = sourceContext(
+    await readSushiIndex(runPaths.sushiIndex),
+    fshFiles((await findFshSources(runPaths, cwd)).directories),
     cwd,
-  };
+  );
   const rows: [string, string][] = [];
   for (const { input, document } of documents) {
     const sites = findExpressionSites(document);

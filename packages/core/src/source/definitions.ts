@@ -16,8 +16,7 @@ export interface FoundDefinition {
   readonly definition: FshDefinition;
 }
 
-export type DefinitionLookup =
-  FoundDefinition | { readonly reason: 'source-unavailable' | 'not-found' };
+export type DefinitionLookup = FoundDefinition | { readonly reason: 'not-found' };
 
 export interface LookupTarget {
   // The resource a finding is in: the input file's root, a Bundle entry or a contained resource.
@@ -65,13 +64,19 @@ async function fromIndex(
   return file === undefined || definition === undefined ? undefined : { file, definition };
 }
 
+// Each definition's id, worked out once: every search resolves the paths of every Instance.
+const effectiveIds = new WeakMap<FshDefinition, string>();
+
 // The id SUSHI gives an Instance: its last id rule's string, otherwise its name.
 function effectiveId(definition: FshDefinition): string {
-  let id = definition.name;
+  let id = effectiveIds.get(definition);
+  if (id !== undefined) return id;
+  id = definition.name;
   for (const { rule, path: rulePath } of resolvePaths(definition)) {
     if (rulePath !== 'id' || rule.kind !== 'assignment' || rule.value.kind !== 'string') continue;
     id = decodeFshString(rule.value.literal)?.value ?? id;
   }
+  effectiveIds.set(definition, id);
   return id;
 }
 
@@ -125,7 +130,6 @@ export async function findDefinition(
   index: readonly SushiIndexEntry[],
   fsh: FshFiles,
 ): Promise<DefinitionLookup> {
-  if ((await fsh.directories()).length === 0) return { reason: 'source-unavailable' };
   return (
     (await fromIndex(target, index, fsh)) ??
     (await bySearch(target.resource, fsh)) ?? { reason: 'not-found' }
