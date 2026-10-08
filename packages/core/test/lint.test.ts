@@ -470,6 +470,25 @@ describe('config', () => {
       });
     });
 
+    it('leaves an uncatalogued reference-only consumer and its variable unchecked', async () => {
+      const consumer = {
+        url: 'http://example.org/custom',
+        valueExpression: { language: 'text/fhirpath', reference: 'Library/consumer' },
+      };
+      const result = await run(consumer);
+      expect(result.findings.map(({ ruleId }) => ruleId)).toEqual([
+        'sdc/external-expression',
+        'sdc/uncatalogued-expression',
+      ]);
+      expect(result.findings[1]?.message).toBe(
+        'This expression is in a place the linter does not recognise, so it was not checked.',
+      );
+      expect(result.summary.expressions).toEqual({ analysed: 0, unchecked: 2 });
+      expect(
+        (await run(consumer, { 'sdc/unused-declaration': 'off' })).summary.expressions,
+      ).toEqual({ analysed: 1, unchecked: 1 });
+    });
+
     it('does not count a variable that only an expression with a syntax error could reference as unchecked', async () => {
       const result = await run(calculated('text/fhirpath', '%a.where('));
       expect(result.findings.map(({ ruleId }) => ruleId)).toEqual(['sdc/parse-error']);

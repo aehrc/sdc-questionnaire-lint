@@ -55,6 +55,7 @@ Each bullet states the override; the reasons and the implementation are in [core
 - **§3.1 catalog use cases (D20):** use cases follow the SDC expressions table, so `ExpressionSite.useCases` values change.
 - **§3, §4.1 availability (D8, D12, D13, D19):** a name is available on its element and descendant items, in any order, whatever the declaring expression's use cases. Extraction sites see only extractAllocateId names, named extraction contexts, built-in names and host variables.
 - **§3.1 deferred content:** Library content behind `Expression.reference`, whole-string FHIRPath carriers and CQL are not analysed.
+- **§3.1 generic discovery (slice 6 review):** outside catalogued locations, an object with a string `language` and either string `expression` or string `reference` is an expression site. Reference-only Expressions remain unchecked and block an unused-variable finding when they are plausible consumers (D5).
 - **§4.1 `sdc/language-not-in-value-set` (D11):** accepts the R4 and R5 codes, six in all. Both query codes are analysed as queries.
 - **§4.1 `sdc/language-not-allowed` (D3, D10):** enforces only the expressions-table restrictions the Validator does not; contextExpression allows any language.
 - **§3 module names (D24):** the names a module lists in `sdc-questionnaire-assembleContext` are available at every site of that module, without being declarations.

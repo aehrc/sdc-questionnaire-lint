@@ -372,6 +372,13 @@ describe('applySuppressions: whether the rule completed its check', () => {
   it.each([
     ['CQL', calculated('%a', 'text/cql')],
     ['FHIRPath that does not parse', calculated('%a.where(')],
+    [
+      'an uncatalogued reference-only Expression',
+      {
+        url: 'http://example.org/custom',
+        valueExpression: { language: 'text/fhirpath', reference: 'Library/consumer' },
+      },
+    ],
   ])(
     'is not assessed for sdc/unused-declaration when %s could reference the variable',
     async (_, consumer) => {

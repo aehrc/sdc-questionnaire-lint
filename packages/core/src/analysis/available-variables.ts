@@ -58,14 +58,24 @@ export function extractionOnly(useCases: readonly ExpressionUseCase[]): boolean 
 
 // Whether a declaration is on the item, on one of its ancestors, or on the root. Compared with a
 // trailing /, so that /item/1 is not an ancestor of /item/10.
-export function onElementOrAncestor(
-  { item: owner }: Declaration,
-  item: SiteItem | undefined,
-): boolean {
+function onElementOrAncestor({ item: owner }: Declaration, item: SiteItem | undefined): boolean {
   if (owner === undefined) return true;
   return (
     item !== undefined &&
     (item.pointer === owner.pointer || item.pointer.startsWith(`${owner.pointer}/`))
+  );
+}
+
+// Whether a declaration can be referenced on an element under D19, before resolving shadowing
+// and a declaration's own name.
+export function canReferenceDeclaration(
+  declaration: Declaration,
+  item: SiteItem | undefined,
+  extraction: boolean,
+): boolean {
+  return (
+    onElementOrAncestor(declaration, item) &&
+    (extraction ? extractionOnly(declaration.useCases) : declaration.kind !== 'allocateId')
   );
 }
 
@@ -87,11 +97,7 @@ export function availableVariables(
     // site sees every other declaration, whatever its use cases (D13, D17).
     const extraction = extractionOnly(site.useCases);
     const reachable = declarations
-      .filter(
-        (declaration) =>
-          onElementOrAncestor(declaration, site.item) &&
-          (extraction ? extractionOnly(declaration.useCases) : declaration.kind !== 'allocateId'),
-      )
+      .filter((declaration) => canReferenceDeclaration(declaration, site.item, extraction))
       // Stable, so declarations on one element keep document order (D8).
       .sort((a, b) => depth(b) - depth(a));
     const byName = new Map<string, Variable>();

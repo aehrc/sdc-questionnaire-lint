@@ -247,6 +247,37 @@ describe('findExpressionSites', () => {
     expect(site).not.toHaveProperty('text');
   });
 
+  it('finds uncatalogued reference-only Expressions without treating ordinary References as expressions', () => {
+    const opaque = () =>
+      extension('http://example.org/custom', {
+        language: 'text/fhirpath',
+        reference: 'Library/consumer',
+        name: 'opaque',
+      });
+    const sites = sitesOf({
+      subject: { reference: 'Patient/p' },
+      extension: [opaque()],
+      item: [{ linkId: 'q', answerOption: [{ extension: [opaque()] }] }],
+      contained: [{ resourceType: 'Library', extension: [opaque()] }],
+    });
+    expect(sites.map((site) => site.pointer)).toEqual([
+      '/extension/0/valueExpression',
+      '/item/0/answerOption/0/extension/0/valueExpression',
+      '/contained/0/extension/0/valueExpression',
+    ]);
+    for (const site of sites) {
+      expect(site).toMatchObject({
+        carrier: 'expression',
+        catalogued: false,
+        declares: false,
+        reference: 'Library/consumer',
+      });
+      expect(site).not.toHaveProperty('text');
+    }
+    expect(sites[1]?.item).toEqual({ pointer: '/item/0', linkId: 'q' });
+    expect(sites[2]).not.toHaveProperty('item');
+  });
+
   it('keeps the enclosing item for an uncatalogued expression on an answerOption', () => {
     const [site] = sitesOf({
       item: [

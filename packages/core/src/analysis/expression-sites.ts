@@ -58,8 +58,8 @@ function fragmentSites(site: ExpressionSite): ExpressionSite[] {
 
 // Every expression site in a Questionnaire, in document order: a depth-first, pre-order traversal
 // of its JSON. Expressions held by catalogued extensions on the root and its items are catalogued
-// sites; any other object with a string language and expression, including in a contained
-// resource, is an uncatalogued site. Each fragment of a query directly follows the query.
+// sites; any other object with a string language and expression or reference, including in a
+// contained resource, is an uncatalogued site. Each fragment of a query directly follows the query.
 export function findExpressionSites(document: QuestionnaireDocument): ExpressionSite[] {
   const sites: ExpressionSite[] = [];
   const claims = new Map<Json, Claim>();
@@ -138,7 +138,8 @@ export function findExpressionSites(document: QuestionnaireDocument): Expression
     if (owner !== undefined) claimOwned(node, owner);
     if (
       claims.has(node) ||
-      (typeof node.language === 'string' && typeof node.expression === 'string')
+      (typeof node.language === 'string' &&
+        (typeof node.expression === 'string' || typeof node.reference === 'string'))
     ) {
       addSite(node, segments, item);
     }

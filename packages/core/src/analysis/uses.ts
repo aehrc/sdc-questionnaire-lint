@@ -1,7 +1,7 @@
 import { isObject } from '../object.js';
 import {
+  canReferenceDeclaration,
   extractionOnly,
-  onElementOrAncestor,
   type AvailableVariables,
 } from './available-variables.js';
 import type { Declaration } from './declarations.js';
@@ -66,8 +66,7 @@ const keyOf = ({ item, name }: Declaration): string => `${item?.pointer ?? ''}\n
 const mayUse = (consumer: UnanalysedConsumer, declaration: Declaration): boolean =>
   (consumer.own === undefined || keyOf(consumer.own) !== keyOf(declaration)) &&
   (consumer.name === undefined || consumer.name === declaration.name) &&
-  onElementOrAncestor(declaration, consumer.item) &&
-  (consumer.extraction ? extractionOnly(declaration.useCases) : declaration.kind !== 'allocateId');
+  canReferenceDeclaration(declaration, consumer.item, consumer.extraction);
 
 // The use of each declaration of a document by the expressions of others. A reference from a
 // declaration's own expression, or the fragments of its query, is not a use of it.
@@ -124,7 +123,7 @@ export function findUses(
         continue;
       }
       const target = available.resolve(name)?.declaration;
-      if (target === undefined || target === own) continue;
+      if (target === undefined || (own !== undefined && keyOf(target) === keyOf(own))) continue;
       (complete ? referenced : uncertain).add(keyOf(target));
     }
   }

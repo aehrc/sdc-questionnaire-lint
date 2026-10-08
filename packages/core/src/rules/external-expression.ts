@@ -26,10 +26,9 @@ export const externalExpression: LintRule = {
         'write its text in the expression element instead of the reference.',
       limitations:
         'The referenced content is never resolved or analysed, even when it is a Library ' +
-        'contained in the Questionnaire. Only Expressions at recognised locations are found, so ' +
-        'one with only a reference in a custom extension or a contained resource is not ' +
-        'reported. An Expression with both text and a reference is checked by its text, and ' +
-        'the reference is ignored; one with neither is not reported.',
+        'contained in the Questionnaire. Outside recognised locations, an Expression must have ' +
+        'a language to be found. An Expression with both text and a reference is checked by its ' +
+        'text, and the reference is ignored; one with neither is not reported.',
     },
   },
   check(ctx) {

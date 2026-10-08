@@ -19,9 +19,9 @@ export const uncataloguedExpression: LintRule = {
     defaultSeverity: 'info',
     docs: {
       checks:
-        'Looks for expressions, objects with a language and an expression, outside the locations ' +
-        'the linter recognises: for example in a custom extension, on an answerOption or inside a ' +
-        'contained resource. Each one is reported once.',
+        'Looks for expressions, objects with a language and expression text or a reference, ' +
+        'outside the locations the linter recognises: for example in a custom extension, on an ' +
+        'answerOption or inside a contained resource. Each one is reported once.',
       why:
         'The linter knows how a recognised location is used, such as for rendering or population. ' +
         'Any other expression gets at most the FHIRPath syntax and function checks of ' +
@@ -42,7 +42,10 @@ export const uncataloguedExpression: LintRule = {
     for (const site of ctx.sites) {
       // A query is reported once, not once per fragment.
       if (site.catalogued || site.carrier !== 'expression') continue;
-      ctx.report({ site, message: messageFor(site.language) });
+      ctx.report({
+        site,
+        message: messageFor(site.text === undefined ? undefined : site.language),
+      });
     }
   },
 };

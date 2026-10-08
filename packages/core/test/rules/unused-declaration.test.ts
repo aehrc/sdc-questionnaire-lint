@@ -157,6 +157,22 @@ describe('sdc/unused-declaration', () => {
     ).toEqual([at(0), at(1)]);
   });
 
+  it.each([
+    ['a self-reference', variable('a', '%a')],
+    [
+      'a query fragment',
+      expression('variable', 'a', 'Patient?id={{%a}}', 'application/x-fhir-query'),
+    ],
+    ['a computed local name', variable('a', 'defineVariable(%resource.id).select(%a)')],
+  ])('does not count %s in either duplicate as a use of their shared name', (_, self) => {
+    for (const extension of [
+      [self, variable('a')],
+      [variable('a'), self],
+    ]) {
+      expect(reported({ extension })).toEqual([at(0), at(1)]);
+    }
+  });
+
   describe('when a consumer that could see the variable was not analysed', () => {
     const notReportedWith = (consumer: Record<string, unknown>) =>
       reported({
@@ -171,6 +187,17 @@ describe('sdc/unused-declaration', () => {
         {
           extension: [
             { url: `${sdc}calculatedExpression`, valueExpression: { reference: 'Library/l' } },
+          ],
+        },
+      ],
+      [
+        'an uncatalogued Expression that has only a reference',
+        {
+          extension: [
+            {
+              url: 'http://example.org/custom',
+              valueExpression: { language: 'text/fhirpath', reference: 'Library/consumer' },
+            },
           ],
         },
       ],
