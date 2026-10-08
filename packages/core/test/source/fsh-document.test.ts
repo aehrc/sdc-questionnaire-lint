@@ -183,6 +183,12 @@ describe('parseFshDocument', () => {
     });
   });
 
+  it('reads an insert rule with a path, which sets the context like a path rule', () => {
+    expect(only('Instance: Q\n* item[0] insert Hidden').rules).toEqual([
+      { line: 2, indent: 0, kind: 'insert', path: 'item[0]' },
+    ]);
+  });
+
   it('ignores rules before the first definition', () => {
     expect(parseFshDocument('* linkId = "a"\n').definitions).toEqual([]);
   });

@@ -33,7 +33,8 @@ export type FshRule = { readonly line: number; readonly indent: number } & (
   | { readonly kind: 'assignment'; readonly path: string; readonly value: FshValue }
   // A path on its own, which sets the context of the rules indented under it.
   | { readonly kind: 'path'; readonly path: string }
-  | { readonly kind: 'insert' }
+  // insert RuleSet, or path insert RuleSet, which sets the context like a path.
+  | { readonly kind: 'insert'; readonly path?: string }
   // Any other rule, such as a caret rule.
   | { readonly kind: 'other' }
 );
@@ -145,6 +146,7 @@ function parseRule(tokens: readonly Token[], line: number, indent: number): FshR
   if (path === undefined || path.text.startsWith('^')) return { line, indent, kind: 'other' };
   if (path.text === 'insert') return { line, indent, kind: 'insert' };
   if (operator === undefined) return { line, indent, kind: 'path', path: path.text };
+  if (operator.text === 'insert') return { line, indent, kind: 'insert', path: path.text };
   if (operator.text !== '=') return { line, indent, kind: 'other' };
   const [only] = value;
   return {
