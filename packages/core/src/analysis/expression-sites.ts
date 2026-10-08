@@ -119,7 +119,8 @@ export function findExpressionSites(document: QuestionnaireDocument): Expression
       ...(typeof text === 'string' ? { text } : {}),
       ...stringField(expression, 'reference'),
       ...stringField(expression, 'name'),
-      declares: claim?.entry.declares ?? false,
+      // Any named Expression at a catalogued location declares its name (core-rules.md D9).
+      declares: claim?.entry.carrier === 'expression' && typeof expression.name === 'string',
       useCases: claim?.entry.useCases ?? Object.freeze([]),
     };
     sites.push(Object.freeze(site), ...fragmentSites(site));

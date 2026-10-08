@@ -1,5 +1,11 @@
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  type Declaration,
+  type DeclarationKind,
+  EXTRACT_ALLOCATE_ID,
+  LAUNCH_CONTEXT,
+} from '../analysis/declarations.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import type { LoadedConfig } from '../config/load.js';
 import type { SuppressionEntry } from '../config/types.js';
@@ -7,10 +13,20 @@ import { invalidConfigFailure } from '../config/validate.js';
 import { describeError, LintFailure } from '../failure.js';
 import { displayPath, type InputFile } from '../inputs/paths.js';
 import type { AnalysedDocument } from '../inputs/read.js';
-import { completesCheck, staleSuppressionId } from '../plugins/builtin.js';
+import {
+  completesCheck,
+  completesDeclarationCheck,
+  staleSuppressionId,
+} from '../plugins/builtin.js';
 import type { ResolvedRule } from '../plugins/rule-set.js';
 import type { ConfigFinding, Finding, RunKind } from '../report/types.js';
-import { fileGone, nothingToHide, siteGone } from '../rules/stale-suppression.js';
+import {
+  declarationGone,
+  declarationHidesNothing,
+  fileGone,
+  nothingToHide,
+  siteGone,
+} from '../rules/stale-suppression.js';
 import { configFingerprint } from './fingerprint.js';
 
 export interface SuppressionOutcome {
@@ -89,6 +105,37 @@ function selects(entry: SuppressionEntry, document: QuestionnaireDocument, site:
   );
 }
 
+// The extensions whose entries select declarations rather than Expression sites (core-rules.md
+// D22): launchContext and extractAllocateId are not Expressions.
+const declarationKinds: Readonly<Record<string, DeclarationKind>> = {
+  [LAUNCH_CONTEXT]: 'launchContext',
+  [EXTRACT_ALLOCATE_ID]: 'allocateId',
+};
+
+// linkId or pointer selects the item the name is declared on; without either, the entry selects the
+// root. pointer is the item's, not the declaration's, so the entry survives reordering (D22).
+function selectsDeclaration(
+  entry: SuppressionEntry,
+  kind: DeclarationKind,
+  document: QuestionnaireDocument,
+  declaration: Declaration,
+) {
+  const { item } = declaration;
+  return (
+    declaration.kind === kind &&
+    (entry.linkId !== undefined || entry.pointer !== undefined || item === undefined) &&
+    (entry.linkId === undefined || item?.linkId === entry.linkId) &&
+    (entry.pointer === undefined || item?.pointer === entry.pointer) &&
+    (entry.name === undefined || declaration.name === entry.name) &&
+    (entry.resource === undefined || questionnaireName(document) === entry.resource)
+  );
+}
+
+// Whether two declarations are of one name on one element.
+function sameTarget(a: Declaration, b: Declaration): boolean {
+  return a.item?.pointer === b.item?.pointer && a.name === b.name;
+}
+
 function listPointers(pointers: readonly string[]): string {
   const shown = pointers.slice(0, listedPointers);
   const more = pointers.length - shown.length;
@@ -111,6 +158,9 @@ async function assess(
       ...fileGone(entry.rule, displayPath(path.resolve(loaded.dir, entry.file), run.cwd)),
     };
   }
+
+  const kind = entry.extensionUrl === undefined ? undefined : declarationKinds[entry.extensionUrl];
+  if (kind !== undefined) return assessDeclaration(entry, kind, index, run, loaded, file);
 
   const matched = run.documents
     .filter(({ input }) => input.path === file.path)
@@ -140,6 +190,59 @@ async function assess(
   if (hidden.length > 0) return { state: 'applied', hidden };
   return isEnabled(run.rules, entry.rule) && completesCheck[entry.rule]?.(site) === true
     ? { state: 'stale', ...nothingToHide(entry.rule) }
+    : notAssessed;
+}
+
+// An entry that targets a name on an element, which any declarations of the name there share: it
+// hides the rule's findings at each of them (core-rules.md D22).
+function assessDeclaration(
+  entry: SuppressionEntry,
+  kind: DeclarationKind,
+  index: number,
+  run: SuppressionRun,
+  loaded: LoadedConfig,
+  file: InputFile,
+): Assessment {
+  const matched = run.documents
+    .filter(({ input }) => input.path === file.path)
+    .flatMap(({ document, analysis }) =>
+      analysis.declarations
+        .filter((declaration) => selectsDeclaration(entry, kind, document, declaration))
+        .map((declaration) => ({ document, analysis, declaration })),
+    );
+  const [only] = matched;
+  if (only === undefined) return { state: 'stale', ...declarationGone(entry.rule, file.display) };
+  if (
+    !matched.every(
+      ({ document, declaration }) =>
+        document === only.document && sameTarget(declaration, only.declaration),
+    )
+  ) {
+    const documents = new Set(matched.map(({ document }) => document));
+    throw invalidConfigFailure(
+      loaded.display,
+      ['suppress', index],
+      `it matches ${String(matched.length)} declarations, at ${listPointers(matched.map(({ declaration }) => declaration.pointer))}`,
+      `add ${documents.size > 1 ? 'resource, ' : ''}name, linkId or pointer to select one declaration`,
+    );
+  }
+
+  const { document, analysis, declaration } = only;
+  const pointers = new Set(
+    analysis.declarations
+      .filter((each) => sameTarget(each, declaration))
+      .map(({ pointer }) => pointer),
+  );
+  const hidden = run.findings.filter(
+    (finding) =>
+      finding.kind === 'questionnaire' &&
+      finding.ruleId === entry.rule &&
+      finding.jsonLocation.file === document.file &&
+      pointers.has(finding.jsonLocation.pointer),
+  );
+  if (hidden.length > 0) return { state: 'applied', hidden };
+  return isEnabled(run.rules, entry.rule) && completesDeclarationCheck.has(entry.rule)
+    ? { state: 'stale', ...declarationHidesNothing(entry.rule) }
     : notAssessed;
 }
 

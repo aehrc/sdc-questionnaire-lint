@@ -1,6 +1,6 @@
 # Core rules plan: the nine remaining `sdc/` rules
 
-Builds the core rules from [core-plan.md](../core-plan.md) §4.1 that do not exist yet. Reviewed on 2026-10-08. The agreed corrections are part of this plan, and its overrides of core-plan are recorded in [plan-amendments.md](../plan-amendments.md). Decision IDs D1–D22 are stable because other docs cite them.
+Builds the core rules from [core-plan.md](../core-plan.md) §4.1 that do not exist yet. Reviewed on 2026-10-08. The agreed corrections are part of this plan, and its overrides of core-plan are recorded in [plan-amendments.md](../plan-amendments.md). Decision IDs D1–D23 are stable because other docs cite them.
 
 Already built: `sdc/parse-error`, `sdc/fragment-parse-error`, `sdc/query-syntax`, `sdc/unknown-function`, `sdc/uncatalogued-expression`.
 
@@ -21,9 +21,10 @@ One PR per slice, in this order. The exception is slice 4, which is three PRs.
 | [1](#1-language-rules) | `sdc/language-not-in-value-set` | warning | 0 | done |
 |  | `sdc/language-not-allowed` | error | 0 | done |
 | [2](#2-sdcexternal-expression) | `sdc/external-expression` | info | 0 | done |
-| [3](#3-declarations-and-sdcduplicate-declaration) | Declarations, `sdc/duplicate-declaration`, suppressions that target declarations | error | 0 | todo |
+| [3](#3-declarations-and-sdcduplicate-declaration) | Declarations, `sdc/duplicate-declaration`, suppressions that target declarations | error | 0 | done |
 | [4a](#4a-variable-references) | Variable references (no findings) | – | – | todo |
-| [4b](#4b-available-variables) | Available variables and the `hostVariables` config key (no findings) | – | 3 | todo |
+| [4b](#4b-available-variables) | Available variables and the `hostVariables` config key | – | 3 | todo |
+|  | `sdc/reserved-name` | error | 0, 3 | todo |
 | [4c](#4c-sdcundefined-variable) | `sdc/undefined-variable` | error | 0, 3, 4a, 4b | todo |
 | [5](#5-sdcshadowed-declaration-and-sdcdependency-cycle) | `sdc/shadowed-declaration` | info | 4c | todo |
 |  | `sdc/dependency-cycle` | warning (D21) | 4c | todo |
@@ -104,7 +105,7 @@ Decisions: D3, D10, D11.
 
 ### 3. Declarations and `sdc/duplicate-declaration`
 
-Decisions: D9, D12, D15, D16, D17, D20, D22. **Open item:** before this slice merges, decide the rule ID for collisions with reserved names.
+Decisions: D9, D12, D15, D16, D17, D20, D22, D23.
 
 **Declarations** go in a new file, `analysis/declarations.ts`:
 
@@ -136,7 +137,7 @@ Decisions: D9, D12, D15, D16, D17, D20, D22. **Open item:** before this slice me
 
 - It reports two declarations of any kinds with the same name on one element. The finding points at the later declaration and gives the other as a related location.
 - `RuleFinding` gains `relatedLocations`, which maps to the report's existing `relatedLocations` field. This changes the plugin contract.
-- A declaration whose name collides with a reserved built-in name needs its own check, separate from a duplicate between two user declarations. A forbidden declaration must not quietly take the place of the built-in.
+- A declaration whose name collides with a reserved built-in name needs its own check, separate from a duplicate between two user declarations. A forbidden declaration must not quietly take the place of the built-in. That check is `sdc/reserved-name`, built in slice 4b (D23).
 
 **Suppressions that target declarations** (D22) must exist before any finding is reported on a launchContext or allocateId pointer:
 
@@ -154,7 +155,7 @@ Decisions: D9, D12, D15, D16, D17, D20, D22. **Open item:** before this slice me
 
 ### 4. Available variables, and `sdc/undefined-variable`
 
-There are three PRs. 4a and 4b add no findings, so they can land before the corpus exists. 4c needs the corpus.
+There are three PRs. 4a adds no findings, so it can land before the corpus exists. 4b adds `sdc/reserved-name` (D23). 4c needs the corpus.
 
 #### 4a. Variable references
 
@@ -226,6 +227,8 @@ variablesAt(site: ExpressionSite): AvailableVariables;
 - [FHIR R5 defines `%server`](https://hl7.org/fhir/R5/fhirpath.html#api), so it exists. Its methods are not yet supported: `sdc/unknown-function` exempts calls only on `factory` and `terminologies`. Coordinate with that rule before treating `%server`'s methods as supported.
 - A fragment can reference whatever its containing expression can. It shares the query's item and use cases, so it is an extraction site only when its query is one.
 - At an uncatalogued site, name analysis cannot run. Record that in the completion evidence. An empty variable list does not mean the analysis ran.
+
+**`sdc/reserved-name`** (error, D23): reports a declaration of a name that FHIRPath, FHIR or SDC reserves. Specify it in this slice, from the built-in names in the table above.
 
 **Config**: add `hostVariables`, a non-empty array of unique, non-empty names written without `%`. Check uniqueness explicitly, because the validation used for `files` does not. Update `LintConfig`, `knownKeys`, the config tests and the CLI configuration documentation.
 
@@ -357,6 +360,8 @@ Each decision is listed under its topic and keeps its original number.
   - `linkId` for an item, or no `linkId` for the root. Use `pointer` for an item that has no linkId.
   The suppression hides the rule's findings for that name on that element. It is stale when the name is no longer declared there, or when the rule completed there with no finding.
   _Why:_ a duplicate launchContext or allocateId has no Expression site, so the current suppressions cannot reach it. The error would then fail CI, and the only way out would be to turn the rule off. An element plus a name survives reordering and needs no new config keys.
+- **D23. A declaration of a reserved name is reported by `sdc/reserved-name`, at error, built in slice 4b.** Decided on 2026-10-08, settling the open item that blocked slice 3. `sdc/duplicate-declaration` compares only declarations in the form.
+  _Why:_ redeclaring a name FHIRPath, FHIR or SDC reserves is a different mistake from declaring a name twice, with a different fix. The check needs the built-in name list that slice 4b defines for available variables.
 
 ### Process and architecture
 
@@ -371,7 +376,7 @@ Each decision is listed under its topic and keeps its original number.
 
 | Item | Blocks |
 | :- | :- |
-| Decide the rule ID for collisions with reserved names. Clarify whether the broad restriction on launchContext names overrides the general permission for descendants to shadow a name ([Visibility](#visibility)). | The rule ID blocks slice 3. The launchContext question blocks any error for descendant shadowing of a launchContext name in slice 5. |
+| Clarify whether the broad restriction on launchContext names overrides the general permission for descendants to shadow a name ([Visibility](#visibility)). | Any error for descendant shadowing of a launchContext name in slice 5. |
 | Reconcile the older CQL shorthand in the expressions table with STU4's explicit guidance on `text/cql-identifier` and `text/cql-expression`. Until then, behave conservatively: `sdc/language-not-allowed` does not reject those codes just because they are newer spellings. | Nothing; slice 1 behaves conservatively. |
 | Choose the linter's own licence (MIT or Apache-2.0) before the repository goes public or a package is published. There is no LICENSE file and no `license` field in the package. | Publishing only. |
 

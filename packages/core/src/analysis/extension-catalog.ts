@@ -20,9 +20,8 @@ export interface CatalogEntry {
   // whose own extension array carries it.
   on: Readonly<Partial<Record<Owner, readonly string[] | true>>>;
   carrier: ExpressionCarrier;
-  // Whether the location declares a name others can reference; other Expression names are
-  // recorded on the site without declaring.
-  declares: boolean;
+  // The SDC expressions table's use cases: behavior is rendering, population is population, all
+  // is both, and the $extract extensions are extraction (core-rules.md D20).
   useCases: readonly ExpressionUseCase[];
   // The languages SDC allows at the location; absent when it allows any language.
   languages?: readonly string[];
@@ -34,19 +33,19 @@ function entry(
   url: string,
   on: CatalogEntry['on'],
   useCases: readonly ExpressionUseCase[],
-  extra: Partial<Pick<CatalogEntry, 'subExtension' | 'declares' | 'languages'>> = {},
+  extra: Partial<Pick<CatalogEntry, 'subExtension' | 'languages'>> = {},
 ): CatalogEntry {
   return Object.freeze({
     url,
     on: Object.freeze(on),
     carrier: 'expression',
-    declares: false,
     useCases: Object.freeze(useCases),
     ...extra,
   });
 }
 
 const both = { root: true, item: true } as const;
+const renderingAndPopulation: readonly ExpressionUseCase[] = ['rendering', 'population'];
 const item = { item: true } as const;
 
 // FHIRPath or CQL, as the SDC expressions table restricts two locations. The newer CQL codes are
@@ -60,19 +59,14 @@ const fhirPathOrCql = Object.freeze([
 ]);
 
 export const extensionCatalog: readonly CatalogEntry[] = Object.freeze([
-  entry(
-    'http://hl7.org/fhir/StructureDefinition/variable',
-    both,
-    ['rendering', 'population', 'extraction'],
-    { declares: true },
-  ),
+  entry('http://hl7.org/fhir/StructureDefinition/variable', both, renderingAndPopulation),
   entry(`${sdc}calculatedExpression`, item, ['rendering']),
   entry(`${sdc}enableWhenExpression`, item, ['rendering'], { languages: fhirPathOrCql }),
-  entry(`${sdc}initialExpression`, item, ['population']),
-  entry(`${sdc}candidateExpression`, item, ['rendering']),
-  entry(`${sdc}answerExpression`, item, ['rendering']),
-  entry(`${sdc}contextExpression`, item, ['rendering'], { subExtension: 'expression' }),
-  entry(`${sdc}itemPopulationContext`, both, ['population'], { declares: true }),
+  entry(`${sdc}initialExpression`, item, renderingAndPopulation),
+  entry(`${sdc}candidateExpression`, item, ['population']),
+  entry(`${sdc}answerExpression`, item, ['population']),
+  entry(`${sdc}contextExpression`, item, ['population'], { subExtension: 'expression' }),
+  entry(`${sdc}itemPopulationContext`, both, ['population']),
   entry(`${sdc}itemExtractionContext`, both, ['extraction']),
   entry(`${sdc}answerOptionsToggleExpression`, item, ['rendering'], {
     subExtension: 'expression',
@@ -81,7 +75,8 @@ export const extensionCatalog: readonly CatalogEntry[] = Object.freeze([
   entry('http://hl7.org/fhir/StructureDefinition/targetConstraint', both, ['rendering'], {
     subExtension: 'expression',
   }),
-  // Dynamic values of primitive elements: the elements core-plan §4.3 names, plus the title.
+  // Dynamic values of primitive elements: the elements core-plan §4.3 names, plus the title. Not in
+  // the SDC expressions table, so it keeps rendering.
   entry(
     'http://hl7.org/fhir/StructureDefinition/cqf-expression',
     { root: ['title'], item: ['text', 'prefix', 'answerValueSet'] },

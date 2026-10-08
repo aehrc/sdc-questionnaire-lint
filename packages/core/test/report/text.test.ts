@@ -159,6 +159,50 @@ describe('formatTextFindings', () => {
     );
   });
 
+  it('lists each related location, by FSH line when mapped and by JSON Pointer otherwise', () => {
+    const finding = questionnaireFinding({
+      ruleId: 'sdc/duplicate-declaration',
+      message: 'The name %patient is declared more than once on the Questionnaire root.',
+      jsonLocation: {
+        file: 'Q.json',
+        pointer: '/extension/1',
+        resource: { resourceType: 'Questionnaire', id: 'Q', pointer: '' },
+      },
+      relatedLocations: [
+        {
+          kind: 'questionnaire',
+          jsonLocation: {
+            file: 'Q.json',
+            pointer: '/extension/0',
+            resource: { resourceType: 'Questionnaire', id: 'Q', pointer: '' },
+          },
+          sourceLocation: { status: 'unmapped', reason: 'source-unavailable' },
+          message: '%patient is also declared here',
+        },
+        {
+          kind: 'questionnaire',
+          jsonLocation: {
+            file: 'Q.json',
+            pointer: '/extension/2',
+            resource: { resourceType: 'Questionnaire', id: 'Q', pointer: '' },
+          },
+          sourceLocation: {
+            status: 'mapped',
+            confidence: 'exact',
+            location: { file: 'input/fsh/Q.fsh', line: 3, column: 1, endLine: 3, endColumn: 9 },
+          },
+        },
+      ],
+    });
+    expect(formatTextFindings([finding], plain)).toBe(
+      'Q.json: error sdc/duplicate-declaration The name %patient is declared more than once on the Questionnaire root.\n' +
+        '  location: compiled JSON; Questionnaire/Q; /extension/1\n' +
+        '  note: FSH line not found, no FSH sources are available\n' +
+        '  related: /extension/0: %patient is also declared here\n' +
+        '  related: input/fsh/Q.fsh:3:1\n',
+    );
+  });
+
   it('prints no excerpt without an expression, and no location for a mapped finding', () => {
     const withoutExpression = { ...specError };
     delete withoutExpression.expression;

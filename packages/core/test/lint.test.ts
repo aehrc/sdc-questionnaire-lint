@@ -130,6 +130,34 @@ describe('expression findings', () => {
     expect(report.summary.expressions).toEqual({ analysed: 0, unchecked: 1 });
   });
 
+  it('reports a duplicate launchContext at the extension, with the first as related', async () => {
+    const launchContext = {
+      url: `${sdc}launchContext`,
+      extension: [
+        { url: 'name', valueCoding: { code: 'patient' } },
+        { url: 'type', valueCode: 'Patient' },
+      ],
+    };
+    const { report, findings } = await lintQuestionnaire({
+      extension: [launchContext, launchContext],
+    });
+    expect(findings).toMatchObject([
+      {
+        ruleId: 'sdc/duplicate-declaration',
+        severity: 'error',
+        jsonLocation: { pointer: '/extension/1' },
+        relatedLocations: [
+          {
+            kind: 'questionnaire',
+            jsonLocation: { pointer: '/extension/0' },
+            message: '%patient is also declared here',
+          },
+        ],
+      },
+    ]);
+    expect(report.summary.expressions).toEqual({ analysed: 0, unchecked: 0 });
+  });
+
   it('reports broken FHIRPath in an uncatalogued site twice, at the same pointer', async () => {
     const { report, findings } = await lintQuestionnaire({
       item: [

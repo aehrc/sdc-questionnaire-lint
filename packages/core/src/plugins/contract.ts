@@ -9,10 +9,19 @@ import type { OffsetRange, Severity } from '../report/types.js';
 
 export type { Severity };
 
+// Another place relevant to a finding, such as the other declaration of a duplicated name: a site,
+// or a JSON Pointer from the root of the input file. message, when given, says how it relates.
+export interface RuleRelatedLocation {
+  site?: ExpressionSite;
+  pointer?: string;
+  message?: string;
+}
+
 // What a rule reports. The runner checks it, and fails the run with RULE_CRASH for an invalid one:
 // message, and help and note when given, must be non-empty; site must be one of ctx.sites; a
 // pointer without a site must lie inside the document's resource; a range needs a site with text
-// and must lie within it.
+// and must lie within it. Each related location follows the same rules for its site, pointer and
+// message, and needs a site or a pointer.
 export interface RuleFinding {
   // The problem only; the fix goes in help (plan-amendments: §7.4 fix hints).
   message: string;
@@ -25,6 +34,7 @@ export interface RuleFinding {
   range?: OffsetRange;
   // Overrides the rule's effective severity for this finding.
   severity?: Severity;
+  relatedLocations?: RuleRelatedLocation[];
 }
 
 // What check receives for one Questionnaire.

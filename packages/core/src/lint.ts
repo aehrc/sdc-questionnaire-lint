@@ -1,4 +1,5 @@
 import pkg from '../package.json' with { type: 'json' };
+import { analyseDocument } from './analysis/document-analysis.js';
 import { findExpressionSites } from './analysis/expression-sites.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
@@ -39,11 +40,10 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     runPaths,
   });
   const sources = await findFshSources(runPaths, cwd);
-  const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => ({
-    input,
-    document,
-    sites: findExpressionSites(document),
-  }));
+  const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => {
+    const sites = findExpressionSites(document);
+    return { input, document, sites, analysis: analyseDocument(document, sites) };
+  });
   const outcome = await applySuppressions({
     loaded,
     rules: ruleSet.rules,

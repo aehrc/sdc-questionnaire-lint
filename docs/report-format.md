@@ -50,7 +50,7 @@ Expression counts describe coverage, not correctness: a syntax check that comple
 
 ## Findings and locations
 
-Every finding has stable `ruleId`, `severity`, `message`, `fingerprint` and `kind` fields. `help`, `note`, `docsUrl`, `expression`, `relatedLocations` and `suggestions` are optional. Omit an unavailable optional field instead of inventing data. Messages state the problem; help states an action. Fingerprints use rule, resource and stable site identity, not source line numbers. Configuration fingerprints use the suppression selector and rule rather than its current array index.
+Every finding has stable `ruleId`, `severity`, `message`, `fingerprint` and `kind` fields. `help`, `note`, `docsUrl`, `expression`, `relatedLocations` and `suggestions` are optional. Omit an unavailable optional field instead of inventing data. Messages state the problem; help states an action. Fingerprints use rule, resource and stable site identity, or for a launchContext or extractAllocateId its element and name, not source line numbers. Configuration fingerprints use the suppression selector and rule rather than its current array index.
 
 | Kind | Required location fields |
 | :- | :- |

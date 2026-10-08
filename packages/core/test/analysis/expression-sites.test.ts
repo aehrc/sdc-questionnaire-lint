@@ -49,7 +49,7 @@ describe('findExpressionSites', () => {
         text: '1',
         name: 'a',
         declares: true,
-        useCases: ['rendering', 'population', 'extraction'],
+        useCases: ['rendering', 'population'],
       },
       {
         pointer: '/item/0/extension/0/valueExpression/expression',
@@ -62,8 +62,81 @@ describe('findExpressionSites', () => {
         text: '2',
         name: 'b',
         declares: true,
-        useCases: ['rendering', 'population', 'extraction'],
+        useCases: ['rendering', 'population'],
       },
+    ]);
+  });
+
+  it.each([
+    [`${sdc}calculatedExpression`, ['rendering']],
+    [`${sdc}enableWhenExpression`, ['rendering']],
+    [`${sdc}initialExpression`, ['rendering', 'population']],
+    [`${sdc}candidateExpression`, ['population']],
+    [`${sdc}answerExpression`, ['population']],
+    [`${sdc}itemPopulationContext`, ['population']],
+    [`${sdc}itemExtractionContext`, ['extraction']],
+    ['http://hl7.org/fhir/StructureDefinition/targetConstraint', ['rendering']],
+  ])('gives %s the use cases of the SDC expressions table', (url, useCases) => {
+    const valueExpression = fhirPath('1');
+    const wrapped = url.endsWith('targetConstraint')
+      ? { url, extension: [{ url: 'expression', valueExpression }] }
+      : extension(url, valueExpression);
+    const [site] = sitesOf({ item: [{ linkId: 'q', extension: [wrapped] }] });
+    expect(site).toMatchObject({ catalogued: true, useCases });
+  });
+
+  it('gives a contextExpression population, and a cqf-expression rendering', () => {
+    const sites = sitesOf({
+      item: [
+        {
+          linkId: 'q',
+          _text: { extension: [extension(CQF, fhirPath("'Hi'"))] },
+          extension: [
+            {
+              url: `${sdc}contextExpression`,
+              extension: [{ url: 'expression', valueExpression: query('Encounter') }],
+            },
+          ],
+        },
+      ],
+    });
+    expect(sites.map((site) => site.useCases)).toEqual([['rendering'], ['population']]);
+  });
+
+  it('makes any named Expression at a catalogued location declare its name', () => {
+    const sites = sitesOf({
+      extension: [extension(`${sdc}itemExtractionContext`, fhirPath('%resource', 'ctx'))],
+      item: [
+        {
+          linkId: 'q',
+          _text: { extension: [extension(CQF, fhirPath("'Hi'", 'greeting'))] },
+          extension: [
+            extension(`${sdc}calculatedExpression`, fhirPath('1', 'total')),
+            extension(`${sdc}calculatedExpression`, fhirPath('2')),
+            extension(VARIABLE, fhirPath('3')),
+          ],
+        },
+      ],
+    });
+    expect(sites.map((site) => [site.name, site.declares])).toEqual([
+      ['ctx', true],
+      ['greeting', true],
+      ['total', true],
+      [undefined, false],
+      [undefined, false],
+    ]);
+  });
+
+  it('never makes a named uncatalogued Expression declare its name', () => {
+    const sites = sitesOf({
+      contained: [
+        { resourceType: 'Library', extension: [extension(VARIABLE, fhirPath('1', 'a'))] },
+      ],
+      item: [{ linkId: 'q', answerOption: [{ valueExpression: fhirPath('1', 'b') }] }],
+    });
+    expect(sites.map((site) => [site.name, site.catalogued, site.declares])).toEqual([
+      ['a', false, false],
+      ['b', false, false],
     ]);
   });
 

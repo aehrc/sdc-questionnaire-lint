@@ -2,6 +2,7 @@ import pkg from '../../package.json' with { type: 'json' };
 import type { ExpressionSite } from '../analysis/expression-site.js';
 import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
 import { hasQueryText } from '../analysis/x-fhir-query.js';
+import { duplicateDeclaration } from '../rules/duplicate-declaration.js';
 import { externalExpression } from '../rules/external-expression.js';
 import { fragmentParseError } from '../rules/fragment-parse-error.js';
 import { hasCataloguedLanguage, languageNotAllowed } from '../rules/language-not-allowed.js';
@@ -14,12 +15,14 @@ import { querySyntax } from '../rules/query-syntax.js';
 import { staleSuppression } from '../rules/stale-suppression.js';
 import { uncataloguedExpression } from '../rules/uncatalogued-expression.js';
 import { unknownFunction } from '../rules/unknown-function.js';
-import type { LintPlugin } from './contract.js';
+import type { LintPlugin, LintRule } from './contract.js';
 
-// Core rules (core-plan §4.1). Rules are added as the analysis engine is built.
+// Core rules (core-plan §4.1). Rules are added as the analysis engine is built. A CoreRule is
+// listed as a LintRule: the runner gives every sdc rule the analysis as a second argument.
 export const sdcPlugin: LintPlugin = {
   meta: { name: 'sdc', version: pkg.version },
   rules: {
+    'duplicate-declaration': duplicateDeclaration as unknown as LintRule,
     'external-expression': externalExpression,
     'fragment-parse-error': fragmentParseError,
     'language-not-allowed': languageNotAllowed,
@@ -35,6 +38,7 @@ export const sdcPlugin: LintPlugin = {
 // of its findings make a suppression stale (cli.md § Stale suppressions); a rule missing here, such
 // as a plugin rule, leaves its suppressions not assessed.
 export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => boolean>> = {
+  'sdc/duplicate-declaration': () => true,
   'sdc/external-expression': () => true,
   'sdc/fragment-parse-error': hasQueryText,
   'sdc/language-not-allowed': hasCataloguedLanguage,
@@ -45,6 +49,12 @@ export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => b
   'sdc/unknown-function': (site) =>
     hasFhirPathText(site) && findFhirPathSyntaxProblem(site.text) === undefined,
 };
+
+// The built-in rules that complete their check at every launchContext and extractAllocateId, which
+// have no Expression site (core-rules.md D22).
+export const completesDeclarationCheck: ReadonlySet<string> = new Set([
+  'sdc/duplicate-declaration',
+]);
 
 export const staleSuppressionId = 'lint/stale-suppression';
 

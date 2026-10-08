@@ -14,7 +14,7 @@ _Avoid_: Expression location, occurrence
 What holds an expression in a Questionnaire: an Expression object, a whole-string FHIRPath value, a `{{…}}` fragment embedded in an x-fhir-query, or an indirect reference to content elsewhere.
 
 **Extension catalog**:
-The linter's list of the SDC extensions that can hold an expression, with the elements each may sit on, its carrier, whether it declares and its use cases.
+The linter's list of the SDC extensions that can hold an expression, with the elements each may sit on, its carrier and its use cases. Any Expression with a name at a catalogued location declares that name.
 _Avoid_: Registry
 
 **Catalogued location**:

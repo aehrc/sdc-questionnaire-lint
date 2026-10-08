@@ -1,6 +1,7 @@
 import { chmod, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { analyseDocument } from '../../src/analysis/document-analysis.js';
 import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import { loadConfig } from '../../src/config/load.js';
 import { resolveRunPaths } from '../../src/config/paths.js';
@@ -56,11 +57,10 @@ async function assessIn(cwd: string, { suppress, rules, files, paths }: Run) {
   const resolved = resolveRuleSet(loaded).rules;
   const runPaths = resolveRunPaths({ cwd, config: loaded });
   const inputs = await loadInputs({ cwd, cliPaths: paths ?? [], runPaths });
-  const documents = inputs.documents.map(({ input, document }) => ({
-    input,
-    document,
-    sites: findExpressionSites(document),
-  }));
+  const documents = inputs.documents.map(({ input, document }) => {
+    const sites = findExpressionSites(document);
+    return { input, document, sites, analysis: analyseDocument(document, sites) };
+  });
   const findings = documents.flatMap((doc) => runRules(doc, resolved));
   const outcome = await applySuppressions({
     loaded,
@@ -478,5 +478,169 @@ describe('applySuppressions: selectors', () => {
       { jsonLocation: { pointer: '/item/0/extension/0/valueExpression/expression' } },
     ]);
     expect(outcome.suppressions).toEqual(counts(1, 0, 0));
+  });
+});
+
+describe('applySuppressions: declarations without an Expression', () => {
+  const LAUNCH_CONTEXT = `${sdc}launchContext`;
+  const ALLOCATE_ID = `${sdc}extractAllocateId`;
+  const duplicate = 'sdc/duplicate-declaration';
+
+  const launchContext = (name: string) => ({
+    url: LAUNCH_CONTEXT,
+    extension: [
+      { url: 'name', valueCoding: { code: name } },
+      { url: 'type', valueCode: 'Patient' },
+    ],
+  });
+  const allocateId = (name: string) => ({ url: ALLOCATE_ID, valueString: name });
+  const onRoot = (...extension: unknown[]) => questionnaire('A', [], { extension });
+  const targeting = (extensionUrl: string, more: Record<string, string> = {}) => ({
+    rule: duplicate,
+    file: A,
+    extensionUrl,
+    reason: 'demo',
+    ...more,
+  });
+
+  it('hides a duplicate launchContext on the root, selected by name', async () => {
+    const { findings, outcome } = await assess(
+      { [A]: onRoot(launchContext('patient'), launchContext('patient')) },
+      { suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })] },
+    );
+    expect(findings).toMatchObject([
+      { ruleId: duplicate, jsonLocation: { pointer: '/extension/1' } },
+    ]);
+    expect(outcome).toEqual({ findings: [], suppressedFindings: 1, suppressions: counts(1, 0, 0) });
+  });
+
+  it('hides the finding at a variable that duplicates a launchContext name', async () => {
+    const { findings, outcome } = await assess(
+      {
+        [A]: onRoot(launchContext('patient'), variable('patient', '1')),
+      },
+      { suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })] },
+    );
+    expect(findings).toMatchObject([
+      { jsonLocation: { pointer: '/extension/1/valueExpression/expression' } },
+    ]);
+    expect(outcome.suppressions).toEqual(counts(1, 0, 0));
+  });
+
+  it('hides a finding at a launchContext that duplicates a variable name', async () => {
+    const { findings, outcome } = await assess(
+      { [A]: onRoot(variable('patient', '1'), launchContext('patient')) },
+      { suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })] },
+    );
+    expect(findings).toMatchObject([{ jsonLocation: { pointer: '/extension/1' } }]);
+    expect(outcome.suppressions).toEqual(counts(1, 0, 0));
+  });
+
+  it('selects an extractAllocateId on an item by linkId', async () => {
+    const { outcome } = await assess(
+      { [A]: questionnaire('A', [allocateId('id'), allocateId('id')]) },
+      { suppress: [targeting(ALLOCATE_ID, { linkId: 'q', name: 'id' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(1, 0, 0));
+  });
+
+  it("selects an extractAllocateId on an item without a linkId by the item's pointer", async () => {
+    const withoutLinkId = (...extension: unknown[]) =>
+      JSON.stringify({
+        resourceType: 'Questionnaire',
+        status: 'draft',
+        item: [{ type: 'group' }, { type: 'group', extension }],
+      });
+    const suppress = [targeting(ALLOCATE_ID, { pointer: '/item/1', name: 'id' })];
+    const before = await assess(
+      { [A]: withoutLinkId(allocateId('id'), allocateId('id')) },
+      { suppress },
+    );
+    expect(before.outcome.suppressions).toEqual(counts(1, 0, 0));
+    // An element and a name survive reordering the item's extensions (D22).
+    const reordered = await assess(
+      { [A]: withoutLinkId(allocateId('other'), allocateId('id'), allocateId('id')) },
+      { suppress },
+    );
+    expect(reordered.outcome.suppressions).toEqual(counts(1, 0, 0));
+  });
+
+  it("does not select an item's declaration by the declaration's own pointer", async () => {
+    const { outcome } = await assess(
+      { [A]: questionnaire('A', [allocateId('id'), allocateId('id')]) },
+      { suppress: [targeting(ALLOCATE_ID, { pointer: '/item/0/extension/1' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
+  it('selects the root when linkId is absent, not an item', async () => {
+    const { outcome } = await assess(
+      { [A]: questionnaire('A', [allocateId('id'), allocateId('id')]) },
+      { suppress: [targeting(ALLOCATE_ID, { name: 'id' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
+  it('is stale when the name is no longer declared on the element', async () => {
+    const { outcome } = await assess(
+      { [A]: onRoot(launchContext('user')) },
+      { suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 1, 0));
+    expect(outcome.findings).toMatchObject([
+      {
+        ruleId: 'lint/stale-suppression',
+        message: `A suppression of ${duplicate} matches no declaration in ${A}.`,
+        help: "remove this entry, or update its selectors to the declaration's current name, and linkId or item pointer",
+      },
+    ]);
+  });
+
+  it('is stale when the rule checked the declaration and found nothing', async () => {
+    const { outcome } = await assess(
+      { [A]: onRoot(launchContext('patient')) },
+      { suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })] },
+    );
+    expect(outcome.findings).toMatchObject([
+      {
+        ruleId: 'lint/stale-suppression',
+        message: `A suppression of ${duplicate} hides nothing: the rule checked this declaration and found no problem.`,
+        help: 'remove this entry from suppress',
+      },
+    ]);
+  });
+
+  it('is not assessed for a rule that does not check declarations', async () => {
+    const { outcome } = await assess(
+      { [A]: onRoot(launchContext('patient')) },
+      { suppress: [targeting(LAUNCH_CONTEXT, { rule: 'sdc/parse-error', name: 'patient' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 0, 1));
+  });
+
+  it('is not assessed when the rule is off', async () => {
+    const { outcome } = await assess(
+      { [A]: onRoot(launchContext('patient')) },
+      {
+        suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })],
+        rules: { [duplicate]: 'off' },
+      },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 0, 1));
+  });
+
+  it('fails when the selectors match declarations of several names', async () => {
+    await expect(
+      assess(
+        { [A]: onRoot(launchContext('patient'), launchContext('user')) },
+        { suppress: [targeting(LAUNCH_CONTEXT)] },
+      ),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        code: 'CONFIG_INVALID',
+        message: `config ${configName} is invalid at /suppress/0: it matches 2 declarations, at /extension/0 and /extension/1`,
+        help: 'add name, linkId or pointer to select one declaration',
+      }),
+    );
   });
 });
