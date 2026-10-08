@@ -13,28 +13,23 @@ describe('examples/health-check', () => {
     expect(result.code).toBe(1);
     const report = JSON.parse(result.stdout) as CompletedReport;
     const findings = report.findings as QuestionnaireFinding[];
+    // Findings sort by file, then FSH position; the one finding without an FSH line comes first.
     expect(
-      findings.map(({ ruleId, message, jsonLocation }) => [ruleId, jsonLocation.linkId, message]),
+      findings.map(({ ruleId, jsonLocation, sourceLocation }) => [
+        ruleId,
+        jsonLocation.linkId,
+        sourceLocation.status === 'mapped'
+          ? `${sourceLocation.location.file}:${String(sourceLocation.location.line)}`
+          : sourceLocation.reason,
+      ]),
     ).toEqual([
-      ['sdc/fragment-parse-error', 'smoking', 'A closing ) is missing.'],
-      ['sdc/parse-error', 'bmi', 'This FHIRPath expression has a syntax error.'],
-      ['sdc/parse-error', 'smoking', 'The character " is not valid here.'],
-      ['sdc/parse-error', 'packs', 'The expression ends before it is complete.'],
-      [
-        'sdc/query-syntax',
-        'height',
-        "This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills stay empty.",
-      ],
-      [
-        'sdc/uncatalogued-expression',
-        'smoking',
-        'This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.',
-      ],
-      [
-        'sdc/unknown-function',
-        'bmi',
-        'fist() is not a FHIRPath function, so this expression fails when the form runs.',
-      ],
+      ['sdc/parse-error', 'bmi', 'multiline'],
+      ['sdc/query-syntax', 'height', 'input/fsh/HealthCheck.fsh:36'],
+      ['sdc/unknown-function', 'bmi', 'input/fsh/HealthCheck.fsh:48'],
+      ['sdc/parse-error', 'smoking', 'input/fsh/HealthCheck.fsh:64'],
+      ['sdc/fragment-parse-error', 'smoking', 'input/fsh/HealthCheck.fsh:69'],
+      ['sdc/uncatalogued-expression', 'smoking', 'input/fsh/HealthCheck.fsh:75'],
+      ['sdc/parse-error', 'packs', 'input/fsh/HealthCheck.fsh:84'],
     ]);
     expect(report.summary.expressions).toEqual({ analysed: 13, unchecked: 1 });
   });

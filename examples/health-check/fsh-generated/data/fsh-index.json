@@ -1,0 +1,10 @@
+[
+  {
+    "outputFile": "Questionnaire-HealthCheck.json",
+    "fshName": "HealthCheck",
+    "fshType": "Instance",
+    "fshFile": "HealthCheck.fsh",
+    "startLine": 2,
+    "endLine": 84
+  }
+]
