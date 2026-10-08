@@ -164,8 +164,10 @@ async function assess(
 
   const matched = run.documents
     .filter(({ input }) => input.path === file.path)
-    .flatMap(({ document, sites }) =>
-      sites.filter((site) => selects(entry, document, site)).map((site) => ({ document, site })),
+    .flatMap(({ document, sites, analysis }) =>
+      sites
+        .filter((site) => selects(entry, document, site))
+        .map((site) => ({ document, site, analysis })),
     );
   const [only] = matched;
   if (only === undefined) return { state: 'stale', ...siteGone(entry.rule, file.display) };
@@ -179,7 +181,7 @@ async function assess(
     );
   }
 
-  const { document, site } = only;
+  const { document, site, analysis } = only;
   const hidden = run.findings.filter(
     (finding) =>
       finding.kind === 'questionnaire' &&
@@ -188,7 +190,7 @@ async function assess(
       finding.jsonLocation.pointer === site.pointer,
   );
   if (hidden.length > 0) return { state: 'applied', hidden };
-  return isEnabled(run.rules, entry.rule) && completesCheck[entry.rule]?.(site) === true
+  return isEnabled(run.rules, entry.rule) && completesCheck[entry.rule]?.(site, analysis) === true
     ? { state: 'stale', ...nothingToHide(entry.rule) }
     : notAssessed;
 }

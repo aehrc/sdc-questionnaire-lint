@@ -31,18 +31,19 @@ export const builtinPrefixes: readonly string[] = ['vs-', 'ext-'];
 // A name an expression can reference at its site.
 export interface Variable {
   readonly name: string;
-  readonly origin: 'declaration' | 'builtin' | 'host';
+  // assembled: listed by the module's assembleContext, so the including Questionnaire supplies it.
+  readonly origin: 'declaration' | 'builtin' | 'assembled' | 'host';
   // Set only when origin is declaration.
   readonly declaration?: Declaration;
 }
 
 export interface AvailableVariables {
   // Each available name once: the declarations, innermost first and then in document order, then
-  // the built-in names and the host variables that no declaration overrides. Names with a built-in
-  // prefix are not listed.
+  // the built-in names, the assembleContext names and the host variables that nothing before them
+  // overrides. Names with a built-in prefix are not listed.
   readonly variables: readonly Variable[];
   // The variable a %name reference gets: the innermost declaration of the name, else a built-in
-  // name, one with a built-in prefix included, else a host variable.
+  // name, one with a built-in prefix included, else an assembleContext name, else a host variable.
   resolve(name: string): Variable | undefined;
 }
 
@@ -64,11 +65,12 @@ function onElementOrAncestor({ item: owner }: Declaration, item: SiteItem | unde
 // An ancestor's pointer is a prefix of its descendants', so a longer pointer is further in.
 const depth = ({ item }: Declaration): number => item?.pointer.length ?? -1;
 
-// The available variables at each site of a document, from its declarations and the configured host
-// variables. An uncatalogued site has none: name analysis cannot run there, which is not the same
-// as an empty list.
+// The available variables at each site of a document, from its declarations, its assembleContext
+// names and the configured host variables. An uncatalogued site has none: name analysis cannot run
+// there, which is not the same as an empty list.
 export function availableVariables(
   declarations: readonly Declaration[],
+  assembled: readonly string[],
   hostVariables: readonly string[],
 ): (site: ExpressionSite) => AvailableVariables | undefined {
   const cache = new Map<ExpressionSite, AvailableVariables>();
@@ -77,7 +79,7 @@ export function availableVariables(
     // Extraction sees only extractAllocateId names and named extraction contexts (D19); every other
     // site sees every other declaration, whatever its use cases (D13, D17).
     const extraction = extractionOnly(site.useCases);
-    const visible = declarations
+    const reachable = declarations
       .filter(
         (declaration) =>
           onElementOrAncestor(declaration, site.item) &&
@@ -89,12 +91,15 @@ export function availableVariables(
     const add = (variable: Variable): void => {
       if (!byName.has(variable.name)) byName.set(variable.name, Object.freeze(variable));
     };
-    for (const declaration of visible) {
+    for (const declaration of reachable) {
       add({ name: declaration.name, origin: 'declaration', declaration });
     }
     for (const name of builtinNames.keys()) {
       if (name !== 'qitem' || site.item !== undefined) add({ name, origin: 'builtin' });
     }
+    // Available at every site, extraction included: the including Questionnaire may supply the name
+    // in a form extraction can see, such as an extractAllocateId (D24).
+    for (const name of assembled) add({ name, origin: 'assembled' });
     for (const name of hostVariables) add({ name, origin: 'host' });
     return Object.freeze({
       variables: Object.freeze([...byName.values()]),

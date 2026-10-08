@@ -1,6 +1,6 @@
 # Example: adult health check
 
-A form with seven common authoring mistakes. `fsh-generated/resources/Questionnaire-HealthCheck.json` stands in for SUSHI output.
+A form with seven common authoring mistakes. `fsh-generated/resources/Questionnaire-HealthCheck.json` stands in for SUSHI output. Its launchContext declares `%patient`, which several expressions use, so none of them gets an `sdc/undefined-variable` finding.
 
 | Item | Where | Mistake | Finding |
 | :- | :- | :- | :- |

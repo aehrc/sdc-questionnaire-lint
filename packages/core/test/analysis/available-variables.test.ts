@@ -218,3 +218,72 @@ describe('available variables', () => {
     expect(analysis.variablesAt(contained as ExpressionSite)).toBeUndefined();
   });
 });
+
+describe('available variables in a module', () => {
+  const assembleContext = (name: unknown) => ({ url: `${sdc}assembleContext`, valueString: name });
+  const module: QuestionnaireDocument = {
+    file: 'M.json',
+    resource: {
+      resourceType: 'Questionnaire',
+      extension: [
+        assembleContext('person'),
+        assembleContext('linkIdPrefix'),
+        assembleContext(1),
+        variable('x', '%person'),
+      ],
+      item: [
+        {
+          linkId: 'a',
+          extension: [
+            variable('linkIdPrefix', "%linkIdPrefix + 'a.'"),
+            expression('itemExtractionContext', undefined, '%person'),
+            { url: `${sdc}assembleContext`, valueString: 'onItem' },
+          ],
+        },
+      ],
+    },
+    resourcePointer: '',
+    localResources: [],
+  };
+  const moduleSites = findExpressionSites(module);
+  const moduleAnalysis = analyseDocument(module, moduleSites, ['person']);
+  const site = (pointer: string) => {
+    const found = moduleSites.find(
+      (each) => each.pointer === `${pointer}/valueExpression/expression`,
+    );
+    if (found === undefined) throw new Error(`no site at ${pointer}`);
+    return found;
+  };
+  const resolveIn = (pointer: string, name: string) => {
+    const variable = moduleAnalysis.variablesAt(site(pointer))?.resolve(name);
+    return variable?.declaration?.pointer ?? variable?.origin;
+  };
+
+  it.each([
+    ['on the root', '/extension/3', 'person', 'assembled'],
+    ['on an item', '/item/0/extension/0', 'person', 'assembled'],
+    ['in extraction', '/item/0/extension/1', 'person', 'assembled'],
+    [
+      'in extraction, where the item variable of the name is not',
+      '/item/0/extension/1',
+      'linkIdPrefix',
+      'assembled',
+    ],
+    [
+      'overridden by a declaration on the item',
+      '/item/0/extension/0',
+      'linkIdPrefix',
+      '/item/0/extension/0/valueExpression/expression',
+    ],
+    ['not when it sits on an item', '/item/0/extension/0', 'onItem', undefined],
+  ])('makes an assembleContext name available %s', (_, pointer, name, expected) => {
+    expect(resolveIn(pointer, name)).toBe(expected);
+  });
+
+  it('lists each assembleContext name once, after the built-in names; a host variable of the same name is not listed again', () => {
+    const names = moduleAnalysis
+      .variablesAt(site('/extension/3'))
+      ?.variables.map(({ name, origin }) => `${origin}:${name}`);
+    expect(names?.slice(-2)).toEqual(['assembled:person', 'assembled:linkIdPrefix']);
+  });
+});

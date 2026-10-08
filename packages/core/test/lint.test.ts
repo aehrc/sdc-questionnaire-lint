@@ -255,6 +255,13 @@ describe('expression findings', () => {
             url: `${sdc}itemPopulationContext`,
             valueExpression: { name: 'obs', language, expression: text },
           },
+          {
+            url: `${sdc}launchContext`,
+            extension: [
+              { url: 'name', valueCoding: { code: 'patient' } },
+              { url: 'type', valueCode: 'Patient' },
+            ],
+          },
         ],
       });
       expect(findings).toMatchObject([
@@ -319,6 +326,45 @@ describe('config', () => {
           'This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.',
       },
     ]);
+  });
+
+  describe('sdc/undefined-variable', () => {
+    const variable = (name: string, expression: string) => ({
+      url: 'http://hl7.org/fhir/StructureDefinition/variable',
+      valueExpression: { name, language: 'text/fhirpath', expression },
+    });
+    const form = JSON.stringify({
+      resourceType: 'Questionnaire',
+      status: 'draft',
+      extension: [
+        variable('total', '%PrePopQuery.total'),
+        variable('computed', 'defineVariable(%total.first()).select(%y)'),
+      ],
+    });
+    const run = async (settings: Record<string, unknown>) =>
+      lint({
+        cwd: await tempTree({
+          [config]: JSON.stringify(settings),
+          'fsh-generated/resources/Questionnaire-A.json': form,
+        }),
+      });
+
+    it('accepts the names listed in hostVariables', async () => {
+      expect((await run({})).findings).toMatchObject([
+        {
+          ruleId: 'sdc/undefined-variable',
+          message: '%PrePopQuery is not available on the Questionnaire root.',
+        },
+      ]);
+      expect((await run({ hostVariables: ['PrePopQuery'] })).findings).toEqual([]);
+    });
+
+    it('counts a site with a reference after a computed defineVariable name as unchecked, unless the rule is off', async () => {
+      const on = await run({ hostVariables: ['PrePopQuery'] });
+      expect(on.summary.expressions).toEqual({ analysed: 1, unchecked: 1 });
+      const off = await run({ rules: { 'sdc/undefined-variable': 'off' } });
+      expect(off.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
+    });
   });
 
   it('resolves files and source.fsh beneath a config in a subdirectory', async () => {

@@ -158,7 +158,8 @@ export interface VariableReference {
 // kept, as fhirpath.js keeps the name of %`a`.
 function stringValue(literal: string): string {
   if (!/^'.*'$/s.test(literal)) return literal;
-  return literal.slice(1, -1).replace(/\\(u[0-9a-fA-F]{4}|.)/gs, (_, escape: string) => {
+  // Like fhirpath.js, . does not match a line break, so a backslash before one is kept.
+  return literal.slice(1, -1).replace(/\\(u[0-9a-fA-F]{4}|.)/g, (_, escape: string) => {
     if (escape.length > 1) return String.fromCharCode(parseInt(escape.slice(1), 16));
     return { r: '\r', n: '\n', t: '\t', f: '\f' }[escape] ?? escape;
   });
@@ -254,9 +255,17 @@ export function findVariableReferences(text: string): VariableReference[] | unde
     }
     const args = child(child(node, 'Functn'), 'ParamList')?.children ?? [];
     for (const argument of args) visit(argument, copy(local));
-    // fhirpath.js accepts one or two arguments, and binds the name after evaluating them.
-    if (toCall(text, node)?.name !== 'defineVariable' || args.length < 1 || args.length > 2) return;
-    const name = literalString(args[0]);
+    // fhirpath.js accepts one or two arguments, and binds the name after evaluating them. A call
+    // whose name has an escape sequence may be defineVariable, so it counts as a computed name.
+    const call = toCall(text, node);
+    if (
+      (call !== undefined && call.name !== 'defineVariable') ||
+      args.length < 1 ||
+      args.length > 2
+    ) {
+      return;
+    }
+    const name = call === undefined ? undefined : literalString(args[0]);
     if (name === undefined) local.computed = true;
     else local.names.add(name);
   };

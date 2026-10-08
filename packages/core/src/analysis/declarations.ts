@@ -15,6 +15,7 @@ type Json = Record<string, unknown>;
 const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
 export const LAUNCH_CONTEXT = `${sdc}launchContext`;
 export const EXTRACT_ALLOCATE_ID = `${sdc}extractAllocateId`;
+const ASSEMBLE_CONTEXT = `${sdc}assembleContext`;
 const VARIABLE = 'http://hl7.org/fhir/StructureDefinition/variable';
 const ITEM_POPULATION_CONTEXT = `${sdc}itemPopulationContext`;
 
@@ -140,4 +141,17 @@ export function findDeclarations(
 
   visit(document.resource, document.resourcePointer, undefined);
   return declarations;
+}
+
+// The names a module needs from the Questionnaire that includes it, listed by assembleContext on its
+// root, in document order. They are not declarations: the including Questionnaire supplies them
+// (core-rules.md D24).
+export function findAssembleContextNames(document: QuestionnaireDocument): string[] {
+  const { extension } = document.resource;
+  if (!Array.isArray(extension)) return [];
+  return extension.flatMap((each: unknown) =>
+    isObject(each) && each.url === ASSEMBLE_CONTEXT && typeof each.valueString === 'string'
+      ? [each.valueString]
+      : [],
+  );
 }

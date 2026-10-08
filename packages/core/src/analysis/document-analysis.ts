@@ -1,5 +1,5 @@
 import { type AvailableVariables, availableVariables } from './available-variables.js';
-import { type Declaration, findDeclarations } from './declarations.js';
+import { type Declaration, findAssembleContextNames, findDeclarations } from './declarations.js';
 import type { ExpressionSite, QuestionnaireDocument } from './expression-site.js';
 import { findVariableReferences, hasFhirPathText, type VariableReference } from './fhirpath.js';
 
@@ -30,6 +30,10 @@ export function analyseDocument(
   return {
     declarations,
     references,
-    variablesAt: availableVariables(declarations, hostVariables),
+    variablesAt: availableVariables(
+      declarations,
+      findAssembleContextNames(document),
+      hostVariables,
+    ),
   };
 }

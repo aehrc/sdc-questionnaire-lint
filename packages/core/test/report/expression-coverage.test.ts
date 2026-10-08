@@ -20,6 +20,18 @@ describe('summarizeExpressionCoverage', () => {
     expect(summarizeExpressionCoverage(sites)).toEqual({ analysed: 2, unchecked: 0 });
   });
 
+  it('counts a site where an enabled check did not complete as unchecked', () => {
+    const complete = expressionSite({ ...catalogued, ...fhirPath('%a') });
+    const incomplete = expressionSite({
+      ...catalogued,
+      ...fhirPath('defineVariable(%n).select(%a)'),
+    });
+    expect(summarizeExpressionCoverage([complete, incomplete], new Set([incomplete]))).toEqual({
+      analysed: 1,
+      unchecked: 1,
+    });
+  });
+
   it('counts uncatalogued, other-language and reference-only sites as unchecked', () => {
     const sites = [
       expressionSite(fhirPath('1 + 1')),

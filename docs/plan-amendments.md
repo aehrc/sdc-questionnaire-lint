@@ -57,6 +57,7 @@ Each bullet states the override; the reasons and the implementation are in [core
 - **§3.1 deferred content:** Library content behind `Expression.reference`, whole-string FHIRPath carriers and CQL are not analysed.
 - **§4.1 `sdc/language-not-in-value-set` (D11):** accepts the R4 and R5 codes, six in all. Both query codes are analysed as queries.
 - **§4.1 `sdc/language-not-allowed` (D3, D10):** enforces only the expressions-table restrictions the Validator does not; contextExpression allows any language.
+- **§3 module names (D24):** the names a module lists in `sdc-questionnaire-assembleContext` are available at every site of that module, without being declarations.
 - **§4.1 reserved names (D23):** declaring a reserved name such as `%qitem` is an error with its own check, `sdc/reserved-name`.
 - **§4.1 `sdc/unused-declaration` (D4, D5):** reports only `variable`, and only when every plausible consumer was analysed. Supersedes "in the applicable use cases whose consumers are present".
 - **§4.1 `sdc/dependency-cycle` (D21):** defaults to `warning`, one finding per cyclic component. A future error needs a separately specified, proven failure class.

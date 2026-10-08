@@ -315,6 +315,22 @@ describe('applySuppressions: whether the rule completed its check', () => {
     expect(stale.outcome.suppressions).toEqual(counts(0, 1, 0));
   });
 
+  it('applies sdc/undefined-variable, and is stale once every name is available', async () => {
+    const suppress = [entry({ rule: 'sdc/undefined-variable' })];
+    const applied = await assess({ [A]: questionnaire('A', [calculated('%nope')]) }, { suppress });
+    expect(applied.outcome.suppressions).toEqual(counts(1, 0, 0));
+    const stale = await assess({ [A]: questionnaire('A', [calculated('%qitem')]) }, { suppress });
+    expect(stale.outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
+  it('is not assessed for sdc/undefined-variable after a defineVariable with a computed name', async () => {
+    const { outcome } = await assess(
+      { [A]: questionnaire('A', [calculated('defineVariable(%qitem.text).select(%y)')]) },
+      { suppress: [entry({ rule: 'sdc/undefined-variable' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 0, 1));
+  });
+
   it('knows where every sdc rule completes its check', () => {
     const ids = Object.keys(sdcPlugin.rules).map((name) => `${sdcPlugin.meta.name}/${name}`);
     expect(Object.keys(completesCheck).sort()).toEqual(ids.sort());

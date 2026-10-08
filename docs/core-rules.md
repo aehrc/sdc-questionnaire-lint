@@ -1,6 +1,6 @@
 # Core rules plan: the nine remaining `sdc/` rules
 
-Builds the core rules from [core-plan.md](../core-plan.md) §4.1 that do not exist yet. Reviewed on 2026-10-08. The agreed corrections are part of this plan, and its overrides of core-plan are recorded in [plan-amendments.md](../plan-amendments.md). Decision IDs D1–D23 are stable because other docs cite them.
+Builds the core rules from [core-plan.md](../core-plan.md) §4.1 that do not exist yet. Reviewed on 2026-10-08. The agreed corrections are part of this plan, and its overrides of core-plan are recorded in [plan-amendments.md](../plan-amendments.md). Decision IDs D1–D24 are stable because other docs cite them.
 
 Already built: `sdc/parse-error`, `sdc/fragment-parse-error`, `sdc/query-syntax`, `sdc/unknown-function`, `sdc/uncatalogued-expression`.
 
@@ -25,7 +25,7 @@ One PR per slice, in this order. The exception is slice 4, which is three PRs.
 | [4a](#4a-variable-references) | Variable references (no findings) | – | – | done |
 | [4b](#4b-available-variables) | Available variables and the `hostVariables` config key | – | 3 | done |
 |  | `sdc/reserved-name` | error | 0, 3 | done |
-| [4c](#4c-sdcundefined-variable) | `sdc/undefined-variable` | error | 0, 3, 4a, 4b | todo |
+| [4c](#4c-sdcundefined-variable) | `sdc/undefined-variable` | error | 0, 3, 4a, 4b | done |
 | [5](#5-sdcshadowed-declaration-and-sdcdependency-cycle) | `sdc/shadowed-declaration` | info | 4c | todo |
 |  | `sdc/dependency-cycle` | warning (D21) | 4c | todo |
 | [6](#6-sdcunused-declaration) | `sdc/unused-declaration` | warning | 4c | todo |
@@ -247,7 +247,7 @@ variablesAt(site: ExpressionSite): AvailableVariables;
 
 #### 4c. `sdc/undefined-variable`
 
-Decisions: D2, D13, D19.
+Decisions: D2, D13, D19, D24.
 
 - Error: a reference does not resolve at its site.
   - Example message: `%weigt is not available on item "BMI" (bmi).`
@@ -258,6 +258,7 @@ Decisions: D2, D13, D19.
 - `examples/health-check` uses `%patient` without a launchContext. Add a launchContext so the example does not start reporting an error, and update `examples.test.ts` and the example's README.
 - This slice has no pass for unused host variables, and no stub rule, fingerprint or report-schema handling for them (D2).
 - Add the test slice 1 deferred: an undefined name inside a `text/x-fhir-query` fragment.
+- The names a module lists in assembleContext are available throughout it (D24).
 
 **Done when** the corpus run shows zero false-positive errors.
 
@@ -341,6 +342,9 @@ Each decision is listed under its topic and keeps its original number.
   _Why:_ the explicit $extract statements (see [Extraction](#extraction)) override the table's `all` label, which names the features that use an extension. FHIRPath and FHIR define their built-in names for every context; where SDC's "only" list disagrees, core reports no error.
 - **D20. The use cases in the extension catalog follow the SDC expressions table.** `behavior` is rendering; `population` is population, including continuous population while the form is edited; `all` is rendering and population; the $extract extensions are extraction. As a result, initialExpression gains rendering; candidateExpression, answerExpression and contextExpression become population; and variable loses extraction. cqf-expression is not in the table, so it stays rendering.
   _Why:_ core checks the specification. The current entries follow Smart Forms' evaluators, which belong in the plugin's compatibility matrix. Nothing reads use cases yet, so only the catalog, its tests and the glossary change.
+
+- **D24. assembleContext names are supplied names, not declarations.** Each `valueString` of an `sdc-questionnaire-assembleContext` extension on a Questionnaire's root is available at every catalogued site of that Questionnaire, extraction sites included, after the built-in names and before the host variables. It is not a declaration, so `sdc/duplicate-declaration`, `sdc/reserved-name`, suppressions that target declarations (D22) and fingerprints do not apply to it. Decided on 2026-10-08, during slice 4c.
+  _Why:_ SDC modular forms require a module to list every name the including Questionnaire must supply in assembleContext, "to allow validating these subQuestionnaires independent of their inclusion in a parent", so any other undeclared name in a module is still an error. The extension states a requirement on the parent and is dropped by $assemble; SDC's own module example redeclares such a name on an item, which a root declaration would make a shadowing case. The parent may supply the name as a variable, which extraction cannot see, or in a form it can, so core reports no error at an extraction site (D19). Checks of the names themselves, such as a reserved or unused assembleContext name, are left to a later rule.
 
 ### Rule behaviour
 

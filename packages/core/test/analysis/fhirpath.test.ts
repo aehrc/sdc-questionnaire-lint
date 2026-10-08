@@ -189,6 +189,16 @@ describe('findVariableReferences', () => {
     ]);
   });
 
+  it('marks references after a call whose name has an escape sequence incomplete, since it may be defineVariable', () => {
+    expect(findVariableReferences("`defineV\\u0061riable`('a', 1).select(%a)")).toEqual([
+      { name: 'a', startOffset: 37, endOffset: 39, complete: false },
+    ]);
+  });
+
+  it('decodes escapes in a quoted name as fhirpath.js does, keeping a backslash before a line break', () => {
+    expect(names("%'a\\\nb'")).toEqual(['a\\\nb']);
+  });
+
   it('ignores a defineVariable that fhirpath.js rejects for its arity', () => {
     expect(names('defineVariable().select(%y)')).toEqual(['y']);
     expect(names("defineVariable('y', 1, 2).select(%y)")).toEqual(['y']);

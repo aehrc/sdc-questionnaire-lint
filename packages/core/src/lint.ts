@@ -5,6 +5,7 @@ import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { loadInputs } from './inputs/load-inputs.js';
 import type { AnalysedDocument } from './inputs/read.js';
+import { incompleteSites } from './plugins/builtin.js';
 import { resolveRuleSet } from './plugins/rule-set.js';
 import { summarizeExpressionCoverage } from './report/expression-coverage.js';
 import { buildSummary } from './report/summary.js';
@@ -73,7 +74,10 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       findings: outcome.findings,
       files: fileCounts,
       questionnaires: documents.length,
-      expressions: summarizeExpressionCoverage(analysedDocuments.flatMap(({ sites }) => sites)),
+      expressions: summarizeExpressionCoverage(
+        analysedDocuments.flatMap(({ sites }) => sites),
+        incompleteSites(analysedDocuments, ruleSet.rules),
+      ),
       suppressedFindings: outcome.suppressedFindings,
       suppressions: outcome.suppressions,
       config: loaded?.display ?? null,

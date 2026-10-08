@@ -7,13 +7,17 @@ import type { Summary } from './types.js';
 // analysed when its language has an analysis. FHIRPath, a fragment included, gets the syntax
 // check, which always completes, and the function check, which either runs or is prevented by an
 // established syntax error. An x-fhir-query gets its shape check, counted apart from its
-// fragments. Uncatalogued sites still lack scope analysis, and other languages have no analysis.
+// fragments. Uncatalogued sites lack name analysis, and other languages have no analysis.
+// incomplete holds the sites where an enabled check applies but could not complete
+// (incompleteSites in plugins/builtin.ts).
 export function summarizeExpressionCoverage(
   sites: readonly ExpressionSite[],
+  incomplete: ReadonlySet<ExpressionSite> = new Set(),
 ): Summary['expressions'] {
   const analysed = sites.filter(
     (site) =>
       site.catalogued &&
+      !incomplete.has(site) &&
       site.text !== undefined &&
       (site.language === FHIRPATH || isQueryLanguage(site.language)),
   ).length;

@@ -42,6 +42,7 @@ describe('resolveRuleSet', () => {
       ['sdc/query-syntax', 'error'],
       ['sdc/reserved-name', 'error'],
       ['sdc/uncatalogued-expression', 'info'],
+      ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
     ]);
     expect(rules.map(({ id }) => id)).toEqual(rules.map(({ id }) => id).sort());
@@ -63,6 +64,7 @@ describe('resolveRuleSet', () => {
       ['sdc/query-syntax', 'error'],
       ['sdc/reserved-name', 'error'],
       ['sdc/uncatalogued-expression', 'off'],
+      ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
     ]);
   });
@@ -79,7 +81,7 @@ describe('resolveRuleSet', () => {
   });
 
   it('fails for an unknown rule ID with nothing similar, pointing at explain', () => {
-    expect(() => resolveRules(loaded({ rules: { 'sdc/undefined-variable': 'off' } }))).toThrow(
+    expect(() => resolveRules(loaded({ rules: { 'sdc/made-up-rule': 'off' } }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         help: 'run sdc-lint explain to list the registered rules',
@@ -149,6 +151,7 @@ describe('resolveRuleSet', () => {
       ['sdc/query-syntax', 'error'],
       ['sdc/reserved-name', 'error'],
       ['sdc/uncatalogued-expression', 'info'],
+      ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
     ]);
     expect(ruleSet.rules[0]?.namespace).toBe('demo');

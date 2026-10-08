@@ -1,7 +1,9 @@
 import pkg from '../../package.json' with { type: 'json' };
+import type { DocumentAnalysis } from '../analysis/document-analysis.js';
 import type { ExpressionSite } from '../analysis/expression-site.js';
 import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
 import { hasQueryText } from '../analysis/x-fhir-query.js';
+import type { AnalysedDocument } from '../inputs/read.js';
 import { duplicateDeclaration } from '../rules/duplicate-declaration.js';
 import { externalExpression } from '../rules/external-expression.js';
 import { fragmentParseError } from '../rules/fragment-parse-error.js';
@@ -15,8 +17,10 @@ import { querySyntax } from '../rules/query-syntax.js';
 import { reservedName } from '../rules/reserved-name.js';
 import { staleSuppression } from '../rules/stale-suppression.js';
 import { uncataloguedExpression } from '../rules/uncatalogued-expression.js';
+import { resolvesNamesAt, undefinedVariable } from '../rules/undefined-variable.js';
 import { unknownFunction } from '../rules/unknown-function.js';
 import type { LintPlugin, LintRule } from './contract.js';
+import type { ResolvedRule } from './rule-set.js';
 
 // Core rules (core-plan §4.1). Rules are added as the analysis engine is built. A CoreRule is
 // listed as a LintRule: the runner gives every sdc rule the analysis as a second argument.
@@ -32,6 +36,7 @@ export const sdcPlugin: LintPlugin = {
     'query-syntax': querySyntax,
     'reserved-name': reservedName as unknown as LintRule,
     'uncatalogued-expression': uncataloguedExpression,
+    'undefined-variable': undefinedVariable as unknown as LintRule,
     'unknown-function': unknownFunction,
   },
 };
@@ -39,7 +44,9 @@ export const sdcPlugin: LintPlugin = {
 // Where each built-in rule completes its check at an Expression site. Only there does the absence
 // of its findings make a suppression stale (cli.md § Stale suppressions); a rule missing here, such
 // as a plugin rule, leaves its suppressions not assessed.
-export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => boolean>> = {
+export const completesCheck: Readonly<
+  Record<string, (site: ExpressionSite, analysis: DocumentAnalysis) => boolean>
+> = {
   'sdc/duplicate-declaration': () => true,
   'sdc/external-expression': () => true,
   'sdc/fragment-parse-error': hasQueryText,
@@ -49,9 +56,37 @@ export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => b
   'sdc/query-syntax': hasQueryText,
   'sdc/reserved-name': () => true,
   'sdc/uncatalogued-expression': () => true,
+  'sdc/undefined-variable': resolvesNamesAt,
   'sdc/unknown-function': (site) =>
     hasFhirPathText(site) && findFhirPathSyntaxProblem(site.text) === undefined,
 };
+
+// Where a built-in rule applies to a site but cannot complete its check there, which makes the site
+// unchecked (report-format.md § Run metadata and summary). A syntax error that prevents a check is
+// an established invalid expression, not a limitation, so it is not one of these.
+const leavesUnchecked: Readonly<
+  Record<string, (site: ExpressionSite, analysis: DocumentAnalysis) => boolean>
+> = {
+  'sdc/undefined-variable': (site, analysis) =>
+    analysis.references.has(site) && !resolvesNamesAt(site, analysis),
+};
+
+// The sites of documents where an enabled rule could not complete its check; a rule that is off
+// does not reduce coverage.
+export function incompleteSites(
+  documents: readonly AnalysedDocument[],
+  rules: readonly ResolvedRule[],
+): Set<ExpressionSite> {
+  const checks = rules.flatMap(({ id, setting }) => {
+    const check = leavesUnchecked[id];
+    return setting === 'off' || check === undefined ? [] : [check];
+  });
+  return new Set(
+    documents.flatMap(({ sites, analysis }) =>
+      sites.filter((site) => checks.some((check) => check(site, analysis))),
+    ),
+  );
+}
 
 // The built-in rules that complete their check at every launchContext and extractAllocateId, which
 // have no Expression site (core-rules.md D22).
