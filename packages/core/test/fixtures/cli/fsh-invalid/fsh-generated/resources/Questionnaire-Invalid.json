@@ -1,6 +1,32 @@
 {
   "resourceType": "Questionnaire",
   "id": "Invalid",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "observations",
+        "language": "application/x-fhir-query",
+        "expression": "%patient.id"
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "recent",
+        "language": "application/x-fhir-query",
+        "expression": "Observation?patient={{%patient.id}}&date=ge{{(today() - 1 year}}"
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "smoker",
+        "language": "text/fhirpath",
+        "expression": "%resource.item.where(linkId = 'smoker').answer.fist().value"
+      }
+    }
+  ],
   "item": [
     {
       "linkId": "smoker",
@@ -13,7 +39,7 @@
           "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
           "valueExpression": {
             "language": "text/fhirpath",
-            "expression": "%resource.item.where(linkId = 'smoker').answer.fist().value"
+            "expression": "%smoker = true and"
           }
         }
       ],
