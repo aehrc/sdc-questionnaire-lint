@@ -32,10 +32,12 @@ export function compareFindings(
   const unmatched = (from: readonly CorpusFinding[], against: readonly CorpusFinding[]) => {
     const counts = new Map<string, number>();
     for (const finding of against) counts.set(key(finding), (counts.get(key(finding)) ?? 0) + 1);
+    // A finding is matched while the other list has an unused copy of it.
     return from.filter((finding) => {
       const count = counts.get(key(finding)) ?? 0;
+      if (count === 0) return true;
       counts.set(key(finding), count - 1);
-      return count === 0;
+      return false;
     });
   };
   return { added: unmatched(current, snapshot), removed: unmatched(snapshot, current) };

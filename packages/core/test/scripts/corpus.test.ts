@@ -36,6 +36,17 @@ describe('compareFindings', () => {
     });
   });
 
+  it('counts every repeat of a finding the snapshot does not have', () => {
+    expect(compareFindings([], [finding(), finding()])).toEqual({
+      added: [finding(), finding()],
+      removed: [],
+    });
+    expect(compareFindings([finding(), finding(), finding()], [])).toEqual({
+      added: [],
+      removed: [finding(), finding(), finding()],
+    });
+  });
+
   it('treats a changed severity as a removed and an added finding', () => {
     const warning = finding({ severity: 'warning' });
     expect(compareFindings([finding()], [warning])).toEqual({
