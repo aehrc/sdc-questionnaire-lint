@@ -7,7 +7,7 @@ Static checking of the expressions inside FHIR SDC Questionnaires, for form auth
 ### Expressions
 
 **Expression site**:
-One expression the linter found in a Questionnaire, with where it is, what carries it and which use cases evaluate it. Rules receive a document's expression sites as a flat list in document order.
+One expression the linter found in a Questionnaire, with where it is, what carries it and its use cases. Rules receive a document's expression sites as a flat list in document order.
 _Avoid_: Expression location, occurrence
 
 **Carrier**:
@@ -22,11 +22,19 @@ A place in a Questionnaire that the extension catalog recognises, such as a vari
 _Avoid_: Registered location, known extension, supported path
 
 **Use case**:
-When an expression is evaluated: rendering (while the form is displayed and filled in), population (prefilling it from existing data) or extraction (turning answers into other resources).
+An SDC feature that uses an expression, as the SDC expressions table lists it: rendering (SDC form behavior, while the form is displayed and filled in), population (filling answers from existing data, when the form is created or while it is edited) or extraction (turning answers into other resources). A use case does not limit which names an expression can reference, except at an extraction site, a site whose only use case is extraction.
 
 **Declaration**:
-An expression that introduces a name other expressions can reference as `%name`, made with a variable or itemPopulationContext extension. A name on any other expression does not declare.
-_Avoid_: Variable (one kind of declaration), named expression
+Something in a Questionnaire that introduces a name other expressions can reference as `%name`: any expression with a name at a catalogued location, such as a variable or itemPopulationContext, a launchContext, or an extractAllocateId. A sourceQueries result is not a declaration.
+_Avoid_: Variable (one kind of declaration)
+
+**Available variables**:
+The names an expression can reference at its site; the site alone determines them. They are the declarations on its element, its ancestor items and the root, the innermost of a name winning, plus the names FHIRPath, FHIR and SDC define, and the host variables. An extraction site sees only extractAllocateId names, named extraction contexts, the built-in names and the host variables. Messages say a name "is not available on this item".
+_Avoid_: Visibility, context (FHIRPath's `%context` is something else); scope, except for the public `Scope`/`scopeAt` plugin stub, which stays until a plugin needs available variables
+
+**Host variable**:
+A name an expression can reference that the form does not declare and that FHIRPath, FHIR and SDC do not define, but that the application running the form supplies at runtime by its own convention, such as an entry in Smart Forms' additionalContext or `%PrePopQuery` for a sourceQueries Bundle. Listed by exact name in the config's `hostVariables`, and available at every site.
+_Avoid_: Environment variable (FHIRPath's term for any `%name`), context variable
 
 ### Rules and findings
 
@@ -56,7 +64,7 @@ _Avoid_: Registry, rule registry
 ### Suppressions and runs
 
 **Suppression**:
-A recorded decision, with a written reason, not to report one rule's findings at one expression.
+A recorded decision, with a written reason, not to report one rule's findings at one expression, or at one declaration that has no expression, such as a launchContext.
 _Avoid_: Exception, ignore, disable
 
 **Stale suppression**:
