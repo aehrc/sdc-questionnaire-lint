@@ -18,7 +18,7 @@ function identity(resourceType: string, id: unknown, pointer: string): ResourceI
 }
 
 // The resource a pointer lies in: a contained resource of the Questionnaire, or the Questionnaire.
-function resourceAt(document: QuestionnaireDocument, pointer: string): ResourceIdentity {
+export function resourceAt(document: QuestionnaireDocument, pointer: string): ResourceIdentity {
   const { resource, resourcePointer } = document;
   const index = /^\/contained\/(\d+)(?:\/|$)/.exec(pointer.slice(resourcePointer.length))?.[1];
   if (index !== undefined && Array.isArray(resource.contained)) {

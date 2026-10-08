@@ -1,3 +1,5 @@
+import { lineAt } from './positions.js';
+
 // Reads an FSH file into its definitions and their rules, as far as source mapping needs: the
 // keyword, name, lines and metadata of each definition, and the indentation, path and value of
 // each rule. String values keep their literal and offset, so a decoded expression can be traced
@@ -117,25 +119,13 @@ function tokenize(text: string): Token[] {
   return tokens;
 }
 
-// The one-based line an offset is on.
-function lineOf(lineStarts: readonly number[], offset: number): number {
-  let low = 0;
-  let high = lineStarts.length - 1;
-  while (low < high) {
-    const middle = Math.ceil((low + high) / 2);
-    if ((lineStarts[middle] ?? 0) <= offset) low = middle;
-    else high = middle - 1;
-  }
-  return low + 1;
-}
-
 // The tokens of each statement: those that start on one line, comments left out. A string can
 // continue onto later lines; tokens after it there start a statement of their own.
 function statements(tokens: readonly Token[], lineStarts: readonly number[]): Token[][] {
   const byLine = new Map<number, Token[]>();
   for (const token of tokens) {
     if (token.kind === 'comment') continue;
-    const line = lineOf(lineStarts, token.offset);
+    const line = lineAt(lineStarts, token.offset);
     byLine.set(line, [...(byLine.get(line) ?? []), token]);
   }
   return [...byLine.values()];
@@ -182,8 +172,8 @@ export function parseFshDocument(source: string): FshDocument {
     const [first, ...rest] = tokens;
     const last = tokens.at(-1);
     if (first === undefined || last === undefined) continue;
-    const line = lineOf(lineStarts, first.offset);
-    const endLine = lineOf(lineStarts, last.offset + last.text.length - 1);
+    const line = lineAt(lineStarts, first.offset);
+    const endLine = lineAt(lineStarts, last.offset + last.text.length - 1);
 
     if (first.text === '*') {
       if (current === undefined) continue;
