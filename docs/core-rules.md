@@ -1,6 +1,6 @@
 # Core rules plan: the nine remaining `sdc/` rules
 
-Builds the core rules from [core-plan.md](../core-plan.md) §4.1 that do not exist yet. Reviewed on 2026-10-08. The agreed corrections are part of this plan, and its overrides of core-plan are recorded in [plan-amendments.md](../plan-amendments.md). Decision IDs D1–D24 are stable because other docs cite them.
+Builds the core rules from [core-plan.md](../core-plan.md) §4.1 that do not exist yet. Reviewed on 2026-10-08. The agreed corrections are part of this plan, and its overrides of core-plan are recorded in [plan-amendments.md](../plan-amendments.md). Decision IDs D1–D25 are stable because other docs cite them.
 
 Already built: `sdc/parse-error`, `sdc/fragment-parse-error`, `sdc/query-syntax`, `sdc/unknown-function`, `sdc/uncatalogued-expression`.
 
@@ -26,8 +26,8 @@ One PR per slice, in this order. The exception is slice 4, which is three PRs.
 | [4b](#4b-available-variables) | Available variables and the `hostVariables` config key | – | 3 | done |
 |  | `sdc/reserved-name` | error | 0, 3 | done |
 | [4c](#4c-sdcundefined-variable) | `sdc/undefined-variable` | error | 0, 3, 4a, 4b | done |
-| [5](#5-sdcshadowed-declaration-and-sdcdependency-cycle) | `sdc/shadowed-declaration` | info | 4c | todo |
-|  | `sdc/dependency-cycle` | warning (D21) | 4c | todo |
+| [5](#5-sdcshadowed-declaration-and-sdcdependency-cycle) | `sdc/shadowed-declaration` | info | 4c | done |
+|  | `sdc/dependency-cycle` | warning (D21) | 4c | done |
 | [6](#6-sdcunused-declaration) | `sdc/unused-declaration` | warning | 4c | todo |
 | [7](#7-sdcunresolved-linkid) | `sdc/unresolved-linkid` | warning (D6) | 0 | todo |
 
@@ -264,14 +264,14 @@ Decisions: D2, D13, D19, D24.
 
 ### 5. `sdc/shadowed-declaration` and `sdc/dependency-cycle`
 
-Decisions: D13, D19, D21. **Open item:** the scope of the launchContext name restriction.
+Decisions: D13, D19, D21, D25. **Open item:** the scope of the launchContext name restriction.
 
 - `sdc/shadowed-declaration` (info) reports a descendant that declares a name an ancestor or the root already declares. The related location is the ancestor's declaration.
   - The info default is a deliberate change from SDC's SHOULD-level warning; plan-amendments.md already records it.
   - Descendant shadowing of a launchContext name is reported like any other shadowing until the open item is resolved. It gets no additional error.
 - `sdc/dependency-cycle` (warning):
   - Find the cyclic strongly connected components, including self-edges. Report each component once, at its first declaration in document order, with the others as related locations. Do not enumerate every simple cycle.
-  - Resolve edges with the availability model (D13, D19).
+  - Resolve edges with the availability model (D13, D19). In a declaration's own expression, its own name means the next binding outward (D25).
   - The message states the dependency and its possible consequence: `Declarations %a and %b reference each other; updates may not reach a stable value.` Use singular wording for a self-edge.
   - The help says: `Break the dependency cycle or verify that these expressions reach stable values in the form filler.` A stable cycle can be deliberate; skipping a conditional branch is not the only way to avoid failure.
   - The graph establishes a syntactic cycle, not failure to initialize or converge. Keep warning severity even when the cycle has no conditional construct. Any future core error requires a separately specified, proven failure class with explicit runtime assumptions (D21).
@@ -345,6 +345,9 @@ Each decision is listed under its topic and keeps its original number.
 
 - **D24. assembleContext names are supplied names, not declarations.** Each `valueString` of an `sdc-questionnaire-assembleContext` extension on a Questionnaire's root is available at every catalogued site of that Questionnaire, extraction sites included, after the built-in names and before the host variables. It is not a declaration, so `sdc/duplicate-declaration`, `sdc/reserved-name`, suppressions that target declarations (D22) and fingerprints do not apply to it. Decided on 2026-10-08, during slice 4c.
   _Why:_ SDC modular forms require a module to list every name the including Questionnaire must supply in assembleContext, "to allow validating these subQuestionnaires independent of their inclusion in a parent", so any other undeclared name in a module is still an error. The extension states a requirement on the parent and is dropped by $assemble; SDC's own module example redeclares such a name on an item, which a root declaration would make a shadowing case. The parent may supply the name as a variable, which extraction cannot see, or in a form it can, so core reports no error at an extraction site (D19). Checks of the names themselves, such as a reserved or unused assembleContext name, are left to a later rule.
+
+- **D25. A declaration's own name in its expression means the next binding outward.** In the expression of a declaration, and in the `{{…}}` fragments of its query, a reference to the declaration's own name resolves as if that declaration were absent: to the declaration of the name on the nearest ancestor item or the root, or else to a built-in, assembleContext or host name. A later duplicate on the same element is not a binding outward. This applies to every rule that resolves names, so the site alone still determines the result. Only when nothing else supplies the name does it resolve to the declaration itself, which `sdc/dependency-cycle` reports as a self-reference. Any other name resolves as usual, the innermost declaration winning. Decided on 2026-10-08, during slice 5.
+  _Why:_ SDC's own module example, `sdc-modular-contact`, declares `linkIdPrefix = %linkIdPrefix + 'name.'` on an item, meaning the prefix the including Questionnaire supplies through assembleContext. Strict innermost-wins resolution would make that a self-referencing cycle. A reference such as `self = %self * 0`, with nothing else of the name, still has no other binding to mean.
 
 ### Rule behaviour
 

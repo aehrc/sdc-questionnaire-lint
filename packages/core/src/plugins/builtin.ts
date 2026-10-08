@@ -4,6 +4,11 @@ import type { ExpressionSite } from '../analysis/expression-site.js';
 import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
 import { hasQueryText } from '../analysis/x-fhir-query.js';
 import type { AnalysedDocument } from '../inputs/read.js';
+import {
+  completesCycleCheck,
+  dependencyCycle,
+  leavesCycleCheckIncomplete,
+} from '../rules/dependency-cycle.js';
 import { duplicateDeclaration } from '../rules/duplicate-declaration.js';
 import { externalExpression } from '../rules/external-expression.js';
 import { fragmentParseError } from '../rules/fragment-parse-error.js';
@@ -15,6 +20,7 @@ import {
 import { parseError } from '../rules/parse-error.js';
 import { querySyntax } from '../rules/query-syntax.js';
 import { reservedName } from '../rules/reserved-name.js';
+import { shadowedDeclaration } from '../rules/shadowed-declaration.js';
 import { staleSuppression } from '../rules/stale-suppression.js';
 import { uncataloguedExpression } from '../rules/uncatalogued-expression.js';
 import { resolvesNamesAt, undefinedVariable } from '../rules/undefined-variable.js';
@@ -27,6 +33,7 @@ import type { ResolvedRule } from './rule-set.js';
 export const sdcPlugin: LintPlugin = {
   meta: { name: 'sdc', version: pkg.version },
   rules: {
+    'dependency-cycle': dependencyCycle as unknown as LintRule,
     'duplicate-declaration': duplicateDeclaration as unknown as LintRule,
     'external-expression': externalExpression,
     'fragment-parse-error': fragmentParseError,
@@ -35,6 +42,7 @@ export const sdcPlugin: LintPlugin = {
     'parse-error': parseError,
     'query-syntax': querySyntax,
     'reserved-name': reservedName as unknown as LintRule,
+    'shadowed-declaration': shadowedDeclaration as unknown as LintRule,
     'uncatalogued-expression': uncataloguedExpression,
     'undefined-variable': undefinedVariable as unknown as LintRule,
     'unknown-function': unknownFunction,
@@ -47,6 +55,7 @@ export const sdcPlugin: LintPlugin = {
 export const completesCheck: Readonly<
   Record<string, (site: ExpressionSite, analysis: DocumentAnalysis) => boolean>
 > = {
+  'sdc/dependency-cycle': completesCycleCheck,
   'sdc/duplicate-declaration': () => true,
   'sdc/external-expression': () => true,
   'sdc/fragment-parse-error': hasQueryText,
@@ -55,6 +64,7 @@ export const completesCheck: Readonly<
   'sdc/parse-error': hasFhirPathText,
   'sdc/query-syntax': hasQueryText,
   'sdc/reserved-name': () => true,
+  'sdc/shadowed-declaration': () => true,
   'sdc/uncatalogued-expression': () => true,
   'sdc/undefined-variable': resolvesNamesAt,
   'sdc/unknown-function': (site) =>
@@ -67,6 +77,7 @@ export const completesCheck: Readonly<
 const leavesUnchecked: Readonly<
   Record<string, (site: ExpressionSite, analysis: DocumentAnalysis) => boolean>
 > = {
+  'sdc/dependency-cycle': leavesCycleCheckIncomplete,
   'sdc/undefined-variable': (site, analysis) =>
     analysis.references.has(site) && !resolvesNamesAt(site, analysis),
 };
@@ -89,10 +100,13 @@ export function incompleteSites(
 }
 
 // The built-in rules that complete their check at every launchContext and extractAllocateId, which
-// have no Expression site (core-rules.md D22).
+// have no Expression site (core-rules.md D22). They reference nothing, so they are in no dependency
+// cycle.
 export const completesDeclarationCheck: ReadonlySet<string> = new Set([
+  'sdc/dependency-cycle',
   'sdc/duplicate-declaration',
   'sdc/reserved-name',
+  'sdc/shadowed-declaration',
 ]);
 
 export const staleSuppressionId = 'lint/stale-suppression';

@@ -1,5 +1,6 @@
 import { type AvailableVariables, availableVariables } from './available-variables.js';
 import { type Declaration, findAssembleContextNames, findDeclarations } from './declarations.js';
+import { type Dependencies, findDependencies } from './dependencies.js';
 import type { ExpressionSite, QuestionnaireDocument } from './expression-site.js';
 import { findVariableReferences, hasFhirPathText, type VariableReference } from './fhirpath.js';
 
@@ -13,6 +14,8 @@ export interface DocumentAnalysis {
   // The names each expression can reference at its site; undefined at an uncatalogued site, where
   // name analysis cannot run.
   variablesAt(site: ExpressionSite): AvailableVariables | undefined;
+  // What the expression of each declaration references.
+  readonly dependencies: ReadonlyMap<Declaration, Dependencies>;
 }
 
 export function analyseDocument(
@@ -27,13 +30,15 @@ export function analyseDocument(
     if (found !== undefined) references.set(site, found);
   }
   const declarations = findDeclarations(document, sites);
+  const variablesAt = availableVariables(
+    declarations,
+    findAssembleContextNames(document),
+    hostVariables,
+  );
   return {
     declarations,
     references,
-    variablesAt: availableVariables(
-      declarations,
-      findAssembleContextNames(document),
-      hostVariables,
-    ),
+    variablesAt,
+    dependencies: findDependencies(declarations, sites, references, variablesAt),
   };
 }

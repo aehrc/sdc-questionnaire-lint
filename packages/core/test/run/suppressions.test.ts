@@ -331,6 +331,33 @@ describe('applySuppressions: whether the rule completed its check', () => {
     expect(outcome.suppressions).toEqual(counts(0, 0, 1));
   });
 
+  it('applies sdc/dependency-cycle at the first declaration of a cycle, and is stale once it is broken', async () => {
+    const suppress = [entry({ rule: 'sdc/dependency-cycle', name: 'a' })];
+    const applied = await assess(
+      { [A]: questionnaire('A', [variable('a', '%b'), variable('b', '%a')]) },
+      { suppress },
+    );
+    expect(applied.outcome.suppressions).toEqual(counts(1, 0, 0));
+    const stale = await assess(
+      { [A]: questionnaire('A', [variable('a', '%b'), variable('b', '1')]) },
+      { suppress },
+    );
+    expect(stale.outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
+  it('is not assessed for sdc/dependency-cycle when a declaration it reaches has a reference after a computed defineVariable name', async () => {
+    const { outcome } = await assess(
+      {
+        [A]: questionnaire('A', [
+          variable('a', '%b'),
+          variable('b', 'defineVariable(%qitem.text).select(%a)'),
+        ]),
+      },
+      { suppress: [entry({ rule: 'sdc/dependency-cycle', name: 'a' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 0, 1));
+  });
+
   it('knows where every sdc rule completes its check', () => {
     const ids = Object.keys(sdcPlugin.rules).map((name) => `${sdcPlugin.meta.name}/${name}`);
     expect(Object.keys(completesCheck).sort()).toEqual(ids.sort());
@@ -627,6 +654,21 @@ describe('applySuppressions: declarations without an Expression', () => {
       { suppress: [{ ...reserved, name: 'patient' }] },
     );
     expect(renamed.outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
+  it('hides sdc/shadowed-declaration at an extractAllocateId on an item', async () => {
+    const { findings, outcome } = await assess(
+      { [A]: questionnaire('A', [allocateId('id')], { extension: [allocateId('id')] }) },
+      {
+        suppress: [
+          targeting(ALLOCATE_ID, { rule: 'sdc/shadowed-declaration', linkId: 'q', name: 'id' }),
+        ],
+      },
+    );
+    expect(findings).toMatchObject([
+      { ruleId: 'sdc/shadowed-declaration', jsonLocation: { pointer: '/item/0/extension/0' } },
+    ]);
+    expect(outcome.suppressions).toEqual(counts(1, 0, 0));
   });
 
   it('is stale when the rule checked the declaration and found nothing', async () => {

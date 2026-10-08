@@ -44,11 +44,15 @@ export interface AvailableVariables {
   readonly variables: readonly Variable[];
   // The variable a %name reference gets: the innermost declaration of the name, else a built-in
   // name, one with a built-in prefix included, else an assembleContext name, else a host variable.
+  // At a declaring site, or a fragment of its query, the declaration's own name resolves as if it
+  // were absent: to the declaration of the name on the nearest ancestor element, else to a name
+  // that is not a declaration, and to the declaration itself only when nothing else supplies the
+  // name (core-rules.md D25).
   resolve(name: string): Variable | undefined;
 }
 
 // Whether an SDC extraction feature is the only use of a site or a declaration (D19).
-function extractionOnly(useCases: readonly ExpressionUseCase[]): boolean {
+export function extractionOnly(useCases: readonly ExpressionUseCase[]): boolean {
   return useCases.length > 0 && useCases.every((useCase) => useCase === 'extraction');
 }
 
@@ -88,26 +92,48 @@ export function availableVariables(
       // Stable, so declarations on one element keep document order (D8).
       .sort((a, b) => depth(b) - depth(a));
     const byName = new Map<string, Variable>();
-    const add = (variable: Variable): void => {
-      if (!byName.has(variable.name)) byName.set(variable.name, Object.freeze(variable));
+    // The names that are not declarations, which a declaration of the name overrides.
+    const supplied = new Map<string, Variable>();
+    const add = (variable: Variable, into = byName): void => {
+      if (!into.has(variable.name)) into.set(variable.name, Object.freeze(variable));
     };
     for (const declaration of reachable) {
       add({ name: declaration.name, origin: 'declaration', declaration });
     }
     for (const name of builtinNames.keys()) {
-      if (name !== 'qitem' || site.item !== undefined) add({ name, origin: 'builtin' });
+      if (name !== 'qitem' || site.item !== undefined) add({ name, origin: 'builtin' }, supplied);
     }
     // Available at every site, extraction included: the including Questionnaire may supply the name
     // in a form extraction can see, such as an extractAllocateId (D24).
-    for (const name of assembled) add({ name, origin: 'assembled' });
-    for (const name of hostVariables) add({ name, origin: 'host' });
+    for (const name of assembled) add({ name, origin: 'assembled' }, supplied);
+    for (const name of hostVariables) add({ name, origin: 'host' }, supplied);
+    for (const variable of supplied.values()) add(variable);
+    const resolveSupplied = (name: string): Variable | undefined =>
+      supplied.get(name) ??
+      (builtinPrefixes.some((prefix) => name.startsWith(prefix))
+        ? Object.freeze({ name, origin: 'builtin' as const })
+        : undefined);
+    // The declaration the site's expression belongs to, when it is the innermost of its name: a
+    // fragment shares its query's Expression (D25).
+    const own = reachable.find(
+      (declaration) =>
+        declaration.site?.expressionPointer === site.expressionPointer &&
+        byName.get(declaration.name)?.declaration === declaration,
+    );
+    const outer =
+      own === undefined
+        ? undefined
+        : reachable.find((other) => other.name === own.name && depth(other) < depth(own));
+    const ownName =
+      own === undefined
+        ? undefined
+        : outer === undefined
+          ? resolveSupplied(own.name)
+          : Object.freeze({ name: own.name, origin: 'declaration' as const, declaration: outer });
     return Object.freeze({
       variables: Object.freeze([...byName.values()]),
       resolve: (name: string) =>
-        byName.get(name) ??
-        (builtinPrefixes.some((prefix) => name.startsWith(prefix))
-          ? Object.freeze({ name, origin: 'builtin' as const })
-          : undefined),
+        (name === own?.name ? ownName : undefined) ?? byName.get(name) ?? resolveSupplied(name),
     });
   }
 

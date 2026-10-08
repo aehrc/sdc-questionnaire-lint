@@ -1,12 +1,8 @@
 import type { DocumentAnalysis } from '../analysis/document-analysis.js';
-import type {
-  ExpressionSite,
-  QuestionnaireDocument,
-  SiteItem,
-} from '../analysis/expression-site.js';
-import { isObject } from '../object.js';
+import type { ExpressionSite } from '../analysis/expression-site.js';
 import type { CoreRule } from '../plugins/core-rule.js';
 import { closestName } from '../suggest.js';
+import { elementName } from './describe.js';
 
 // Whether the rule completes its check at a site: the site is catalogued, its FHIRPath parses, and
 // defineVariable left the name of every reference known (core-rules.md, slice 4c).
@@ -17,27 +13,6 @@ export function resolvesNamesAt(site: ExpressionSite, analysis: DocumentAnalysis
     references !== undefined &&
     references.every(({ complete }) => complete)
   );
-}
-
-// The text of the item at a pointer, when it is a string.
-function itemText(document: QuestionnaireDocument, item: SiteItem): string | undefined {
-  let node: unknown = document.resource;
-  for (const segment of item.pointer.slice(document.resourcePointer.length).split('/').slice(1)) {
-    node = Array.isArray(node) ? node[Number(segment)] : isObject(node) ? node[segment] : undefined;
-  }
-  return isObject(node) && typeof node.text === 'string' ? node.text : undefined;
-}
-
-// The element a site is on, in a message.
-function elementName(document: QuestionnaireDocument, item: SiteItem | undefined): string {
-  if (item === undefined) return 'the Questionnaire root';
-  const text = itemText(document, item);
-  if (item.linkId === undefined) {
-    return text === undefined ? 'an item that has no linkId' : `item ${JSON.stringify(text)}`;
-  }
-  return text === undefined
-    ? `item ${item.linkId}`
-    : `item ${JSON.stringify(text)} (${item.linkId})`;
 }
 
 const message = (name: string, element: string): string =>

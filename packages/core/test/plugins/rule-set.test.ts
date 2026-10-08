@@ -33,6 +33,7 @@ describe('resolveRuleSet', () => {
     const rules = resolveRules(null);
     expect(severities(rules)).toEqual([
       ['lint/stale-suppression', 'warning'],
+      ['sdc/dependency-cycle', 'warning'],
       ['sdc/duplicate-declaration', 'error'],
       ['sdc/external-expression', 'info'],
       ['sdc/fragment-parse-error', 'error'],
@@ -41,12 +42,13 @@ describe('resolveRuleSet', () => {
       ['sdc/parse-error', 'error'],
       ['sdc/query-syntax', 'error'],
       ['sdc/reserved-name', 'error'],
+      ['sdc/shadowed-declaration', 'info'],
       ['sdc/uncatalogued-expression', 'info'],
       ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
     ]);
     expect(rules.map(({ id }) => id)).toEqual(rules.map(({ id }) => id).sort());
-    expect(rules[1]?.rule.meta.defaultSeverity).toBe('error');
+    expect(rules[1]?.rule.meta.defaultSeverity).toBe('warning');
   });
 
   it('applies a configured severity and off', () => {
@@ -55,6 +57,7 @@ describe('resolveRuleSet', () => {
     );
     expect(severities(rules)).toEqual([
       ['lint/stale-suppression', 'warning'],
+      ['sdc/dependency-cycle', 'warning'],
       ['sdc/duplicate-declaration', 'error'],
       ['sdc/external-expression', 'info'],
       ['sdc/fragment-parse-error', 'error'],
@@ -63,6 +66,7 @@ describe('resolveRuleSet', () => {
       ['sdc/parse-error', 'warning'],
       ['sdc/query-syntax', 'error'],
       ['sdc/reserved-name', 'error'],
+      ['sdc/shadowed-declaration', 'info'],
       ['sdc/uncatalogued-expression', 'off'],
       ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
@@ -142,6 +146,7 @@ describe('resolveRuleSet', () => {
     expect(severities(ruleSet.rules)).toEqual([
       ['demo/no-today', 'warning'],
       ['lint/stale-suppression', 'warning'],
+      ['sdc/dependency-cycle', 'warning'],
       ['sdc/duplicate-declaration', 'error'],
       ['sdc/external-expression', 'info'],
       ['sdc/fragment-parse-error', 'error'],
@@ -150,6 +155,7 @@ describe('resolveRuleSet', () => {
       ['sdc/parse-error', 'error'],
       ['sdc/query-syntax', 'error'],
       ['sdc/reserved-name', 'error'],
+      ['sdc/shadowed-declaration', 'info'],
       ['sdc/uncatalogued-expression', 'info'],
       ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],

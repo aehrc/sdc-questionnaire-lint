@@ -95,7 +95,6 @@ function resolve(site: ExpressionSite, name: string): string | undefined {
 
 const root = at('/extension/1');
 const calc = at('/item/0/extension/2');
-const a1Variable = at('/item/0/item/0/extension/0');
 const a1Initial = at('/item/0/item/0/extension/1');
 const a1Extraction = at('/item/0/item/0/extension/2');
 const a1Fragment = at('/item/0/item/0/extension/3', 'fragment');
@@ -116,7 +115,7 @@ describe('available variables', () => {
     ],
     [
       'the innermost of a name',
-      a1Variable,
+      a1Initial,
       'x',
       '/item/0/item/0/extension/0/valueExpression/expression',
     ],
@@ -219,6 +218,71 @@ describe('available variables', () => {
   });
 });
 
+describe("a declaration's own name (D25)", () => {
+  const own: QuestionnaireDocument = {
+    file: 'D.json',
+    resource: {
+      resourceType: 'Questionnaire',
+      extension: [variable('y'), variable('q')],
+      item: [
+        {
+          linkId: 'd',
+          extension: [
+            variable('y', '%y'),
+            variable('y', '%y'),
+            expression('variable', 'q', 'Observation?x={{%q}}', 'application/x-fhir-query'),
+          ],
+        },
+      ],
+    },
+    resourcePointer: '',
+    localResources: [],
+  };
+  const ownSites = findExpressionSites(own);
+  const ownAnalysis = analyseDocument(own, ownSites);
+  const resolveAt = (pointer: string, carrier: string, name: string) => {
+    const site = ownSites.find(
+      (each) =>
+        each.pointer === `${pointer}/valueExpression/expression` && each.carrier === carrier,
+    );
+    if (site === undefined) throw new Error(`no site at ${pointer}`);
+    return ownAnalysis.variablesAt(site)?.resolve(name)?.declaration?.pointer;
+  };
+
+  it.each([
+    [
+      'resolves to the declaration of the nearest ancestor element',
+      '/item/0/extension/0',
+      'expression',
+      'y',
+      '/extension/0/valueExpression/expression',
+    ],
+    [
+      'does not apply to a later duplicate on the element, which the first overrides',
+      '/item/0/extension/1',
+      'expression',
+      'y',
+      '/item/0/extension/0/valueExpression/expression',
+    ],
+    [
+      "applies in a fragment of the declaration's query",
+      '/item/0/extension/2',
+      'fragment',
+      'q',
+      '/extension/1/valueExpression/expression',
+    ],
+    [
+      'resolves to the declaration itself when nothing else supplies the name',
+      '/extension/0',
+      'expression',
+      'y',
+      '/extension/0/valueExpression/expression',
+    ],
+  ])('%s', (_, pointer, carrier, name, expected) => {
+    expect(resolveAt(pointer, carrier, name)).toBe(expected);
+  });
+});
+
 describe('available variables in a module', () => {
   const assembleContext = (name: unknown) => ({ url: `${sdc}assembleContext`, valueString: name });
   const module: QuestionnaireDocument = {
@@ -238,6 +302,7 @@ describe('available variables in a module', () => {
             variable('linkIdPrefix', "%linkIdPrefix + 'a.'"),
             expression('itemExtractionContext', undefined, '%person'),
             { url: `${sdc}assembleContext`, valueString: 'onItem' },
+            expression('calculatedExpression', undefined, '%linkIdPrefix'),
           ],
         },
       ],
@@ -271,9 +336,15 @@ describe('available variables in a module', () => {
     ],
     [
       'overridden by a declaration on the item',
-      '/item/0/extension/0',
+      '/item/0/extension/3',
       'linkIdPrefix',
       '/item/0/extension/0/valueExpression/expression',
+    ],
+    [
+      "but not in that declaration's own expression (D25)",
+      '/item/0/extension/0',
+      'linkIdPrefix',
+      'assembled',
     ],
     ['not when it sits on an item', '/item/0/extension/0', 'onItem', undefined],
   ])('makes an assembleContext name available %s', (_, pointer, name, expected) => {

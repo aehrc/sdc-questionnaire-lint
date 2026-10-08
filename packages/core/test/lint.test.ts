@@ -362,8 +362,67 @@ describe('config', () => {
     it('counts a site with a reference after a computed defineVariable name as unchecked, unless the rule is off', async () => {
       const on = await run({ hostVariables: ['PrePopQuery'] });
       expect(on.summary.expressions).toEqual({ analysed: 1, unchecked: 1 });
-      const off = await run({ rules: { 'sdc/undefined-variable': 'off' } });
+      const off = await run({
+        rules: { 'sdc/undefined-variable': 'off', 'sdc/dependency-cycle': 'off' },
+      });
       expect(off.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
+    });
+  });
+
+  describe('sdc/dependency-cycle', () => {
+    const variable = (name: string, expression: string) => ({
+      url: 'http://hl7.org/fhir/StructureDefinition/variable',
+      valueExpression: { name, language: 'text/fhirpath', expression },
+    });
+    const form = JSON.stringify({
+      resourceType: 'Questionnaire',
+      status: 'draft',
+      extension: [
+        variable('a', '%b'),
+        variable('b', 'defineVariable(%resource.id).select(%a)'),
+        variable('c', '%c.where('),
+      ],
+    });
+    const run = async (settings: Record<string, unknown>) =>
+      lint({
+        cwd: await tempTree({
+          [config]: JSON.stringify(settings),
+          'fsh-generated/resources/Questionnaire-A.json': form,
+        }),
+      });
+
+    it('does not count a declaration that reaches one in another language as unchecked', async () => {
+      const result = await lint({
+        cwd: await tempTree({
+          'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+            resourceType: 'Questionnaire',
+            status: 'draft',
+            extension: [
+              variable('a', '%b'),
+              {
+                url: 'http://hl7.org/fhir/StructureDefinition/variable',
+                valueExpression: { name: 'b', language: 'text/cql', expression: 'a' },
+              },
+            ],
+          }),
+        }),
+      });
+      expect(result.summary.expressions).toEqual({ analysed: 1, unchecked: 1 });
+    });
+
+    it('counts a declaration that reaches a reference after a computed defineVariable name as unchecked, unless the rule is off', async () => {
+      const on = await run({
+        rules: { 'sdc/undefined-variable': 'off', 'sdc/parse-error': 'off' },
+      });
+      expect(on.summary.expressions).toEqual({ analysed: 1, unchecked: 2 });
+      const off = await run({
+        rules: {
+          'sdc/undefined-variable': 'off',
+          'sdc/parse-error': 'off',
+          'sdc/dependency-cycle': 'off',
+        },
+      });
+      expect(off.summary.expressions).toEqual({ analysed: 3, unchecked: 0 });
     });
   });
 

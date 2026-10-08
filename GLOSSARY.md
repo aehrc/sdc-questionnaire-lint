@@ -29,7 +29,7 @@ Something in a Questionnaire that introduces a name other expressions can refere
 _Avoid_: Variable (one kind of declaration)
 
 **Available variables**:
-The names an expression can reference at its site; the site alone determines them. They are the declarations on its element, its ancestor items and the root, the innermost of a name winning, plus the names FHIRPath, FHIR and SDC define, the names a module lists in assembleContext, and the host variables. An extraction site sees only extractAllocateId names, named extraction contexts, the built-in names, the assembleContext names and the host variables. Messages say a name "is not available on this item".
+The names an expression can reference at its site; the site alone determines them. They are the declarations on its element, its ancestor items and the root, the innermost of a name winning (in a declaration's own expression, its own name means the next binding outward), plus the names FHIRPath, FHIR and SDC define, the names a module lists in assembleContext, and the host variables. An extraction site sees only extractAllocateId names, named extraction contexts, the built-in names, the assembleContext names and the host variables. Messages say a name "is not available on this item".
 _Avoid_: Visibility, context (FHIRPath's `%context` is something else); scope, except for the public `Scope`/`scopeAt` plugin stub, which stays until a plugin needs available variables
 
 **Host variable**:

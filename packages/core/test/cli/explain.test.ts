@@ -13,6 +13,7 @@ describe('sdc-lint explain', () => {
       stdout:
         'RULE                           DEFAULT  EFFECTIVE  DESCRIPTION\n' +
         'lint/stale-suppression         warning  warning    Reports a suppression that is no longer needed.\n' +
+        'sdc/dependency-cycle           warning  warning    Reports declarations whose expressions reference each other in a cycle.\n' +
         'sdc/duplicate-declaration      error    error      Reports a name declared more than once on one item or on the root.\n' +
         'sdc/external-expression        info     info       Reports an expression whose content is only behind a reference.\n' +
         'sdc/fragment-parse-error       error    error      Reports a FHIRPath expression embedded in an x-fhir-query that does not parse.\n' +
@@ -21,6 +22,7 @@ describe('sdc-lint explain', () => {
         'sdc/parse-error                error    error      Reports a FHIRPath expression that does not parse.\n' +
         'sdc/query-syntax               error    error      Reports an x-fhir-query that is not a FHIR search.\n' +
         'sdc/reserved-name              error    error      Reports a declaration of a name that FHIRPath, FHIR or SDC defines.\n' +
+        'sdc/shadowed-declaration       info     info       Reports a name an item declares that an ancestor item or the root also declares.\n' +
         'sdc/uncatalogued-expression    info     info       Reports an expression in a place the linter does not recognise.\n' +
         'sdc/undefined-variable         error    error      Reports a %name that is not available where it is used.\n' +
         'sdc/unknown-function           error    error      Reports a call to a function that fhirpath.js does not implement.\n' +

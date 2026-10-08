@@ -1,6 +1,7 @@
 import type { Declaration } from '../analysis/declarations.js';
-import type { RuleFinding, RuleRelatedLocation } from '../plugins/contract.js';
+import type { RuleRelatedLocation } from '../plugins/contract.js';
 import type { CoreRule } from '../plugins/core-rule.js';
+import { placeOf } from './describe.js';
 
 // The element a declaration is on, in a message.
 function elementName({ item }: Declaration): string {
@@ -11,11 +12,6 @@ function elementName({ item }: Declaration): string {
 const message = (name: string, element: string): string =>
   `The name %${name} is declared more than once on ${element}, so it is unclear which value ` +
   'expressions that use it get.';
-
-// A declaration's place: its Expression, or the extension of a launchContext or extractAllocateId.
-function placeOf({ site, pointer }: Declaration): Pick<RuleFinding, 'site' | 'pointer'> {
-  return site === undefined ? { pointer } : { site };
-}
 
 export const duplicateDeclaration: CoreRule = {
   meta: {
