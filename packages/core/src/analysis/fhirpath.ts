@@ -385,8 +385,8 @@ export function findLinkIdReferences(
     for (const selector of chain ?? []) selector.probe = true;
   };
 
-  const invoke = (invocation: ParseNode, input: Value, current: boolean): Value => {
-    if (invocation.type === 'ThisInvocation') return { form: current, chain: [] };
+  const invoke = (invocation: ParseNode, input: Value, current: Value): Value => {
+    if (invocation.type === 'ThisInvocation') return current;
     if (invocation.type === 'MemberInvocation') {
       const name = identifierName(invocation);
       if (name === 'item') return input;
@@ -396,8 +396,15 @@ export function findLinkIdReferences(
     const functn = child(invocation, 'Functn');
     const name = identifierName(functn);
     const args = child(functn, 'ParamList')?.children ?? [];
-    const focused = name !== undefined && focusedArguments.has(name);
-    const values = args.map((argument) => visit(argument, focused && input.form));
+    // Only repeat's argument continues the chain of its input: the items it gives are reached
+    // from those through the argument's steps.
+    const argumentInput: Value =
+      name === 'repeat'
+        ? input
+        : name !== undefined && focusedArguments.has(name)
+          ? { form: input.form, chain: [] }
+          : unknown;
+    const values = args.map((argument) => visit(argument, argumentInput));
     switch (name) {
       case 'where': {
         const compared = args.length === 1 ? comparison(args[0]) : undefined;
@@ -411,7 +418,7 @@ export function findLinkIdReferences(
         return { form: input.form, chain: [...input.chain, selector] };
       }
       case 'repeat':
-        return values[0]?.form === true ? input : unknown;
+        return values[0]?.form === true ? { form: input.form, chain: values[0].chain } : unknown;
       case 'select':
         return { form: values[0]?.form === true && input.form, chain: [] };
       case 'exists':
@@ -426,7 +433,7 @@ export function findLinkIdReferences(
   };
 
   // The value of node with current as its input.
-  const visit = (node: ParseNode, current: boolean): Value => {
+  const visit = (node: ParseNode, current: Value): Value => {
     const [first, second] = node.children ?? [];
     switch (node.type) {
       case 'EntireExpression':
@@ -438,9 +445,7 @@ export function findLinkIdReferences(
         }
         if (first?.type === 'InvocationTerm') {
           const invocation = first.children?.[0];
-          return invocation === undefined
-            ? unknown
-            : invoke(invocation, { form: current, chain: [] }, current);
+          return invocation === undefined ? unknown : invoke(invocation, current, current);
         }
         return first === undefined ? unknown : visit(first, current);
       }
@@ -465,7 +470,7 @@ export function findLinkIdReferences(
     }
   };
 
-  visit(parsed.tree, focus);
+  visit(parsed.tree, { form: focus, chain: [] });
   const references = selectors.filter((selector) => !selector.probe);
   return {
     literals: references.flatMap(({ literal, established }) =>

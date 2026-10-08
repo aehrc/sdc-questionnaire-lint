@@ -316,6 +316,18 @@ describe('findLinkIdReferences', () => {
     expect(found("item.where(linkId = 'a').count()")).toEqual(literals('a'));
   });
 
+  it('follows a selection through repeat only along item steps', () => {
+    expect(found("%resource.repeat(item.where(linkId = 'a')).exists()")).toEqual(none);
+    expect(found("%resource.item.where(linkId = 'a').repeat(item).exists()")).toEqual(none);
+    expect(found("%resource.item.where(linkId = 'a').repeat(item | answer.item).empty()")).toEqual(
+      none,
+    );
+    expect(found("%resource.item.where(linkId = 'a').repeat(answer.item).exists()")).toEqual(
+      literals('a'),
+    );
+    expect(found("%resource.repeat(answer.item.where(linkId = 'a')).exists()")).toEqual(none);
+  });
+
   it.each([
     ["item.where(linkId != 'a')"],
     ["item.where(linkId = 'a' or linkId = 'b')"],
