@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   findFhirPathSyntaxProblem,
   findFunctionCalls,
+  findLinkIdReferences,
   findVariableReferences,
 } from '../../src/analysis/fhirpath.js';
 
@@ -207,5 +208,125 @@ describe('findVariableReferences', () => {
   it('returns undefined for text that does not parse', () => {
     expect(findVariableReferences('%a.where(')).toBeUndefined();
     expect(findVariableReferences('%div')).toBeUndefined();
+  });
+});
+
+describe('findLinkIdReferences', () => {
+  const roots = new Set(['questionnaire', 'resource', 'context', 'qitem']);
+  // The literal linkIds found, and whether a reference was uncertain, with the site's input
+  // established as this form's.
+  const found = (text: string, focus = true) => {
+    const result = findLinkIdReferences(text, { roots, focus });
+    return (
+      result && {
+        linkIds: result.literals.map(({ linkId }) => linkId),
+        uncertain: result.uncertain,
+      }
+    );
+  };
+  const literals = (...linkIds: string[]) => ({ linkIds, uncertain: false });
+  const uncertain = { linkIds: [], uncertain: true };
+  const none = literals();
+
+  it('gives the linkId and the offsets of its string literal', () => {
+    expect(findLinkIdReferences("item.where(linkId = 'a\\'b')", { roots, focus: true })).toEqual({
+      literals: [{ linkId: "a'b", startOffset: 20, endOffset: 26 }],
+      uncertain: false,
+    });
+  });
+
+  it.each([
+    ["%questionnaire.item.where(linkId = 'a')"],
+    ["%questionnaire.repeat(item).where(linkId = 'a')"],
+    ["%qitem.item.where(linkId = 'a')"],
+    ["%qitem.repeat(item).where(linkId = 'a')"],
+    ["%resource.item.where(linkId = 'a')"],
+    ["%resource.repeat(item).where(linkId = 'a')"],
+    ["%resource.repeat(item | answer.item).where(linkId = 'a')"],
+    ["%context.item.where(linkId = 'a')"],
+    ["item.where(linkId = 'a')"],
+    ["repeat(item).where(linkId = 'a')"],
+    ["$this.item.where(linkId = 'a')"],
+    ["where(linkId = 'a')"],
+    ["(%resource.item).where(linkId = 'a')"],
+    ["%resource.item.where('a' = linkId)"],
+    ["%resource.item.answer.item.where(linkId = 'a')"],
+    ["%resource.item.where(answer.exists()).where(linkId = 'a')"],
+    ["%resource.item.select(item.where(linkId = 'a'))"],
+    ["iif(item.where(linkId = 'a').answer.value = true, 1, 0)"],
+    [
+      "%resource.repeat(item).where(linkId = 'g').answer.all(item.where(linkId = 'a').exists().not() or item.where(linkId = 'a').answer.value)",
+    ],
+  ])('finds the literal selected from items of this form in %s', (text) => {
+    expect(found(text)?.linkIds.at(-1)).toBe('a');
+    expect(found(text)?.uncertain).toBe(false);
+  });
+
+  it('finds each selector of a chain, in source order', () => {
+    expect(found("item.where(linkId = 'a').item.where(linkId = 'b').answer.value")).toEqual(
+      literals('a', 'b'),
+    );
+  });
+
+  it.each([
+    ["%previousResponse.item.where(linkId = 'a')"],
+    ["%group.item.where(linkId = 'a')"],
+    ["%resource.descendants().where(linkId = 'a')"],
+    ["%questionnaire.contained.item.where(linkId = 'a')"],
+    ["%resource.item.first().item.where(linkId = 'a')"],
+    ["%resource.repeat(descendants()).where(linkId = 'a')"],
+    ["item.where(linkId = %prefix + '1')"],
+    ["item.where(linkId = 'a' + 'b')"],
+    ["%resource.item.answer.value.combine(item.where(linkId = 'a'))"],
+  ])('marks a reference whose target or linkId is not established uncertain: %s', (text) => {
+    expect(found(text)).toEqual(uncertain);
+  });
+
+  it('marks an implicit input uncertain when the site does not establish it', () => {
+    expect(found("item.where(linkId = 'a')", false)).toEqual(uncertain);
+    expect(found("%resource.item.where(linkId = 'a')", false)).toEqual(literals('a'));
+  });
+
+  it('marks %qitem uncertain when it is not a root of the site', () => {
+    const result = findLinkIdReferences("%qitem.item.where(linkId = 'a')", {
+      roots: new Set(['resource']),
+      focus: true,
+    });
+    expect(result).toEqual({ literals: [], uncertain: true });
+  });
+
+  it.each([
+    ["item.where(linkId = 'a').exists()"],
+    ["item.where(linkId = 'a').exists(answer.exists())"],
+    ["item.where(linkId = 'a').empty()"],
+    ["item.where(linkId = 'a').count() > 0"],
+    ["0 = item.where(linkId = 'a').count()"],
+    ["item.where(linkId = 'g').item.where(linkId = 'a').exists()"],
+    ["(%resource.repeat(item).where(linkId = 'a') | item.where(linkId = 'b')).empty()"],
+    ["%previousResponse.item.where(linkId = 'a').exists()"],
+    ["item.where(linkId = %prefix + '1').exists()"],
+  ])('leaves out a deliberate absence probe: %s', (text) => {
+    expect(found(text)).toEqual(none);
+  });
+
+  it('does not treat a selector whose answers are tested as an absence probe', () => {
+    expect(found("item.where(linkId = 'a').answer.value.exists()")).toEqual(literals('a'));
+    expect(found("item.where(linkId = 'a').answer.exists()")).toEqual(literals('a'));
+    expect(found("item.where(linkId = 'a').answer.value.count() > 0")).toEqual(literals('a'));
+    expect(found("item.where(linkId = 'a').count()")).toEqual(literals('a'));
+  });
+
+  it.each([
+    ["item.where(linkId != 'a')"],
+    ["item.where(linkId = 'a' or linkId = 'b')"],
+    ["item.where(linkId ~ 'a')"],
+    ["item.where(linkId.startsWith('a'))"],
+    ['%resource.item.answer.value'],
+  ])('finds no reference outside the supported pattern: %s', (text) => {
+    expect(found(text)).toEqual(none);
+  });
+
+  it('returns undefined for text that does not parse', () => {
+    expect(findLinkIdReferences("item.where(linkId = 'a'", { roots, focus: true })).toBeUndefined();
   });
 });

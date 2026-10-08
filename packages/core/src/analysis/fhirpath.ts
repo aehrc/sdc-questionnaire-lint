@@ -272,3 +272,205 @@ export function findVariableReferences(text: string): VariableReference[] | unde
   visit(parsed.tree, { names: new Set(), computed: false });
   return references;
 }
+
+// A linkId written as a string literal in where(linkId = '…').
+export interface LinkIdLiteral {
+  linkId: string;
+  // Zero-based UTF-16 offsets of the string literal, quotes included.
+  startOffset: number;
+  endOffset: number;
+}
+
+// The linkId references in a FHIRPath expression: where(linkId = …) on a collection (core-rules.md,
+// slice 7).
+export interface LinkIdReferences {
+  // The literal linkIds selected from items of this form, in source order. A deliberate absence
+  // probe is left out.
+  literals: LinkIdLiteral[];
+  // Whether a reference other than an absence probe has a target or linkId that is not
+  // established.
+  uncertain: boolean;
+}
+
+// What a site establishes as items of this form: the names of the %constants that are, and
+// whether its input, the implicit focus at the top of the expression, is.
+export interface LinkIdTargets {
+  roots: ReadonlySet<string>;
+  focus: boolean;
+}
+
+interface Selector {
+  literal?: LinkIdLiteral;
+  // Whether its input is established as items of this form.
+  established: boolean;
+  probe: boolean;
+}
+
+// What the walk knows of a value: whether it is established as nodes of this form (the
+// Questionnaire, the response, their items and answers), the selectors whose items flow into it
+// through item steps, and, for a count(), the selectors whose items it counts.
+interface Value {
+  form: boolean;
+  chain: Selector[];
+  counted?: Selector[];
+}
+
+const unknown: Value = { form: false, chain: [] };
+
+// The functions whose arguments are evaluated on each item of their input, or on the input itself
+// for iif. Any other function's arguments get an input that is not established.
+const focusedArguments: ReadonlySet<string> = new Set([
+  'where',
+  'select',
+  'repeat',
+  'exists',
+  'all',
+  'iif',
+]);
+
+// The name of a member or function as fhirpath.js reads it, without backticks.
+function identifierName(node: ParseNode | undefined): string | undefined {
+  const text = child(node, 'Identifier')?.text;
+  return text === undefined ? undefined : (/^`(.*)`$/s.exec(text)?.[1] ?? text);
+}
+
+// Whether a node is the member linkId on its own, as written in where(linkId = …).
+function isLinkIdMember(node: ParseNode | undefined): boolean {
+  const member = child(child(node, 'InvocationTerm'), 'MemberInvocation');
+  return node?.type === 'TermExpression' && identifierName(member) === 'linkId';
+}
+
+// The linkId references in text, or undefined when it does not parse. Only where(linkId = …) with
+// linkId on one side of = is a reference; the input of the where must be established through the
+// roots, the focus, item, answer, repeat, where and select.
+export function findLinkIdReferences(
+  text: string,
+  { roots, focus }: LinkIdTargets,
+): LinkIdReferences | undefined {
+  const parsed = parse(text);
+  if (!('tree' in parsed)) return undefined;
+  const selectors: Selector[] = [];
+
+  // A where's argument, when it compares linkId with =: the literal it compares with, if any.
+  const comparison = (argument: ParseNode | undefined): { literal?: LinkIdLiteral } | undefined => {
+    if (argument?.type !== 'EqualityExpression' || argument.text !== '=') return undefined;
+    const [left, right] = argument.children ?? [];
+    const other = isLinkIdMember(left) ? right : isLinkIdMember(right) ? left : undefined;
+    if (other === undefined) return undefined;
+    // The position is on the LiteralTerm, the text on both.
+    const term = child(other, 'LiteralTerm');
+    const { text: written, start } = term ?? {};
+    if (
+      other.type !== 'TermExpression' ||
+      child(term, 'StringLiteral') === undefined ||
+      written === undefined
+    ) {
+      return {};
+    }
+    const startOffset =
+      start === undefined ? undefined : toOffset(text, start.line, start.column - 1);
+    if (startOffset === undefined) {
+      throw new Error(`fhirpath.js gave a string literal without a position: ${text}`);
+    }
+    return {
+      literal: {
+        linkId: stringValue(written),
+        startOffset,
+        endOffset: startOffset + written.length,
+      },
+    };
+  };
+
+  const probe = (chain: readonly Selector[] | undefined): void => {
+    for (const selector of chain ?? []) selector.probe = true;
+  };
+
+  const invoke = (invocation: ParseNode, input: Value, current: boolean): Value => {
+    if (invocation.type === 'ThisInvocation') return { form: current, chain: [] };
+    if (invocation.type === 'MemberInvocation') {
+      const name = identifierName(invocation);
+      if (name === 'item') return input;
+      return name === 'answer' ? { form: input.form, chain: [] } : unknown;
+    }
+    if (invocation.type !== 'FunctionInvocation') return unknown;
+    const functn = child(invocation, 'Functn');
+    const name = identifierName(functn);
+    const args = child(functn, 'ParamList')?.children ?? [];
+    const focused = name !== undefined && focusedArguments.has(name);
+    const values = args.map((argument) => visit(argument, focused && input.form));
+    switch (name) {
+      case 'where': {
+        const compared = args.length === 1 ? comparison(args[0]) : undefined;
+        if (compared === undefined) return input;
+        const selector: Selector = {
+          ...compared,
+          established: input.form,
+          probe: false,
+        };
+        selectors.push(selector);
+        return { form: input.form, chain: [...input.chain, selector] };
+      }
+      case 'repeat':
+        return values[0]?.form === true ? input : unknown;
+      case 'select':
+        return { form: values[0]?.form === true && input.form, chain: [] };
+      case 'exists':
+      case 'empty':
+        probe(input.chain);
+        return unknown;
+      case 'count':
+        return { ...unknown, counted: input.chain };
+      default:
+        return unknown;
+    }
+  };
+
+  // The value of node with current as its input.
+  const visit = (node: ParseNode, current: boolean): Value => {
+    const [first, second] = node.children ?? [];
+    switch (node.type) {
+      case 'EntireExpression':
+      case 'ParenthesizedTerm':
+        return first === undefined ? unknown : visit(first, current);
+      case 'TermExpression': {
+        if (first?.type === 'ExternalConstantTerm') {
+          return { form: roots.has(constantName(node) ?? ''), chain: [] };
+        }
+        if (first?.type === 'InvocationTerm') {
+          const invocation = first.children?.[0];
+          return invocation === undefined
+            ? unknown
+            : invoke(invocation, { form: current, chain: [] }, current);
+        }
+        return first === undefined ? unknown : visit(first, current);
+      }
+      case 'InvocationExpression':
+        return first === undefined || second === undefined
+          ? unknown
+          : invoke(second, visit(first, current), current);
+      case 'UnionExpression': {
+        const values = (node.children ?? []).map((operand) => visit(operand, current));
+        return {
+          form: values.every(({ form }) => form),
+          chain: values.flatMap(({ chain }) => chain),
+        };
+      }
+      case 'EqualityExpression':
+      case 'InequalityExpression':
+        for (const operand of node.children ?? []) probe(visit(operand, current).counted);
+        return unknown;
+      default:
+        for (const next of node.children ?? []) visit(next, current);
+        return unknown;
+    }
+  };
+
+  visit(parsed.tree, focus);
+  const references = selectors.filter((selector) => !selector.probe);
+  return {
+    literals: references.flatMap(({ literal, established }) =>
+      established && literal !== undefined ? [literal] : [],
+    ),
+    uncertain: references.some(({ literal, established }) => !established || literal === undefined),
+  };
+}

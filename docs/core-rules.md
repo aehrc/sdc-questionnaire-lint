@@ -29,7 +29,7 @@ One PR per slice, in this order. The exception is slice 4, which is three PRs.
 | [5](#5-sdcshadowed-declaration-and-sdcdependency-cycle) | `sdc/shadowed-declaration` | info | 4c | done |
 |  | `sdc/dependency-cycle` | warning (D21) | 4c | done |
 | [6](#6-sdcunused-declaration) | `sdc/unused-declaration` | warning | 4c | done |
-| [7](#7-sdcunresolved-linkid) | `sdc/unresolved-linkid` | warning (D6) | 0 | todo |
+| [7](#7-sdcunresolved-linkid) | `sdc/unresolved-linkid` | warning (D6) | 0 | done |
 
 These severities are the core-plan defaults, with the amendments applied. The changes from §4.1's error defaults are `sdc/dependency-cycle` (D21) and `sdc/unresolved-linkid` (D6, D7).
 
@@ -307,6 +307,13 @@ Decisions: D6.
 - A linkId reference with an uncertain target produces no finding and leaves this check incomplete. Examples are `%previousResponse`, computed linkIds and unsupported aliases.
 - A site is not unchecked just because it matches none of the patterns. Pass the per-rule completion evidence to coverage and suppression assessment.
 - Tests cover both target kinds, `%qitem` and root/item `%context`, nested groups and answer children, a known linkId searched at the wrong depth, contained resources, foreign responses, deliberate absence probes, and configured warning/error severity.
+- As built, the supported patterns are these:
+  - A linkId reference is `where(linkId = …)` whose only argument is an `=` with the member `linkId` on either side. Other comparisons, such as `linkId != '…'`, `linkId ~ '…'`, or a comparison joined to another by `and` or `or`, are not references, and a site that has only those is not unchecked.
+  - At a catalogued site, `%questionnaire`, `%resource`, `%context` and the expression's input are items of this form, and so is `%qitem` at an item site. The input is followed through `item`, `answer`, `repeat(…)` whose argument stays in the form, `where(…)`, `select(…)` and parentheses and unions; the arguments of `where`, `select`, `repeat`, `exists`, `all` and `iif` get the input as theirs. Anything else, such as another variable, `%previousResponse`, `descendants()`, `first()` or the argument of any other function, is not established.
+  - A reference whose input is not established, or whose linkId is not a string literal, is uncertain: it gets no finding, and its site is unchecked and its suppressions are not assessed.
+  - A selection consumed by `exists()`, `empty()` or a `count()` that is compared, directly or through further `item`, `repeat` and `where` steps, is an absence probe; it is never a finding and never makes the site unchecked. `.answer` ends this, so `where(linkId = 'a').answer.value.exists()` is checked.
+  - Nothing is established in a modular Questionnaire: one that includes a `subQuestionnaire`, or is a module, with `assembleContext` or an `assemble-expectation` code that allows a child. Its assembled form has items this Questionnaire lacks.
+  - The help names a similar existing linkId when there is one, within the edit distance `sdc/undefined-variable` uses.
 
 ## Decisions
 

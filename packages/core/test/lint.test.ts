@@ -496,6 +496,60 @@ describe('config', () => {
     });
   });
 
+  describe('sdc/unresolved-linkid', () => {
+    const run = async (expression: string, rules: Record<string, string> = {}) =>
+      lint({
+        cwd: await tempTree({
+          [config]: JSON.stringify({ rules }),
+          'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+            resourceType: 'Questionnaire',
+            status: 'draft',
+            item: [
+              {
+                linkId: 'x',
+                type: 'decimal',
+                extension: [
+                  {
+                    url: 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression',
+                    valueExpression: { language: 'text/fhirpath', expression },
+                  },
+                ],
+              },
+            ],
+          }),
+        }),
+      });
+
+    it('reports at warning by default, and at error when configured', async () => {
+      const text = "%resource.repeat(item).where(linkId = 'typo').answer.value";
+      const warning = await run(text);
+      expect(warning.findings).toMatchObject([
+        { ruleId: 'sdc/unresolved-linkid', severity: 'warning' },
+      ]);
+      expect(warning.summary).toMatchObject({ errors: 0, warnings: 1 });
+      const error = await run(text, { 'sdc/unresolved-linkid': 'error' });
+      expect(error.findings).toMatchObject([
+        { ruleId: 'sdc/unresolved-linkid', severity: 'error' },
+      ]);
+      expect(error.summary).toMatchObject({ errors: 1, warnings: 0 });
+    });
+
+    it('counts a site with a reference whose target is uncertain as unchecked, unless the rule is off', async () => {
+      const text = "%resource.descendants().where(linkId = 'x').answer.value";
+      const on = await run(text);
+      expect(on.findings).toEqual([]);
+      expect(on.summary.expressions).toEqual({ analysed: 0, unchecked: 1 });
+      const off = await run(text, { 'sdc/unresolved-linkid': 'off' });
+      expect(off.summary.expressions).toEqual({ analysed: 1, unchecked: 0 });
+    });
+
+    it('does not count a site without a linkId reference, or with an absence probe, as unchecked', async () => {
+      for (const text of ['1 + 1', "%resource.descendants().where(linkId = 'x').exists()"]) {
+        expect((await run(text)).summary.expressions).toEqual({ analysed: 1, unchecked: 0 });
+      }
+    });
+  });
+
   it('resolves files and source.fsh beneath a config in a subdirectory', async () => {
     const cwd = await tempTree({
       [`ig/${config}`]: JSON.stringify({ files: ['out'], source: { fsh: ['fsh'] } }),

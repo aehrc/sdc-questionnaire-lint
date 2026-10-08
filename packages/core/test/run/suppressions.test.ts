@@ -390,6 +390,46 @@ describe('applySuppressions: whether the rule completed its check', () => {
     },
   );
 
+  it('applies sdc/unresolved-linkid at a missing linkId, and is stale once the item exists', async () => {
+    const suppress = [entry({ rule: 'sdc/unresolved-linkid' })];
+    const select = calculated("%resource.repeat(item).where(linkId = 'r').answer.value");
+    const applied = await assess({ [A]: questionnaire('A', [select]) }, { suppress });
+    expect(applied.outcome.suppressions).toEqual(counts(1, 0, 0));
+    const stale = await assess(
+      {
+        [A]: questionnaire('A', [select], {
+          item: [{ linkId: 'q', extension: [select], item: [{ linkId: 'r' }] }],
+        }),
+      },
+      { suppress },
+    );
+    expect(stale.outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
+  it('is not assessed for sdc/unresolved-linkid when a reference has an uncertain target', async () => {
+    const { outcome } = await assess(
+      {
+        [A]: questionnaire('A', [
+          calculated("%previousResponse.item.where(linkId = 'r').answer.value"),
+        ]),
+      },
+      { suppress: [entry({ rule: 'sdc/unresolved-linkid' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 0, 1));
+  });
+
+  it('assesses sdc/unknown-function at a site where sdc/unresolved-linkid cannot complete', async () => {
+    const { outcome } = await assess(
+      {
+        [A]: questionnaire('A', [
+          calculated("%resource.descendants().where(linkId = 'r').count()"),
+        ]),
+      },
+      { suppress: [entry({ rule: 'sdc/unknown-function' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
   it('knows where every sdc rule completes its check', () => {
     const ids = Object.keys(sdcPlugin.rules).map((name) => `${sdcPlugin.meta.name}/${name}`);
     expect(Object.keys(completesCheck).sort()).toEqual(ids.sort());

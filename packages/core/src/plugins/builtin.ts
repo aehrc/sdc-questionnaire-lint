@@ -26,6 +26,11 @@ import { uncataloguedExpression } from '../rules/uncatalogued-expression.js';
 import { resolvesNamesAt, undefinedVariable } from '../rules/undefined-variable.js';
 import { unknownFunction } from '../rules/unknown-function.js';
 import {
+  completesLinkIdCheck,
+  leavesLinkIdCheckIncomplete,
+  unresolvedLinkId,
+} from '../rules/unresolved-linkid.js';
+import {
   completesUnusedCheck,
   leavesUnusedCheckIncomplete,
   unusedDeclaration,
@@ -51,6 +56,7 @@ export const sdcPlugin: LintPlugin = {
     'uncatalogued-expression': uncataloguedExpression,
     'undefined-variable': undefinedVariable as unknown as LintRule,
     'unknown-function': unknownFunction,
+    'unresolved-linkid': unresolvedLinkId as unknown as LintRule,
     'unused-declaration': unusedDeclaration as unknown as LintRule,
   },
 };
@@ -75,6 +81,7 @@ export const completesCheck: Readonly<
   'sdc/undefined-variable': resolvesNamesAt,
   'sdc/unknown-function': (site) =>
     hasFhirPathText(site) && findFhirPathSyntaxProblem(site.text) === undefined,
+  'sdc/unresolved-linkid': completesLinkIdCheck,
   'sdc/unused-declaration': completesUnusedCheck,
 };
 
@@ -87,6 +94,7 @@ const leavesUnchecked: Readonly<
   'sdc/dependency-cycle': leavesCycleCheckIncomplete,
   'sdc/undefined-variable': (site, analysis) =>
     analysis.references.has(site) && !resolvesNamesAt(site, analysis),
+  'sdc/unresolved-linkid': leavesLinkIdCheckIncomplete,
   'sdc/unused-declaration': leavesUnusedCheckIncomplete,
 };
 

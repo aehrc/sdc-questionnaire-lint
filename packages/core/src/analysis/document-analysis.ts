@@ -2,7 +2,13 @@ import { type AvailableVariables, availableVariables } from './available-variabl
 import { type Declaration, findAssembleContextNames, findDeclarations } from './declarations.js';
 import { type Dependencies, findDependencies } from './dependencies.js';
 import type { ExpressionSite, QuestionnaireDocument } from './expression-site.js';
-import { findVariableReferences, hasFhirPathText, type VariableReference } from './fhirpath.js';
+import {
+  findVariableReferences,
+  hasFhirPathText,
+  type LinkIdReferences,
+  type VariableReference,
+} from './fhirpath.js';
+import { findLinkIdReferencesAt, findLinkIds } from './linkids.js';
 import { type DeclarationUse, findUses } from './uses.js';
 
 // The facts core computes once per document and shares between its rules and the suppression
@@ -19,6 +25,10 @@ export interface DocumentAnalysis {
   readonly dependencies: ReadonlyMap<Declaration, Dependencies>;
   // Whether the expressions of others reference each declaration.
   readonly uses: ReadonlyMap<Declaration, DeclarationUse>;
+  // The linkIds of the Questionnaire's items, at any depth.
+  readonly linkIds: ReadonlySet<string>;
+  // The linkId references of each FHIRPath site that parses.
+  readonly linkIdReferences: ReadonlyMap<ExpressionSite, LinkIdReferences>;
 }
 
 export function analyseDocument(
@@ -44,5 +54,7 @@ export function analyseDocument(
     variablesAt,
     dependencies: findDependencies(declarations, sites, references, variablesAt),
     uses: findUses(document, declarations, sites, references, variablesAt),
+    linkIds: findLinkIds(document),
+    linkIdReferences: findLinkIdReferencesAt(document, sites),
   };
 }
