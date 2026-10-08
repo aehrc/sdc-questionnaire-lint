@@ -76,7 +76,7 @@ The analysis helpers:
 
 `runRules` calls each rule that is not off once per Questionnaire. A rule's `check(ctx)` is synchronous; `ctx` provides `document`, `sites`, `scopeAt()` (a stub until the scope model exists), `options` (always `undefined` for now) and `report()`.
 
-The runner validates every finding. A bad site, pointer or range, a throw, or a returned promise fails the run with `RULE_CRASH`; built-in and plugin rules are treated alike. It then turns each finding into a report `Finding` with its JSON location, an expression excerpt and a fingerprint. A finding in a fragment is shown within its whole query. Every finding starts with `sourceLocation` unmapped as `source-unavailable`; `runRules` also records each finding's document and site as a `FindingOrigin`, for source mapping.
+The runner validates every finding. A bad site, pointer or range, a throw, or a returned promise fails the run with `RULE_CRASH`; built-in and plugin rules are treated alike. It then turns each finding into a report `Finding` with its JSON location, an expression excerpt and a fingerprint. A finding in a fragment is shown within its whole query. Every finding starts with `sourceLocation` unmapped as `source-unavailable`; `runRules` also records each finding's document and site as a `FindingOrigin` in a side table keyed by the finding object, which the source mapper reads; the stages in between pass findings on as they are.
 
 ## 6. Suppressions (`run/suppressions.ts`, `run/fingerprint.ts`)
 

@@ -34,7 +34,7 @@ export function resourceAt(document: QuestionnaireDocument, pointer: string): Re
 // The excerpt a finding at a site shows. A fragment's finding is shown in its query, with the
 // rule's range rebased onto it, or over the whole fragment when the rule gave none
 // (report-format.md § Findings and locations).
-function excerpt(
+export function excerpt(
   site: ExpressionSite | undefined,
   range: OffsetRange | undefined,
 ): ExpressionExcerpt | undefined {
@@ -154,19 +154,21 @@ export interface FindingOrigin {
   readonly site?: ExpressionSite;
 }
 
-// The key a finding keeps its origin under. A copy such as { ...finding } keeps it, JSON output
-// never shows it, and the source mapper removes it (source/map-findings.ts).
-export const findingOrigin: unique symbol = Symbol('findingOrigin');
-
-export type TracedFinding = QuestionnaireFinding & { readonly [findingOrigin]?: FindingOrigin };
+// Each finding's origin, by the finding object itself, from the rules to the source mapper
+// (source/map-findings.ts). Stages in between pass findings on as they are, never as copies.
+export type FindingOrigins = WeakMap<QuestionnaireFinding, FindingOrigin>;
 
 // Calls each rule that is not off once on the document, at its effective severity. Built-in and
 // plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH. Each
-// finding carries its origin.
-export function runRules(doc: AnalysedDocument, rules: readonly ResolvedRule[]): TracedFinding[] {
+// finding's origin is recorded in origins, when given.
+export function runRules(
+  doc: AnalysedDocument,
+  rules: readonly ResolvedRule[],
+  origins?: FindingOrigins,
+): QuestionnaireFinding[] {
   const { input, document, sites } = doc;
   const keys = siteKeys(document, sites);
-  const findings: TracedFinding[] = [];
+  const findings: QuestionnaireFinding[] = [];
 
   function toFinding(id: string, severity: Severity, reported: RuleFinding): QuestionnaireFinding {
     const { site } = reported;
@@ -228,12 +230,11 @@ export function runRules(doc: AnalysedDocument, rules: readonly ResolvedRule[]):
           }
           if (typeof checked === 'string') problem = checked;
           else {
-            findings.push({
-              ...toFinding(id, setting, checked),
-              [findingOrigin]: {
-                document: doc,
-                ...(checked.site === undefined ? {} : { site: checked.site }),
-              },
+            const finding = toFinding(id, setting, checked);
+            findings.push(finding);
+            origins?.set(finding, {
+              document: doc,
+              ...(checked.site === undefined ? {} : { site: checked.site }),
             });
           }
         },

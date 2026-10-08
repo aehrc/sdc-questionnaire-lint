@@ -30,10 +30,11 @@ function isInside(file: string, directory: string): boolean {
   return relative !== '' && !path.isAbsolute(relative) && relative.split(path.sep)[0] !== '..';
 }
 
-// The file an index entry names, when it lies inside one of the FSH directories. fshFile is
-// relative to SUSHI's input directory, which may be any of them.
-async function indexedFile(fshFile: string, fsh: FshFiles): Promise<FshFile | undefined> {
-  if (path.isAbsolute(fshFile)) return undefined;
+// The files an index entry may name: fshFile in each FSH directory that holds it inside. fshFile
+// is relative to SUSHI's input directory, which may be any of them.
+async function indexedFiles(fshFile: string, fsh: FshFiles): Promise<FshFile[]> {
+  if (path.isAbsolute(fshFile)) return [];
+  const files: FshFile[] = [];
   for (const directory of await fsh.directories()) {
     let file: string;
     try {
@@ -41,13 +42,14 @@ async function indexedFile(fshFile: string, fsh: FshFiles): Promise<FshFile | un
     } catch {
       continue;
     }
-    if (isInside(file, directory)) return fsh.file(file);
+    const read = isInside(file, directory) ? await fsh.file(file) : undefined;
+    if (read !== undefined) files.push(read);
   }
-  return undefined;
+  return files;
 }
 
 // The definition the index names for the file at the root of the input, when the entry is
-// current: its file holds an Instance with its name starting on its line.
+// current: one of its files holds an Instance with its name starting on its line.
 async function fromIndex(
   target: LookupTarget,
   index: readonly SushiIndexEntry[],
@@ -56,28 +58,53 @@ async function fromIndex(
   if (target.resource.pointer !== '') return undefined;
   const entry = index.find(({ outputPath }) => outputPath === target.inputPath);
   if (entry === undefined) return undefined;
-  const file = await indexedFile(entry.fshFile, fsh);
-  const definition = file?.document.definitions.find(
-    ({ keyword, name, startLine }) =>
-      keyword === 'Instance' && name === entry.fshName && startLine === entry.startLine,
-  );
-  return file === undefined || definition === undefined ? undefined : { file, definition };
+  for (const file of await indexedFiles(entry.fshFile, fsh)) {
+    const definition = file.document.definitions.find(
+      ({ keyword, name, startLine }) =>
+        keyword === 'Instance' && name === entry.fshName && startLine === entry.startLine,
+    );
+    if (definition !== undefined) return { file, definition };
+  }
+  return undefined;
 }
-
-// Each definition's id, worked out once: every search resolves the paths of every Instance.
-const effectiveIds = new WeakMap<FshDefinition, string>();
 
 // The id SUSHI gives an Instance: its last id rule's string, otherwise its name.
 function effectiveId(definition: FshDefinition): string {
-  let id = effectiveIds.get(definition);
-  if (id !== undefined) return id;
-  id = definition.name;
+  let id = definition.name;
   for (const { rule, path: rulePath } of resolvePaths(definition)) {
     if (rulePath !== 'id' || rule.kind !== 'assignment' || rule.value.kind !== 'string') continue;
     id = decodeFshString(rule.value.literal)?.value ?? id;
   }
-  effectiveIds.set(definition, id);
   return id;
+}
+
+// What a search looks through: the Instances by id, and the Profiles.
+interface SearchIndex {
+  readonly instances: ReadonlyMap<string, readonly FoundDefinition[]>;
+  readonly profiles: readonly FshDefinition[];
+}
+
+// Worked out once per run: keyed by the run's list of every FSH file, which FshFiles caches.
+const searchIndexes = new WeakMap<readonly FshFile[], SearchIndex>();
+
+function searchIndex(files: readonly FshFile[]): SearchIndex {
+  let built = searchIndexes.get(files);
+  if (built !== undefined) return built;
+  const instances = new Map<string, FoundDefinition[]>();
+  const profiles: FshDefinition[] = [];
+  for (const file of files) {
+    for (const definition of file.document.definitions) {
+      if (definition.keyword === 'Profile') profiles.push(definition);
+      if (definition.keyword !== 'Instance') continue;
+      const id = effectiveId(definition);
+      const found = instances.get(id);
+      if (found === undefined) instances.set(id, [{ file, definition }]);
+      else found.push({ file, definition });
+    }
+  }
+  built = { instances, profiles };
+  searchIndexes.set(files, built);
+  return built;
 }
 
 // Whether an InstanceOf names the resource type: the type itself, or a Profile in the FSH
@@ -108,18 +135,9 @@ async function bySearch(
   fsh: FshFiles,
 ): Promise<FoundDefinition | undefined> {
   if (id === undefined) return undefined;
-  const files = await fsh.all();
-  const definitions = files.flatMap((file) =>
-    file.document.definitions.map((definition) => ({ file, definition })),
-  );
-  const profiles = definitions
-    .map(({ definition }) => definition)
-    .filter(({ keyword }) => keyword === 'Profile');
-  const matches = definitions.filter(
-    ({ definition }) =>
-      definition.keyword === 'Instance' &&
-      effectiveId(definition) === id &&
-      instanceOfMatches(definition.metadata.get('InstanceOf'), resourceType, profiles),
+  const { instances, profiles } = searchIndex(await fsh.all());
+  const matches = (instances.get(id) ?? []).filter(({ definition }) =>
+    instanceOfMatches(definition.metadata.get('InstanceOf'), resourceType, profiles),
   );
   const [only] = matches;
   return matches.length === 1 ? only : undefined;

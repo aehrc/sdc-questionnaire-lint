@@ -6,7 +6,7 @@ import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import type { AnalysedDocument } from '../../src/inputs/read.js';
 import type { OffsetRange, SourceMapResult } from '../../src/report/types.js';
 import { parseFshDocument } from '../../src/source/fsh-document.js';
-import { fshFiles } from '../../src/source/fsh-files.js';
+import { fshFiles, type FshFiles } from '../../src/source/fsh-files.js';
 import { locateExpression, sourceContext } from '../../src/source/locate.js';
 import { tempTree } from '../support/tmp.js';
 
@@ -40,6 +40,7 @@ async function locate(
   questionnaire: Record<string, unknown>,
   pick: (sites: readonly ExpressionSite[]) => ExpressionSite | undefined,
   range?: OffsetRange,
+  withFiles: (files: FshFiles) => FshFiles = (files) => files,
 ): Promise<Located> {
   const dir = await realpath(
     await tempTree({ 'input/fsh/Q.fsh': fsh, 'Questionnaire-Q.json': '{}' }),
@@ -75,7 +76,7 @@ async function locate(
         : { text: site.text, ...(range === undefined ? {} : { range }) };
   const result = await locateExpression(
     { document: analysed, site, expression },
-    sourceContext([], fshFiles([path.join(dir, 'input/fsh')]), dir),
+    sourceContext([], withFiles(fshFiles([path.join(dir, 'input/fsh')])), dir),
   );
   if (result.status === 'unmapped') return { result };
   const { lineStarts, text } = parseFshDocument(fsh);
@@ -228,6 +229,84 @@ describe('locateExpression', () => {
     expect(located.result).toMatchObject({ confidence: 'anchored', location: { line: 6 } });
   });
 
+  it('maps an item expression of a contained Questionnaire to its inline Instance', async () => {
+    const fsh = [
+      '* contained[+] = C',
+      '',
+      'Instance: C',
+      'InstanceOf: Questionnaire',
+      'Usage: #inline',
+      '* id = "C"',
+      '* item[+].linkId = "q1"',
+      '* item[=].extension[sdc-questionnaire-enableWhenExpression].valueExpression.expression = "%a.fist()"',
+    ].join('\n');
+    const located = await locate(
+      header + fsh,
+      {
+        contained: [
+          {
+            resourceType: 'Questionnaire',
+            id: 'C',
+            item: [
+              {
+                linkId: 'q1',
+                extension: [extension(`${sdc}enableWhenExpression`, '%a.fist()')],
+              },
+            ],
+          },
+        ],
+      },
+      byText('%a.fist()'),
+    );
+    expect(located.result).toMatchObject({ confidence: 'exact', location: { line: 10 } });
+  });
+
+  it("maps an uncatalogued expression in a primitive element's extension", async () => {
+    const custom = 'http://example.org/custom';
+    const fsh = [
+      '* item[+].linkId = "q1"',
+      '* item[=].text = "Q"',
+      `* item[=].text.extension[${custom}].valueExpression.expression = "%x"`,
+    ].join('\n');
+    const located = await locate(
+      header + fsh,
+      { item: [{ linkId: 'q1', text: 'Q', _text: { extension: [extension(custom, '%x')] } }] },
+      byText('%x'),
+    );
+    expect(located.result).toMatchObject({ confidence: 'exact', location: { line: 5 } });
+  });
+
+  it('anchors by an alias of the extension url', async () => {
+    const custom = 'http://example.org/custom';
+    const fsh = [
+      `Alias: $custom = ${custom}`,
+      '',
+      'Instance: Q',
+      'InstanceOf: Questionnaire',
+      '* item[+].linkId = "a"',
+      '* item[=].extension[$custom].valueExpression.expression = "%x"',
+      '* item[+].linkId = "b"',
+      '* item[=].extension[$custom].valueExpression.expression = "%x"',
+    ].join('\n');
+    const located = await locate(
+      fsh,
+      { item: ['a', 'b'].map((linkId) => ({ linkId, extension: [extension(custom, '%x')] })) },
+      byText('%x', 1),
+    );
+    expect(located.result).toMatchObject({ confidence: 'anchored', location: { line: 8 } });
+  });
+
+  it('reads no aliases when every literal names its extension by url or last segment', async () => {
+    const located = await locate(
+      `${header}* extension[variable].valueExpression.expression = "%a + 1"\n`,
+      { extension: [extension(variable, '%a + 1')] },
+      byText('%a + 1'),
+      undefined,
+      (files) => ({ ...files, aliases: () => Promise.reject(new Error('aliases were read')) }),
+    );
+    expect(located.result).toMatchObject({ status: 'mapped', confidence: 'exact' });
+  });
+
   it('does not map unique text to a literal a later rule assigns over', async () => {
     // The JSON's %a + 1 is the one CalcRules writes; the literal in the Instance is replaced.
     const fsh = [
@@ -304,6 +383,23 @@ describe('locateExpression', () => {
     const located = await locate(
       `${header}* extension[variable].valueExpression.expression = """\n  %a\n    + 1\n  """\n`,
       { extension: [extension(variable, '%a\n  + 1')] },
+      byText('%a\n  + 1'),
+    );
+    expect(located.result).toEqual({ status: 'unmapped', reason: 'multiline' });
+  });
+
+  it('reports a unique """ expression as multiline even without the expression\'s anchors', async () => {
+    // ItemIds assigns the linkId, so the literal has none.
+    const fsh = [
+      '* insert ItemIds',
+      '* item[0].extension[variable].valueExpression.expression = """',
+      '  %a',
+      '    + 1',
+      '  """',
+    ].join('\n');
+    const located = await locate(
+      header + fsh,
+      { item: [{ linkId: 'q', extension: [extension(variable, '%a\n  + 1')] }] },
       byText('%a\n  + 1'),
     );
     expect(located.result).toEqual({ status: 'unmapped', reason: 'multiline' });

@@ -4,7 +4,8 @@ import { compareStrings } from '../compare.js';
 import { parseFshDocument, type FshDocument } from './fsh-document.js';
 
 // The FSH files of one run, each read and parsed at most once, and only when needed. A file or
-// directory that cannot be read only means less source mapping: it is left out, never a failure.
+// directory that cannot be read, or a file that cannot be parsed, only means less source mapping:
+// it is left out, never a failure.
 
 export interface FshFile {
   // Canonical absolute path.
@@ -15,7 +16,7 @@ export interface FshFile {
 export interface FshFiles {
   // The canonical FSH directories that exist; empty when lookup is omitted or none exist.
   directories(): Promise<readonly string[]>;
-  // The file at a canonical path, or undefined when it cannot be read.
+  // The file at a canonical path, or undefined when it cannot be read or parsed.
   file(path: string): Promise<FshFile | undefined>;
   // Every .fsh file below the directories, by path, skipping .git, node_modules and symlinks.
   all(): Promise<readonly FshFile[]>;
@@ -58,10 +59,10 @@ export function fshFiles(directories: readonly string[]): FshFiles {
   function file(path: string): Promise<FshFile | undefined> {
     let read = files.get(path);
     if (read === undefined) {
-      read = readFile(path, 'utf8').then(
-        (text) => ({ path, document: parseFshDocument(text) }),
-        () => undefined,
-      );
+      // A file that cannot be parsed is left out too.
+      read = readFile(path, 'utf8')
+        .then((text) => ({ path, document: parseFshDocument(text) }))
+        .catch(() => undefined);
       files.set(path, read);
     }
     return read;

@@ -1,5 +1,5 @@
 import type { Finding, QuestionnaireFinding, SourceMapResult } from '../report/types.js';
-import { findingOrigin, type FindingOrigin, type TracedFinding } from '../run/rules.js';
+import type { FindingOrigin, FindingOrigins } from '../run/rules.js';
 import { canonical, fshFiles } from './fsh-files.js';
 import { locateExpression, sourceContext, type SourceContext } from './locate.js';
 import { readSushiIndex } from './sushi-index.js';
@@ -28,13 +28,14 @@ async function sourceLocation(
   }
 }
 
-// Gives each Questionnaire finding its FSH location, or the reason it has none, and removes the
-// origin it carried; it changes nothing else: fingerprints, severities and counts stay as they
-// are. Runs on the findings that will be reported, so after suppressions, and reads the FSH
-// sources only when one of them is a Questionnaire finding. Without FSH directories, findings
-// keep source-unavailable.
+// Gives each Questionnaire finding its FSH location, or the reason it has none, by its origin; it
+// changes nothing else: fingerprints, severities and counts stay as they are. Runs on the findings
+// that will be reported, so after suppressions, and reads the FSH sources only when one of them is
+// a Questionnaire finding. Without FSH directories, or without an origin, findings keep
+// source-unavailable.
 export async function mapSourceLocations(
   findings: readonly Finding[],
+  origins: FindingOrigins,
   options: SourceMapOptions,
 ): Promise<Finding[]> {
   const context =
@@ -46,14 +47,10 @@ export async function mapSourceLocations(
           (await canonical(options.cwd)) ?? options.cwd,
         );
   const mapped: Finding[] = [];
-  for (const each of findings) {
-    if (each.kind !== 'questionnaire') {
-      mapped.push(each);
-      continue;
-    }
-    const { [findingOrigin]: origin, ...finding }: TracedFinding = each;
+  for (const finding of findings) {
+    const origin = finding.kind === 'questionnaire' ? origins.get(finding) : undefined;
     mapped.push(
-      context === undefined || origin === undefined
+      finding.kind !== 'questionnaire' || context === undefined || origin === undefined
         ? finding
         : { ...finding, sourceLocation: await sourceLocation(finding, origin, context) },
     );

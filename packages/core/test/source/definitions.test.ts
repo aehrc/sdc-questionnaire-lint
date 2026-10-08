@@ -73,6 +73,19 @@ describe('findDefinition through the SUSHI index', () => {
     expect(found(result)).toBe('not-found');
   });
 
+  it('checks the entry in every FSH directory that holds its fshFile', async () => {
+    const result = await lookup(
+      {
+        [indexFile]: index(),
+        'input/fsh/HC.fsh': 'Instance: Other\nInstanceOf: Questionnaire\n',
+        'shared/fsh/HC.fsh': profiled,
+      },
+      root,
+      ['input/fsh', 'shared/fsh'],
+    );
+    expect(found(result)).toBe('HC.fsh HealthCheck');
+  });
+
   it('ignores an entry for another output file', async () => {
     const result = await lookup({
       [indexFile]: index({ outputFile: 'Questionnaire-Other.json' }),

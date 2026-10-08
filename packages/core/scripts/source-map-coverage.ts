@@ -5,17 +5,19 @@
 // It exits 1 when fewer than 95% of sites map, or when any check fails.
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
-import type { ExpressionSite } from '../src/analysis/expression-site.js';
+import type { ExpressionSite, QuestionnaireDocument } from '../src/analysis/expression-site.js';
 import { findExpressionSites } from '../src/analysis/expression-sites.js';
 import { loadConfig } from '../src/config/load.js';
 import { resolveRunPaths } from '../src/config/paths.js';
 import { loadInputs } from '../src/inputs/load-inputs.js';
-import type { ExpressionExcerpt, SourceLocation } from '../src/report/types.js';
+import { valueAt } from '../src/json-pointer.js';
+import { isObject } from '../src/object.js';
+import type { SourceLocation } from '../src/report/types.js';
+import { excerpt } from '../src/run/rules.js';
 import { findFshSources } from '../src/run/sources.js';
 import { expressionLiterals, namesExtension } from '../src/source/expression-literals.js';
 import { parseFshDocument, type FshDocument } from '../src/source/fsh-document.js';
 import { fshFiles } from '../src/source/fsh-files.js';
-import { decodeFshString } from '../src/source/fsh-string.js';
 import { expressionOwner, locateExpression, sourceContext } from '../src/source/locate.js';
 import { readSushiIndex } from '../src/source/sushi-index.js';
 
@@ -24,15 +26,37 @@ const sampleSize = 20;
 
 interface Anchored {
   location: SourceLocation;
+  document: QuestionnaireDocument;
   site: ExpressionSite;
   owner: ExpressionSite;
 }
 
-// As the rule runner shows a finding: a fragment within its whole query.
-function excerptOf(site: ExpressionSite & { text: string }): ExpressionExcerpt {
-  if (site.fragment === undefined) return { text: site.text };
-  const { query, startOffset, endOffset } = site.fragment;
-  return { text: query, range: { startOffset, endOffset } };
+// The linkId of the item an expression is on: the deepest item in its pointer, in a contained
+// resource too, where sites have no item.
+function linkIdAt(document: QuestionnaireDocument, pointer: string): string | undefined {
+  const item = /^(.*\/item\/\d+)\//.exec(pointer.slice(document.resourcePointer.length))?.[1];
+  const value = item === undefined ? undefined : valueAt(document.resource, item);
+  return isObject(value) && typeof value.linkId === 'string' ? value.linkId : undefined;
+}
+
+const escapes: Readonly<Record<string, string>> = {
+  '\\': '\\',
+  '"': '"',
+  n: '\n',
+  r: '\r',
+  t: '\t',
+};
+
+// The text of FSH source inside a "…" literal. Written here rather than taken from the mapper, so
+// that the self-check does not share the mapper's decoding bugs.
+function decodeSource(source: string): string {
+  return source.replace(
+    /\\(?:u([0-9A-Fa-f]{4})|([\s\S]))/g,
+    (escape, code?: string, character?: string) =>
+      code === undefined
+        ? (escapes[character ?? ''] ?? escape)
+        : String.fromCharCode(Number.parseInt(code, 16)),
+  );
 }
 
 // A fixed-seed shuffle (mulberry32), so the sample is the same on every run.
@@ -53,7 +77,8 @@ function shuffled<T>(items: readonly T[], seed = 23): T[] {
 }
 
 async function main(igDirectory: string): Promise<number> {
-  const cwd = await realpath(igDirectory);
+  // npm runs a workspace script in the package's directory; INIT_CWD is where npm was run.
+  const cwd = await realpath(path.resolve(process.env.INIT_CWD ?? process.cwd(), igDirectory));
   const runPaths = resolveRunPaths({ cwd, config: await loadConfig({ cwd }) });
   const { documents } = await loadInputs({ cwd, cliPaths: [], runPaths });
   const sources = await findFshSources(runPaths, cwd);
@@ -83,9 +108,10 @@ async function main(igDirectory: string): Promise<number> {
   for (const { input, document } of documents) {
     const sites = findExpressionSites(document);
     for (const site of sites) {
-      if (site.text === undefined) continue;
+      // As the rule runner shows a finding over the whole expression.
+      const expression = excerpt(site, undefined);
+      if (expression === undefined) continue;
       total += 1;
-      const expression = excerptOf({ ...site, text: site.text });
       const result = await locateExpression(
         { document: { input, document, sites }, site, expression },
         context,
@@ -101,10 +127,10 @@ async function main(igDirectory: string): Promise<number> {
         (fsh.lineStarts[line - 1] ?? 0) + column - 1;
       const start = offset(location.line, location.column);
 
-      // Self-check: the source under the range decodes to the expression it covers.
+      // Self-check: the source under the range decodes to the part of SUSHI's JSON it covers.
       const source = fsh.text.slice(start, offset(location.endLine, location.endColumn));
       const { startOffset = 0, endOffset = expression.text.length } = expression.range ?? {};
-      if (decodeFshString(`"${source}"`)?.value !== expression.text.slice(startOffset, endOffset)) {
+      if (decodeSource(source) !== expression.text.slice(startOffset, endOffset)) {
         failures.push(`self-check: ${where} maps to ${JSON.stringify(source)}`);
       }
 
@@ -118,7 +144,7 @@ async function main(igDirectory: string): Promise<number> {
       if (
         owner === undefined ||
         literal === undefined ||
-        literal.linkId !== owner.item?.linkId ||
+        literal.linkId !== linkIdAt(document, owner.pointer) ||
         literal.name !== owner.name ||
         (url !== undefined &&
           (literal.extension === undefined || !namesExtension(literal.extension, url, aliases)))
@@ -126,7 +152,7 @@ async function main(igDirectory: string): Promise<number> {
         failures.push(`anchors: ${where} maps to ${location.file}:${String(location.line)}`);
       }
       if (result.confidence === 'anchored' && owner !== undefined) {
-        anchored.push({ location, site, owner });
+        anchored.push({ location, document, site, owner });
       }
     }
   }
@@ -143,7 +169,7 @@ async function main(igDirectory: string): Promise<number> {
   console.log(
     `\nAnchored sample to check by hand (${String(sampleSize)} of ${String(anchored.length)}):`,
   );
-  for (const { location, site, owner } of shuffled(anchored).slice(0, sampleSize)) {
+  for (const { location, document, site, owner } of shuffled(anchored).slice(0, sampleSize)) {
     const fsh = await fshAt(location.file);
     const line = fsh.text
       .slice(fsh.lineStarts[location.line - 1], fsh.lineStarts[location.line])
@@ -151,7 +177,7 @@ async function main(igDirectory: string): Promise<number> {
     console.log(`  ${location.file}:${String(location.line)}:${String(location.column)}`);
     console.log(`    FSH:  ${line}`);
     console.log(
-      `    JSON: linkId ${owner.item?.linkId ?? '(none)'}, name ${owner.name ?? '(none)'}, ${site.pointer}`,
+      `    JSON: linkId ${linkIdAt(document, owner.pointer) ?? '(none)'}, name ${owner.name ?? '(none)'}, ${site.pointer}`,
     );
   }
   return percent >= minimumMapped && failures.length === 0 ? 0 : 1;

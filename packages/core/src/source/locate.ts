@@ -1,4 +1,4 @@
-import type { ExpressionSite } from '../analysis/expression-site.js';
+import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import { displayPath } from '../inputs/paths.js';
 import type { AnalysedDocument } from '../inputs/read.js';
 import { valueAt } from '../json-pointer.js';
@@ -11,6 +11,7 @@ import {
   namesExtension,
   type ExpressionLiteral,
 } from './expression-literals.js';
+import type { FshDefinition } from './fsh-document.js';
 import type { FshFile, FshFiles } from './fsh-files.js';
 import { decodeFshMultilineString, decodeFshString } from './fsh-string.js';
 import { positionAt } from './positions.js';
@@ -87,27 +88,47 @@ interface Anchors {
   readonly name: string | undefined;
 }
 
-// The urls of the extensions on the way from the resource to an uncatalogued site's Expression.
-// As in ExpressionLiteral, the first is the extension and the second the sub-extension.
-function extensionUrls(
-  { resource, resourcePointer }: AnalysedDocument['document'],
-  site: ExpressionSite,
-): (string | undefined)[] {
-  // The first segment is the empty one before the leading slash.
-  const segments = site.expressionPointer.slice(resourcePointer.length).split('/');
-  return segments.flatMap((segment, position) => {
-    if (segment !== 'extension' && segment !== 'modifierExtension') return [];
-    const extension = valueAt(resource, segments.slice(0, position + 2).join('/'));
-    return [isObject(extension) && typeof extension.url === 'string' ? extension.url : undefined];
-  });
+const indexPattern = /^[0-9]+$/;
+
+function isExtensionKey(segment: string | undefined): boolean {
+  return segment === 'extension' || segment === 'modifierExtension';
 }
 
-function anchorsOf({ document }: AnalysedDocument, site: ExpressionSite): Anchors {
-  const [url, subExtension] =
-    site.location === undefined
-      ? extensionUrls(document, site)
-      : [site.location.url, site.location.subExtension];
-  return { linkId: site.item?.linkId, element: site.element, url, subExtension, name: site.name };
+// A site's anchors, read from the JSON path from the resource it is in to its Expression as
+// ExpressionLiteral reads them from the FSH path: the linkId of the innermost leading item, the
+// primitive element whose _element companion holds the extension, and the urls of the first two
+// extensions. Read this way, they are the same for a catalogued and an uncatalogued site, and for
+// a site in a contained resource, which has no item of its own.
+function anchorsOf(document: QuestionnaireDocument, site: ExpressionSite): Anchors {
+  const { resource, resourcePointer } = document;
+  // Below the root resource: "" for the root, /contained/0 for a contained resource.
+  const inRoot = resourceAt(document, site.pointer).pointer.slice(resourcePointer.length);
+  // Escaped tokens; the first segment, before the leading slash, is dropped.
+  const below = site.expressionPointer
+    .slice(resourcePointer.length + inRoot.length)
+    .split('/')
+    .slice(1);
+  const valueBelow = (count: number): unknown =>
+    valueAt(resource, [inRoot, ...below.slice(0, count)].join('/'));
+
+  let position = 0;
+  let linkId: string | undefined;
+  while (below[position] === 'item' && indexPattern.test(below[position + 1] ?? '')) {
+    position += 2;
+    const item = valueBelow(position);
+    linkId = isObject(item) && typeof item.linkId === 'string' ? item.linkId : undefined;
+  }
+  const holder = below[position];
+  const element =
+    holder?.startsWith('_') === true && isExtensionKey(below[position + 1])
+      ? holder.slice(1)
+      : undefined;
+  const [url, subExtension] = below.flatMap((segment, index) => {
+    if (!isExtensionKey(segment)) return [];
+    const extension = valueBelow(index + 2);
+    return [isObject(extension) && typeof extension.url === 'string' ? extension.url : undefined];
+  });
+  return { linkId, element, url, subExtension, name: site.name };
 }
 
 function sameAnchors(a: Anchors, b: Anchors): boolean {
@@ -118,6 +139,74 @@ function sameAnchors(a: Anchors, b: Anchors): boolean {
     a.subExtension === b.subExtension &&
     a.name === b.name
   );
+}
+
+// An expression in the JSON, with the resource it is in and its anchors.
+interface JsonExpression {
+  readonly site: ExpressionSite;
+  readonly resource: string;
+  readonly anchors: Anchors;
+}
+
+// Each document's expressions by text, worked out once: every finding in it looks its text up.
+// Keyed by the document's sites, which stay the same object for the whole run.
+const jsonExpressions = new WeakMap<
+  readonly ExpressionSite[],
+  ReadonlyMap<string, readonly JsonExpression[]>
+>();
+
+function expressionsWithText(
+  { document, sites }: AnalysedDocument,
+  text: string,
+): readonly JsonExpression[] {
+  let byText = jsonExpressions.get(sites);
+  if (byText === undefined) {
+    const grouped = new Map<string, JsonExpression[]>();
+    for (const site of sites) {
+      if (site.carrier === 'fragment' || site.text === undefined) continue;
+      const expression = {
+        site,
+        resource: resourceAt(document, site.pointer).pointer,
+        anchors: anchorsOf(document, site),
+      };
+      const group = grouped.get(site.text);
+      if (group === undefined) grouped.set(site.text, [expression]);
+      else group.push(expression);
+    }
+    byText = grouped;
+    jsonExpressions.set(sites, byText);
+  }
+  return byText.get(text) ?? [];
+}
+
+// Each definition's literals by their decoded text, worked out once.
+const definitionLiterals = new WeakMap<
+  FshDefinition,
+  ReadonlyMap<string, readonly ExpressionLiteral[]>
+>();
+
+function literalsWithText(definition: FshDefinition, text: string): readonly ExpressionLiteral[] {
+  let byText = definitionLiterals.get(definition);
+  if (byText === undefined) {
+    const grouped = new Map<string, ExpressionLiteral[]>();
+    for (const literal of expressionLiterals(definition)) {
+      const value = decode(literal.literal);
+      if (value === undefined) continue;
+      const group = grouped.get(value);
+      if (group === undefined) grouped.set(value, [literal]);
+      else group.push(literal);
+    }
+    byText = grouped;
+    definitionLiterals.set(definition, byText);
+  }
+  return byText.get(text) ?? [];
+}
+
+const noAliases: ReadonlyMap<string, string> = new Map();
+
+// Whether a name could match a url only through an alias.
+function needsAlias(name: string | undefined, url: string | undefined): boolean {
+  return name !== undefined && url !== undefined && !namesExtension(name, url, noAliases);
 }
 
 // Whether a literal's anchors are those of the expression. Evidence on one side only is a
@@ -198,17 +287,16 @@ export async function locateExpression(
   if ('reason' in found) return unmapped(found.reason);
 
   const { text } = expression;
-  const inJson = document.sites.filter(
-    (each) =>
-      each.carrier !== 'fragment' &&
-      each.text === text &&
-      resourceAt(document.document, each.pointer).pointer === resource.pointer,
+  const inJson = expressionsWithText(document, text).filter(
+    (each) => each.resource === resource.pointer,
   );
-  const inFsh = expressionLiterals(found.definition).filter(
-    (literal) => decode(literal.literal) === text,
-  );
-  if (inFsh.length === 0) return unmapped('not-found');
+  const inFsh = literalsWithText(found.definition, text);
+  const [only] = inFsh;
+  if (only === undefined) return unmapped('not-found');
   const unique = inJson.length === 1 && inFsh.length === 1;
+  // Text written once, in a multi-line literal, is reported as such whatever the literal's
+  // anchors: those of an item whose linkId a RuleSet assigns are missing (plan-amendments.md).
+  if (unique && isMultiline(only.literal)) return unmapped('multiline');
   // Rules a RuleSet inserts are not in the definition, and they shift its soft indices.
   if (!unique && found.definition.rules.some(({ kind }) => kind === 'insert')) {
     return unmapped('ambiguous');
@@ -216,10 +304,18 @@ export async function locateExpression(
 
   // Unique text maps only to a literal with the expression's anchors: the one literal may be
   // another Expression's, when a RuleSet wrote the text in the JSON.
-  const anchors = anchorsOf(document, owner);
-  const aliases = await context.files.aliases();
+  const anchors = anchorsOf(document.document, owner);
+  // Every FSH file is read for its aliases, so only when a literal could name its extension by
+  // one.
+  const aliases = inFsh.some(
+    (literal) =>
+      needsAlias(literal.extension, anchors.url) ||
+      needsAlias(literal.subExtension, anchors.subExtension),
+  )
+    ? await context.files.aliases()
+    : noAliases;
   const fsh = inFsh.filter((literal) => literalMatches(literal, anchors, aliases));
-  const json = inJson.filter((each) => sameAnchors(anchorsOf(document, each), anchors));
+  const json = inJson.filter((each) => sameAnchors(each.anchors, anchors));
   const [selected] = fsh;
   if (selected === undefined || fsh.length !== 1 || json.length !== 1) {
     return unmapped(unique ? 'not-found' : 'ambiguous');
