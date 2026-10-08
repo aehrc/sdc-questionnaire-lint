@@ -126,6 +126,31 @@ describe('findExpressionSites', () => {
     });
   });
 
+  it('finds the expression sub-extension of a contextExpression, as SDC STU4 defines it', () => {
+    const [site, ...rest] = sitesOf({
+      item: [
+        {
+          linkId: 'q',
+          extension: [
+            {
+              url: `${sdc}contextExpression`,
+              extension: [
+                { url: 'label', valueString: 'Recent encounters' },
+                { url: 'expression', valueExpression: query('Encounter?status=finished') },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(rest).toEqual([]);
+    expect(site).toMatchObject({
+      pointer: '/item/0/extension/0/extension/1/valueExpression/expression',
+      location: { url: `${sdc}contextExpression`, subExtension: 'expression' },
+      catalogued: true,
+    });
+  });
+
   it('points at the Expression object of a reference-only site, which has no text', () => {
     const [site] = sitesOf({
       item: [

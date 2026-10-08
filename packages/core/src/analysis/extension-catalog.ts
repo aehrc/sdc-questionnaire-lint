@@ -55,7 +55,7 @@ export const extensionCatalog: readonly CatalogEntry[] = Object.freeze([
   entry(`${sdc}initialExpression`, item, ['population']),
   entry(`${sdc}candidateExpression`, item, ['rendering']),
   entry(`${sdc}answerExpression`, item, ['rendering']),
-  entry(`${sdc}contextExpression`, item, ['rendering']),
+  entry(`${sdc}contextExpression`, item, ['rendering'], { subExtension: 'expression' }),
   entry(`${sdc}itemPopulationContext`, both, ['population'], { declares: true }),
   entry(`${sdc}itemExtractionContext`, both, ['extraction']),
   entry(`${sdc}answerOptionsToggleExpression`, item, ['rendering'], {
