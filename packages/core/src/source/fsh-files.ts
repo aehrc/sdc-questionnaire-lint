@@ -1,0 +1,84 @@
+import { readFile, realpath } from 'node:fs/promises';
+import { glob } from 'tinyglobby';
+import { parseFshDocument, type FshDocument } from './fsh-document.js';
+
+// The FSH files of one run, each read and parsed at most once, and only when needed. A file or
+// directory that cannot be read only means less source mapping: it is left out, never a failure.
+
+export interface FshFile {
+  // Canonical absolute path.
+  readonly path: string;
+  readonly document: FshDocument;
+}
+
+export interface FshFiles {
+  // The canonical FSH directories that exist; empty when lookup is omitted or none exist.
+  directories(): Promise<readonly string[]>;
+  // The file at a canonical path, or undefined when it cannot be read.
+  file(path: string): Promise<FshFile | undefined>;
+  // Every .fsh file below the directories, by path, skipping .git, node_modules and symlinks.
+  all(): Promise<readonly FshFile[]>;
+}
+
+async function canonical(path: string): Promise<string | undefined> {
+  try {
+    return await realpath(path);
+  } catch {
+    return undefined;
+  }
+}
+
+async function listFsh(directory: string): Promise<string[]> {
+  try {
+    return await glob('**/*.fsh', {
+      cwd: directory,
+      absolute: true,
+      onlyFiles: true,
+      dot: true,
+      ignore: ['**/.git/**', '**/node_modules/**'],
+      followSymbolicLinks: false,
+      expandDirectories: false,
+    });
+  } catch {
+    return [];
+  }
+}
+
+// directories: absolute paths of the existing FSH directories (run/sources.ts).
+export function fshFiles(directories: readonly string[]): FshFiles {
+  const files = new Map<string, Promise<FshFile | undefined>>();
+  let canonicalDirectories: Promise<string[]> | undefined;
+  let everyFile: Promise<FshFile[]> | undefined;
+
+  function file(path: string): Promise<FshFile | undefined> {
+    let read = files.get(path);
+    if (read === undefined) {
+      read = readFile(path, 'utf8').then(
+        (text) => ({ path, document: parseFshDocument(text) }),
+        () => undefined,
+      );
+      files.set(path, read);
+    }
+    return read;
+  }
+
+  function canonicalDirectoriesOnce(): Promise<string[]> {
+    canonicalDirectories ??= Promise.all(directories.map(canonical)).then((found) => [
+      ...new Set(found.filter((directory) => directory !== undefined)),
+    ]);
+    return canonicalDirectories;
+  }
+
+  async function readAll(): Promise<FshFile[]> {
+    const listed = await Promise.all((await canonicalDirectoriesOnce()).map(listFsh));
+    const paths = [...new Set(listed.flat())].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    const read = await Promise.all(paths.map(file));
+    return read.filter((each) => each !== undefined);
+  }
+
+  return {
+    directories: canonicalDirectoriesOnce,
+    file,
+    all: () => (everyFile ??= readAll()),
+  };
+}
