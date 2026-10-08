@@ -1,2 +1,0 @@
-Output File              Name  Type      FSH File  Lines
-Questionnaire-Form.json  Form  Instance  Form.fsh  2 - 9

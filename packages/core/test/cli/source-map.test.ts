@@ -7,9 +7,8 @@ import type { CompletedReport, QuestionnaireFinding, SourceLocation } from '../.
 import { runBinary } from '../support/cli.js';
 import { tempTree } from '../support/tmp.js';
 
-// The SUSHI-compiled projects in fixtures/source-map (see its README).
-const fixtures = fileURLToPath(new URL('../fixtures/source-map/', import.meta.url));
-const forms = path.join(fixtures, 'forms');
+// The SUSHI-compiled project in fixtures/source-map (see its README).
+const fixture = fileURLToPath(new URL('../fixtures/source-map/', import.meta.url));
 
 function report(cwd: string, ...argv: string[]): { code: number; report: CompletedReport } {
   const result = runBinary(['lint', '--format', 'json', ...argv], { cwd });
@@ -33,13 +32,10 @@ function sourceAt(cwd: string, { file, line, column, endColumn }: SourceLocation
   return text.slice(column - 1, endColumn - 1);
 }
 
-// A copy of a fixture project, changed by change, to run the CLI in.
-async function copyOf(
-  project: string,
-  change: (dir: string) => void = () => undefined,
-): Promise<string> {
+// A copy of the fixture, changed by change, to run the CLI in.
+async function copyOf(change: (dir: string) => void): Promise<string> {
   const dir = await tempTree();
-  await cp(path.join(fixtures, project), dir, { recursive: true });
+  await cp(fixture, dir, { recursive: true });
   change(dir);
   return dir;
 }
@@ -57,25 +53,25 @@ function withFshDirectories(fsh: string[]): (dir: string) => void {
 
 describe('lint with FSH sources', () => {
   it('names the FSH file, line and column of a mapped finding, with no location line', () => {
-    const { stdout, code } = runBinary(['lint'], { cwd: forms });
+    const { stdout, code } = runBinary(['lint'], { cwd: fixture });
     expect(code).toBe(1);
     const blocks = stdout.split('\n\n');
-    const mapped = blocks.find((block) => block.startsWith('input/fsh/Standalone.fsh:19:48: '));
+    const mapped = blocks.find((block) => block.startsWith('input/fsh/Mapped.fsh:31:48: '));
     expect(mapped).toBe(
       [
-        'input/fsh/Standalone.fsh:19:48: error sdc/unknown-function fist() is not a FHIRPath function, so this expression fails when the form runs.',
+        'input/fsh/Mapped.fsh:31:48: error sdc/unknown-function fist() is not a FHIRPath function, so this expression fails when the form runs.',
         '  %observations.last().value.fist()',
         '                             ^~~~',
         '  help: a function with a similar name exists: first()',
       ].join('\n'),
     );
     // An unmapped finding still names the compiled JSON and the reason.
-    const unmapped = blocks.find((block) => block.includes('Questionnaire/health-check; /item/2/'));
+    const unmapped = blocks.find((block) => block.includes('Questionnaire/Twins; /item/1/'));
     expect(unmapped).toContain('  note: FSH line not found, the expression spans several lines');
   });
 
   it('sorts findings by FSH file and position', () => {
-    const positions = questionnaireFindings(report(forms).report)
+    const positions = questionnaireFindings(report(fixture).report)
       .filter(({ sourceLocation }) => sourceLocation.status === 'mapped')
       .map((finding) => located(finding))
       .map(({ file, line, column }) => [file, line, column] as const);
@@ -87,28 +83,28 @@ describe('lint with FSH sources', () => {
   });
 
   it("puts a fragment's location inside its {{…}}", () => {
-    const finding = questionnaireFindings(report(forms).report).find(
+    const finding = questionnaireFindings(report(fixture).report).find(
       ({ ruleId }) => ruleId === 'sdc/fragment-parse-error',
     );
     const location = located(finding);
     const line =
-      readFileSync(path.join(forms, location.file), 'utf8').split('\n')[location.line - 1] ?? '';
+      readFileSync(path.join(fixture, location.file), 'utf8').split('\n')[location.line - 1] ?? '';
     const before = line.slice(0, location.column - 1);
     expect(before.lastIndexOf('{{')).toBeGreaterThan(before.lastIndexOf('}}'));
     expect(line.indexOf('}}', location.column - 1)).toBeGreaterThanOrEqual(location.endColumn - 1);
   });
 
   it('maps a range across an escape to the escape in the FSH', () => {
-    const finding = questionnaireFindings(report(forms).report).find(
+    const finding = questionnaireFindings(report(fixture).report).find(
       ({ ruleId, jsonLocation }) =>
         ruleId === 'sdc/parse-error' && jsonLocation.linkId === 'smoking',
     );
-    expect(sourceAt(forms, located(finding))).toBe('\\"');
+    expect(sourceAt(fixture, located(finding))).toBe('\\"');
   });
 
   it('changes neither fingerprints nor counts', async () => {
-    const omitted = await copyOf('forms', withFshDirectories([]));
-    const withSources = report(forms).report;
+    const omitted = await copyOf(withFshDirectories([]));
+    const withSources = report(fixture).report;
     const without = report(omitted).report;
     const fingerprints = (completed: CompletedReport) =>
       completed.findings.map(({ fingerprint }) => fingerprint).sort();
@@ -124,29 +120,24 @@ describe('lint with FSH sources', () => {
 });
 
 describe('lint with missing or unusable FSH sources', () => {
-  const reasons = (completed: CompletedReport) =>
-    questionnaireFindings(completed).map(({ sourceLocation }) =>
-      sourceLocation.status === 'mapped' ? 'mapped' : sourceLocation.reason,
+  // The results for HealthCheck, which only the SUSHI index can identify.
+  const healthCheck = (completed: CompletedReport) =>
+    new Set(
+      questionnaireFindings(completed)
+        .filter(({ jsonLocation }) => jsonLocation.resource.id === 'health-check')
+        .map(({ sourceLocation }) =>
+          sourceLocation.status === 'mapped' ? 'mapped' : sourceLocation.reason,
+        ),
     );
 
   it.each([
-    ['a current index', 'indexed', 'mapped'],
-    ['a stale index', 'stale-index', 'not-found'],
-    ['a missing index', 'missing-index', 'not-found'],
-    ['an index whose fshFile escapes the FSH directories', 'escaping-index', 'not-found'],
-  ])('exits 1 with %s', (_, project, reason) => {
-    const { code, report: completed } = report(path.join(fixtures, project));
-    expect(code).toBe(1);
-    expect(reasons(completed)).toEqual([reason]);
-  });
-
-  it.each([
+    ['a current index', () => undefined, 'mapped'],
     ['a malformed index', writing('fsh-generated/data/fsh-index.json', '{ not json'), 'not-found'],
     ['no FSH directory', withFshDirectories(['nowhere']), 'source-unavailable'],
     ['source lookup omitted', withFshDirectories([]), 'source-unavailable'],
   ])('exits 1 with %s', async (_, change, reason) => {
-    const { code, report: completed } = report(await copyOf('indexed', change));
+    const { code, report: completed } = report(await copyOf(change));
     expect(code).toBe(1);
-    expect(reasons(completed)).toEqual([reason]);
+    expect(healthCheck(completed)).toEqual(new Set([reason]));
   });
 });

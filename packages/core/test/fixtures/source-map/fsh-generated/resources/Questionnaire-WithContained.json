@@ -1,0 +1,28 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "WithContained",
+  "status": "draft",
+  "contained": [
+    {
+      "resourceType": "Questionnaire",
+      "id": "contained-form",
+      "item": [
+        {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+              "valueExpression": {
+                "language": "text/fhirpath",
+                "expression": "%contained.fist()"
+              }
+            }
+          ],
+          "linkId": "contained-item",
+          "type": "display",
+          "text": "Contained item"
+        }
+      ],
+      "status": "draft"
+    }
+  ]
+}
