@@ -22,7 +22,8 @@
   },
   "scripts": {
     "build": "tsup",
-    "generate:functions": "node scripts/generate-functions.ts"
+    "generate:functions": "node scripts/generate-functions.ts",
+    "source-map:coverage": "tsup scripts/source-map-coverage.ts --no-config --format esm --platform node --target node22 --out-dir node_modules/.cache/source-map-coverage --silent && node node_modules/.cache/source-map-coverage/source-map-coverage.js"
   },
   "dependencies": {
     "fhirpath": "4.10.1",

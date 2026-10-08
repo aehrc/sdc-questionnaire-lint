@@ -22,6 +22,7 @@ Stack: TypeScript, Node 22+, tsup, Vitest; fhirpath.js pinned to 4.10.1.
 - `npm run format`: apply Prettier. Markdown, `docs/` and test fixtures are deliberately not formatted.
 - Do not run `npm audit fix --force`: it downgrades `fhirpath` below the 4.10.1 pin.
 - `npm run generate:functions --workspace sdc-questionnaire-lint`: regenerate `packages/core/src/analysis/fhirpath-function-catalog.ts`, the FHIRPath function catalogue, from the installed fhirpath.js. Run it after bumping `fhirpath`; never edit the file by hand.
+- `npm run source-map:coverage --workspace sdc-questionnaire-lint -- <IG directory>`: map every expression of an IG's compiled Questionnaires to its FSH and check each result; run SUSHI in the IG first. It exits 1 below 95% mapped or on any failed check. A development script (`packages/core/scripts/source-map-coverage.ts`), bundled by tsup into `node_modules/.cache`; it is not shipped.
 - Dependency versions are saved exactly (`save-exact` in `.npmrc`).
 - Install scripts of dependencies are blocked unless allowed in `allowScripts` in `package.json`. After adding a dependency, review `npm install-scripts ls`.
 
