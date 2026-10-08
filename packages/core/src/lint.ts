@@ -7,10 +7,11 @@ import type { AnalysedDocument } from './inputs/read.js';
 import { resolveRuleSet } from './plugins/rule-set.js';
 import { summarizeExpressionCoverage } from './report/expression-coverage.js';
 import { buildSummary } from './report/summary.js';
-import type { CompletedReport } from './report/types.js';
-import { runRules } from './run/rules.js';
+import type { CompletedReport, QuestionnaireFinding } from './report/types.js';
+import { runRules, type FindingOrigin } from './run/rules.js';
 import { findFshSources } from './run/sources.js';
 import { applySuppressions } from './run/suppressions.js';
+import { mapSourceLocations } from './source/map-findings.js';
 
 export interface LintOptions {
   // The working directory: CLI paths are relative to it, and reports show paths relative to it.
@@ -44,13 +45,20 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     document,
     sites: findExpressionSites(document),
   }));
+  const origins = new Map<QuestionnaireFinding, FindingOrigin>();
   const outcome = await applySuppressions({
     loaded,
     rules: ruleSet.rules,
     runKind,
     inputFiles,
     documents: analysedDocuments,
-    findings: analysedDocuments.flatMap((doc) => runRules(doc, ruleSet.rules)),
+    findings: analysedDocuments.flatMap((doc) => runRules(doc, ruleSet.rules, origins)),
+    cwd,
+  });
+  // Only the findings that will be reported are mapped.
+  const findings = await mapSourceLocations(outcome.findings, origins, {
+    directories: sources.directories,
+    sushiIndex: runPaths.sushiIndex,
     cwd,
   });
 
@@ -63,9 +71,9 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       compat: {},
       selection: runKind,
     },
-    findings: outcome.findings,
+    findings,
     summary: buildSummary({
-      findings: outcome.findings,
+      findings,
       files: fileCounts,
       questionnaires: documents.length,
       expressions: summarizeExpressionCoverage(analysedDocuments.flatMap(({ sites }) => sites)),

@@ -147,11 +147,20 @@ function ruleCrashFailure({ id, namespace }: ResolvedRule, what: string): LintFa
   });
 }
 
+// Where a finding came from: the document, and the site its rule reported it at, if any. The
+// source mapper needs both, and the report keeps neither.
+export interface FindingOrigin {
+  readonly document: AnalysedDocument;
+  readonly site?: ExpressionSite;
+}
+
 // Calls each rule that is not off once on the document, at its effective severity. Built-in and
-// plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH.
+// plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH. When
+// origins is given, it records the origin of each finding.
 export function runRules(
   doc: AnalysedDocument,
   rules: readonly ResolvedRule[],
+  origins?: Map<QuestionnaireFinding, FindingOrigin>,
 ): QuestionnaireFinding[] {
   const { input, document, sites } = doc;
   const keys = siteKeys(document, sites);
@@ -179,7 +188,7 @@ export function runRules(
         resource,
         ...(site?.item?.linkId === undefined ? {} : { linkId: site.item.linkId }),
       },
-      // No source mapper yet.
+      // Until the source mapper locates the expression in FSH (source/map-findings.ts).
       sourceLocation: { status: 'unmapped', reason: 'source-unavailable' },
       ...(expression === undefined ? {} : { expression }),
       fingerprint: questionnaireFingerprint({
@@ -216,7 +225,14 @@ export function runRules(
             checked = 'reading the finding threw an exception';
           }
           if (typeof checked === 'string') problem = checked;
-          else findings.push(toFinding(id, setting, checked));
+          else {
+            const finding = toFinding(id, setting, checked);
+            findings.push(finding);
+            origins?.set(finding, {
+              document: doc,
+              ...(checked.site === undefined ? {} : { site: checked.site }),
+            });
+          }
         },
       });
       // Inside the try: reading then, or calling it, runs plugin code too.

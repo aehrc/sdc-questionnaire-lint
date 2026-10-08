@@ -19,7 +19,8 @@ flowchart TD
   end
 
   runRules --> applySuppressions["applySuppressions<br/>run/suppressions.ts"]
-  applySuppressions --> buildSummary["buildSummary<br/>report/summary.ts"]
+  applySuppressions --> mapSourceLocations["mapSourceLocations<br/>source/map-findings.ts"]
+  mapSourceLocations --> buildSummary["buildSummary<br/>report/summary.ts"]
   buildSummary --> report(["CompletedReport<br/>report/types.ts"])
   report --> formatText["formatTextReport<br/>report/text.ts"]
   report --> formatJson["formatJsonReport<br/>report/json.ts"]
@@ -52,7 +53,7 @@ It validates each plugin's shape against the plugin contract (`contract.ts`), re
 - `paths.ts`: `canonicalizeInputFiles` deduplicates files by their real path.
 - `read.ts`: `readInputs` parses each file into `QuestionnaireDocument`s, standalone or from inside a Bundle. Every resource of a Bundle is kept as a `localResources` entry. Other JSON is skipped.
 
-`findFshSources` in `run/sources.ts` then records which FSH directories exist, for the summary. No source mapping is done yet: every finding keeps its compiled JSON location.
+`findFshSources` in `run/sources.ts` then records which FSH directories exist, for the summary and for source mapping (section 7).
 
 ## 4. Expression discovery (`analysis/`)
 
@@ -75,7 +76,7 @@ The analysis helpers:
 
 `runRules` calls each rule that is not off once per Questionnaire. A rule's `check(ctx)` is synchronous; `ctx` provides `document`, `sites`, `scopeAt()` (a stub until the scope model exists), `options` (always `undefined` for now) and `report()`.
 
-The runner validates every finding. A bad site, pointer or range, a throw, or a returned promise fails the run with `RULE_CRASH`; built-in and plugin rules are treated alike. It then turns each finding into a report `Finding` with its JSON location, an expression excerpt and a fingerprint. A finding in a fragment is shown within its whole query.
+The runner validates every finding. A bad site, pointer or range, a throw, or a returned promise fails the run with `RULE_CRASH`; built-in and plugin rules are treated alike. It then turns each finding into a report `Finding` with its JSON location, an expression excerpt and a fingerprint. A finding in a fragment is shown within its whole query. Every finding starts with `sourceLocation` unmapped as `source-unavailable`; `runRules` also records each finding's document and site as a `FindingOrigin`, for source mapping.
 
 ## 6. Suppressions (`run/suppressions.ts`, `run/fingerprint.ts`)
 
@@ -84,7 +85,20 @@ The runner validates every finding. A bad site, pointer or range, a throw, or a 
 - Every entry ends up applied, stale or not assessed. It counts as stale only when the rule could have completed its check at that site; the `completesCheck` table in `plugins/builtin.ts` decides this. A rule missing from it, such as a plugin rule, leaves its suppressions not assessed.
 - Stale suppressions are reported as `lint/stale-suppression` warnings at the config entry. With that rule off, staleness is not assessed. `lint/` findings cannot be suppressed.
 
-## 7. Report (`report/`)
+## 7. Source mapping (`source/`)
+
+`mapSourceLocations` in `map-findings.ts` gives each finding left after suppressions its FSH location, or the reason it has none (core-plan §7.1–7.2 and [plan-amendments.md](plan-amendments.md) § From the source-mapping design). It reads FSH only when a Questionnaire finding remains and FSH directories exist, and it never fails the run: an exception while mapping a finding leaves it `not-found`. It changes nothing but `sourceLocation`, so fingerprints and counts are the same with or without FSH.
+
+For each finding, `locateExpression` in `locate.ts`:
+
+1. finds the FSH Instance behind the finding's resource (`definitions.ts`): through the SUSHI index (`sushi-index.ts`) when its entry for the input file is current, otherwise by searching the FSH directories for the one Instance with the resource's id and type;
+2. lists the Instance's expression literals with their anchors (`expression-literals.ts`): the linkId of their item, their extension and their Expression's name, found through the full path of every rule (`fsh-paths.ts`);
+3. maps text that occurs once in the resource's JSON and once in the Instance as `exact`, and repeated text as `anchored` when the anchors single out one literal and one expression; otherwise the finding stays unmapped as `ambiguous`, `multiline` or `not-found`;
+4. turns the reported range into lines and columns (`positions.ts`), after reading the literal again from the file and checking that it and the range's source decode to the reported text (`fsh-string.ts`).
+
+The FSH modules mirror SUSHI 3.20.1, so they read FSH as SUSHI does: `fsh-document.ts` splits a file into definitions and rules with SUSHI's longest-match tokens, `fsh-paths.ts` applies indentation context and soft indices as SUSHI's importer and `resolveSoftIndexing` do, and `fsh-string.ts` decodes strings as SUSHI's `unescapeQuotedString` does. `fsh-files.ts` reads and parses each FSH file of a run at most once.
+
+## 8. Report (`report/`)
 
 - `types.ts` defines the public report contract, which matches [lint-report.schema.json](schemas/lint-report.schema.json).
 - `summary.ts`: `buildSummary` computes the counts.
