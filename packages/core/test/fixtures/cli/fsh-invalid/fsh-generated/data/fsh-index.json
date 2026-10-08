@@ -1,0 +1,10 @@
+[
+  {
+    "outputFile": "Questionnaire-Invalid.json",
+    "fshName": "Invalid",
+    "fshType": "Instance",
+    "fshFile": "Invalid.fsh",
+    "startLine": 1,
+    "endLine": 15
+  }
+]

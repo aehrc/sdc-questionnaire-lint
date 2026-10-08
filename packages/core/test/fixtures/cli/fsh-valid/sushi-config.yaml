@@ -1,4 +1,4 @@
-canonical: http://example.org/health-check
+canonical: http://example.org/fsh-valid
 status: draft
 version: 0.1.0
 fhirVersion: 4.0.1

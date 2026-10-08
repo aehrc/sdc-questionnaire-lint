@@ -1,6 +1,6 @@
 # Source-mapping fixture
 
-A SUSHI project whose `fsh-generated/` was compiled by SUSHI 3.20.1, with `hl7.fhir.r4.core#4.0.1` and `hl7.fhir.uv.sdc#4.0.0`. `packages/core/test/source/fixtures.test.ts` reads it, in process, and never runs SUSHI. The end-to-end test through the CLI uses `examples/health-check`.
+A SUSHI project whose `fsh-generated/` was compiled by SUSHI 3.20.1, with `hl7.fhir.r4.core#4.0.1` and `hl7.fhir.uv.sdc#4.0.0`. `packages/core/test/source/fixtures.test.ts` reads it, in process, and never runs SUSHI. The end-to-end test through the CLI, `packages/core/test/cli/source-map.test.ts`, uses the `fsh-valid` and `fsh-invalid` projects in `packages/core/test/fixtures/cli/`.
 
 | File | What it holds |
 | :- | :- |

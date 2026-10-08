@@ -1,0 +1,26 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "Valid",
+  "item": [
+    {
+      "linkId": "smoker",
+      "type": "boolean",
+      "text": "Do you smoke?"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%resource.item.where(linkId = 'smoker').answer.first().value"
+          }
+        }
+      ],
+      "linkId": "packs",
+      "type": "integer",
+      "text": "Packs per day"
+    }
+  ],
+  "status": "draft"
+}

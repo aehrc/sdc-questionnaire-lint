@@ -33,8 +33,6 @@ Findings and the summary go to stdout; failures go to stderr as `error:` and `he
 
 **Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with five built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error` and `sdc/uncatalogued-expression`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules. FSH source mapping works. Not built yet: the Smart Forms plugin's rules, and the scope model and the rules that depend on it.
 
-[examples/health-check](examples/health-check/README.md) is a form with common mistakes and the output the linter gives for it.
-
 Start with these docs:
 
 - [Core plan](docs/core-plan.md) and [amendments](docs/plan-amendments.md) — scope and decisions; amendments take precedence.
