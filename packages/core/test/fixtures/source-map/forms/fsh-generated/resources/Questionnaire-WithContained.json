@@ -1,0 +1,22 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "WithContained",
+  "status": "draft",
+  "contained": [
+    {
+      "resourceType": "Questionnaire",
+      "id": "contained-form",
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/variable",
+          "valueExpression": {
+            "name": "contained",
+            "language": "text/fhirpath",
+            "expression": "%contained.fist()"
+          }
+        }
+      ],
+      "status": "draft"
+    }
+  ]
+}

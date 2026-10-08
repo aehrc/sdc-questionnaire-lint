@@ -1,0 +1,58 @@
+[
+  {
+    "outputFile": "Bundle-Collection.json",
+    "fshName": "Collection",
+    "fshType": "Instance",
+    "fshFile": "Inline.fsh",
+    "startLine": 2,
+    "endLine": 7
+  },
+  {
+    "outputFile": "Patient-dup.json",
+    "fshName": "DupPatient",
+    "fshType": "Instance",
+    "fshFile": "Inline.fsh",
+    "startLine": 19,
+    "endLine": 23
+  },
+  {
+    "outputFile": "Questionnaire-Anchors.json",
+    "fshName": "Anchors",
+    "fshType": "Instance",
+    "fshFile": "Anchors.fsh",
+    "startLine": 2,
+    "endLine": 43
+  },
+  {
+    "outputFile": "Questionnaire-Crlf.json",
+    "fshName": "Crlf",
+    "fshType": "Instance",
+    "fshFile": "Crlf.fsh",
+    "startLine": 2,
+    "endLine": 8
+  },
+  {
+    "outputFile": "Questionnaire-WithContained.json",
+    "fshName": "WithContained",
+    "fshType": "Instance",
+    "fshFile": "Inline.fsh",
+    "startLine": 25,
+    "endLine": 29
+  },
+  {
+    "outputFile": "Questionnaire-WithInsert.json",
+    "fshName": "WithInsert",
+    "fshType": "Instance",
+    "fshFile": "WithInsert.fsh",
+    "startLine": 6,
+    "endLine": 23
+  },
+  {
+    "outputFile": "Questionnaire-health-check.json",
+    "fshName": "HealthCheck",
+    "fshType": "Instance",
+    "fshFile": "Standalone.fsh",
+    "startLine": 2,
+    "endLine": 33
+  }
+]

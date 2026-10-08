@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# A source-mapping fixture that must keep its CRLF line endings.
+packages/core/test/fixtures/source-map/forms/input/fsh/Crlf.fsh -text

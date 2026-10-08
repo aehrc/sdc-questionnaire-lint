@@ -1,0 +1,62 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "health-check",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemPopulationContext",
+      "valueExpression": {
+        "name": "observations",
+        "language": "application/x-fhir-query",
+        "expression": "Observation?code=29463-7&date=ge{{(today() - 1 year}}"
+      }
+    }
+  ],
+  "item": [
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/variable",
+          "valueExpression": {
+            "name": "w",
+            "language": "text/fhirpath",
+            "expression": "%observations.last().value.fist()"
+          }
+        }
+      ],
+      "linkId": "weight",
+      "type": "decimal",
+      "text": "Weight"
+    },
+    {
+      "linkId": "smoking",
+      "type": "boolean",
+      "text": "Smoking",
+      "_text": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/cqf-expression",
+            "valueExpression": {
+              "language": "text/fhirpath",
+              "expression": "'Hello ' + %patient.name.given.first() + \", do you smoke?\""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%w / (%h * %h)).round(1"
+          }
+        }
+      ],
+      "linkId": "bmi",
+      "type": "decimal",
+      "text": "BMI"
+    }
+  ],
+  "status": "draft"
+}

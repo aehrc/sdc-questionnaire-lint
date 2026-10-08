@@ -1,0 +1,15 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "Crlf",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "crlf",
+        "language": "text/fhirpath",
+        "expression": "%crlf.fist()"
+      }
+    }
+  ],
+  "status": "draft"
+}
