@@ -13,6 +13,7 @@ describe('sdc-lint explain', () => {
       stdout:
         'RULE                           DEFAULT  EFFECTIVE  DESCRIPTION\n' +
         'lint/stale-suppression         warning  warning    Reports a suppression that is no longer needed.\n' +
+        'sdc/external-expression        info     info       Reports an expression whose content is only behind a reference.\n' +
         'sdc/fragment-parse-error       error    error      Reports a FHIRPath expression embedded in an x-fhir-query that does not parse.\n' +
         'sdc/language-not-allowed       error    error      Reports an expression language that SDC does not allow at its location.\n' +
         'sdc/language-not-in-value-set  warning  warning    Reports an expression language that FHIR R4 and R5 do not define.\n' +

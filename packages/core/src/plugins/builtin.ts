@@ -2,6 +2,7 @@ import pkg from '../../package.json' with { type: 'json' };
 import type { ExpressionSite } from '../analysis/expression-site.js';
 import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
 import { hasQueryText } from '../analysis/x-fhir-query.js';
+import { externalExpression } from '../rules/external-expression.js';
 import { fragmentParseError } from '../rules/fragment-parse-error.js';
 import { hasCataloguedLanguage, languageNotAllowed } from '../rules/language-not-allowed.js';
 import {
@@ -19,6 +20,7 @@ import type { LintPlugin } from './contract.js';
 export const sdcPlugin: LintPlugin = {
   meta: { name: 'sdc', version: pkg.version },
   rules: {
+    'external-expression': externalExpression,
     'fragment-parse-error': fragmentParseError,
     'language-not-allowed': languageNotAllowed,
     'language-not-in-value-set': languageNotInValueSet,
@@ -33,6 +35,7 @@ export const sdcPlugin: LintPlugin = {
 // of its findings make a suppression stale (cli.md § Stale suppressions); a rule missing here, such
 // as a plugin rule, leaves its suppressions not assessed.
 export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => boolean>> = {
+  'sdc/external-expression': () => true,
   'sdc/fragment-parse-error': hasQueryText,
   'sdc/language-not-allowed': hasCataloguedLanguage,
   'sdc/language-not-in-value-set': hasExpressionLanguage,

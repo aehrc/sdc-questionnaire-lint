@@ -33,6 +33,7 @@ describe('resolveRuleSet', () => {
     const rules = resolveRules(null);
     expect(severities(rules)).toEqual([
       ['lint/stale-suppression', 'warning'],
+      ['sdc/external-expression', 'info'],
       ['sdc/fragment-parse-error', 'error'],
       ['sdc/language-not-allowed', 'error'],
       ['sdc/language-not-in-value-set', 'warning'],
@@ -42,7 +43,7 @@ describe('resolveRuleSet', () => {
       ['sdc/unknown-function', 'error'],
     ]);
     expect(rules.map(({ id }) => id)).toEqual(rules.map(({ id }) => id).sort());
-    expect(rules[1]?.rule.meta.defaultSeverity).toBe('error');
+    expect(rules[1]?.rule.meta.defaultSeverity).toBe('info');
   });
 
   it('applies a configured severity and off', () => {
@@ -51,6 +52,7 @@ describe('resolveRuleSet', () => {
     );
     expect(severities(rules)).toEqual([
       ['lint/stale-suppression', 'warning'],
+      ['sdc/external-expression', 'info'],
       ['sdc/fragment-parse-error', 'error'],
       ['sdc/language-not-allowed', 'error'],
       ['sdc/language-not-in-value-set', 'warning'],
@@ -134,6 +136,7 @@ describe('resolveRuleSet', () => {
     expect(severities(ruleSet.rules)).toEqual([
       ['demo/no-today', 'warning'],
       ['lint/stale-suppression', 'warning'],
+      ['sdc/external-expression', 'info'],
       ['sdc/fragment-parse-error', 'error'],
       ['sdc/language-not-allowed', 'error'],
       ['sdc/language-not-in-value-set', 'warning'],

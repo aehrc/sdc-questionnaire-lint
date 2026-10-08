@@ -301,6 +301,20 @@ describe('applySuppressions: whether the rule completed its check', () => {
     expect(outcome.suppressions).toEqual(counts(0, 1, 0));
   });
 
+  it('applies sdc/external-expression to a reference-only site, and is stale once it has text', async () => {
+    const external = entry({ rule: 'sdc/external-expression' });
+    const referenceOnly = questionnaire('A', [
+      {
+        url: `${sdc}calculatedExpression`,
+        valueExpression: { language: 'text/cql', reference: 'Library/score#Total' },
+      },
+    ]);
+    const applied = await assess({ [A]: referenceOnly }, { suppress: [external] });
+    expect(applied.outcome.suppressions).toEqual(counts(1, 0, 0));
+    const stale = await assess({ [A]: fixed }, { suppress: [external] });
+    expect(stale.outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
   it('knows where every sdc rule completes its check', () => {
     const ids = Object.keys(sdcPlugin.rules).map((name) => `${sdcPlugin.meta.name}/${name}`);
     expect(Object.keys(completesCheck).sort()).toEqual(ids.sort());

@@ -103,6 +103,33 @@ describe('expression findings', () => {
     ]);
   });
 
+  it('reports an Expression with only a reference at the Expression, as unchecked', async () => {
+    const { report, findings } = await lintQuestionnaire({
+      item: [
+        {
+          linkId: 'q',
+          type: 'integer',
+          extension: [
+            {
+              url: `${sdc}calculatedExpression`,
+              valueExpression: { language: 'text/cql', reference: 'Library/score#Total' },
+            },
+          ],
+        },
+      ],
+    });
+    expect(findings).toMatchObject([
+      {
+        ruleId: 'sdc/external-expression',
+        severity: 'info',
+        message:
+          'This expression has no text, only the reference Library/score#Total, so it was not checked.',
+        jsonLocation: { pointer: '/item/0/extension/0/valueExpression' },
+      },
+    ]);
+    expect(report.summary.expressions).toEqual({ analysed: 0, unchecked: 1 });
+  });
+
   it('reports broken FHIRPath in an uncatalogued site twice, at the same pointer', async () => {
     const { report, findings } = await lintQuestionnaire({
       item: [

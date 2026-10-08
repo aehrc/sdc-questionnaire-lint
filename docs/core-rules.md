@@ -20,7 +20,7 @@ One PR per slice, in this order. The exception is slice 4, which is three PRs.
 | [0](#0-corpus) | Local corpus and the command that compares its findings | – | – | done |
 | [1](#1-language-rules) | `sdc/language-not-in-value-set` | warning | 0 | done |
 |  | `sdc/language-not-allowed` | error | 0 | done |
-| [2](#2-sdcexternal-expression) | `sdc/external-expression` | info | 0 | todo |
+| [2](#2-sdcexternal-expression) | `sdc/external-expression` | info | 0 | done |
 | [3](#3-declarations-and-sdcduplicate-declaration) | Declarations, `sdc/duplicate-declaration`, suppressions that target declarations | error | 0 | todo |
 | [4a](#4a-variable-references) | Variable references (no findings) | – | – | todo |
 | [4b](#4b-available-variables) | Available variables and the `hostVariables` config key (no findings) | – | 3 | todo |
