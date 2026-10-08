@@ -74,6 +74,19 @@ describe('sdc/query-syntax', () => {
     expect(check([query('%patient.id', {})])).toHaveLength(1);
   });
 
+  it('checks a query in the R5 language code too', () => {
+    const r5 = { ...catalogued, language: 'text/x-fhir-query' };
+    expect(check([expressionSite({ ...r5, text: '%patient.id' })])).toMatchObject([
+      { message: notASearch },
+    ]);
+    expect(
+      check([expressionSite({ ...r5, text: 'Observation?subject={{%patient.id' })]),
+    ).toMatchObject([{ range: { startOffset: 20, endOffset: 22 } }]);
+    expect(check([expressionSite({ ...r5, text: 'Observation?subject={{%patient.id}}' })])).toEqual(
+      [],
+    );
+  });
+
   it('reports nothing for a FHIR search', () => {
     expect(check([query('Observation?subject={{%patient.id}}')])).toEqual([]);
   });

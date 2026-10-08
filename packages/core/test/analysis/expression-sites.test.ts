@@ -279,6 +279,16 @@ describe('findExpressionSites', () => {
       });
     });
 
+    it('finds the fragments of a query in the R5 language code', () => {
+      const r5 = { ...query(text, 'obs'), language: 'text/x-fhir-query' };
+      const sites = sitesOf({ extension: [extension(POPULATION_CONTEXT, r5)] });
+      expect(sites.map((site) => [site.carrier, site.language, site.text])).toEqual([
+        ['expression', 'text/x-fhir-query', text],
+        ['fragment', 'text/fhirpath', '%patient.id'],
+        ['fragment', 'text/fhirpath', '%today'],
+      ]);
+    });
+
     it('gives the fragments of an uncatalogued query its item and no location', () => {
       const sites = sitesOf({
         item: [{ linkId: 'q', extension: [extension('http://example.org/q', query(text))] }],

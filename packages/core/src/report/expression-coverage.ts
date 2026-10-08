@@ -1,6 +1,6 @@
 import type { ExpressionSite } from '../analysis/expression-site.js';
 import { FHIRPATH } from '../analysis/fhirpath.js';
-import { X_FHIR_QUERY } from '../analysis/x-fhir-query.js';
+import { isQueryLanguage } from '../analysis/x-fhir-query.js';
 import type { Summary } from './types.js';
 
 // Approximates report-format.md § Run metadata and summary. A catalogued site with text is
@@ -15,7 +15,7 @@ export function summarizeExpressionCoverage(
     (site) =>
       site.catalogued &&
       site.text !== undefined &&
-      (site.language === FHIRPATH || site.language === X_FHIR_QUERY),
+      (site.language === FHIRPATH || isQueryLanguage(site.language)),
   ).length;
   return { analysed, unchecked: sites.length - analysed };
 }

@@ -3,7 +3,7 @@ import { isObject } from '../object.js';
 import type { ExpressionSite, QuestionnaireDocument, SiteItem } from './expression-site.js';
 import { type CatalogEntry, extensionCatalog, type Owner } from './extension-catalog.js';
 import { FHIRPATH } from './fhirpath.js';
-import { scanQueryFragments, X_FHIR_QUERY } from './x-fhir-query.js';
+import { isQueryLanguage, scanQueryFragments } from './x-fhir-query.js';
 
 type Json = Record<string, unknown>;
 type Segments = readonly (string | number)[];
@@ -37,7 +37,7 @@ function expressionsOf(extension: Json, entry: CatalogEntry): Json[] {
 // One site per closed {{…}} fragment of a query site with text: FHIRPath at the query's place.
 function fragmentSites(site: ExpressionSite): ExpressionSite[] {
   const query = site.text;
-  if (site.language !== X_FHIR_QUERY || query === undefined) return [];
+  if (!isQueryLanguage(site.language) || query === undefined) return [];
   return scanQueryFragments(query).fragments.map(({ startOffset, endOffset }) =>
     Object.freeze({
       pointer: site.pointer,

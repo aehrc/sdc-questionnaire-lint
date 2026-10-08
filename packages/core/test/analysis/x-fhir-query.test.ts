@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { findQueryShapeProblem, scanQueryFragments } from '../../src/analysis/x-fhir-query.js';
+import {
+  findQueryShapeProblem,
+  isQueryLanguage,
+  scanQueryFragments,
+} from '../../src/analysis/x-fhir-query.js';
+
+describe('isQueryLanguage', () => {
+  it('recognises the R4 and the R5 query code', () => {
+    expect(isQueryLanguage('application/x-fhir-query')).toBe(true);
+    expect(isQueryLanguage('text/x-fhir-query')).toBe(true);
+  });
+
+  it('recognises no other language', () => {
+    for (const language of ['text/fhirpath', 'text/cql', 'x-fhir-query', undefined]) {
+      expect(isQueryLanguage(language)).toBe(false);
+    }
+  });
+});
 
 describe('scanQueryFragments', () => {
   it('finds no fragments in a plain query', () => {

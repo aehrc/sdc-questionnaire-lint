@@ -1,5 +1,5 @@
 import { FHIRPATH } from '../analysis/fhirpath.js';
-import { X_FHIR_QUERY } from '../analysis/x-fhir-query.js';
+import { isQueryLanguage } from '../analysis/x-fhir-query.js';
 import type { LintRule } from '../plugins/contract.js';
 
 const unrecognised = 'This expression is in a place the linter does not recognise';
@@ -9,7 +9,7 @@ const queryMessage = `${unrecognised}, so only its query shape and the FHIRPath 
 // What can still be checked in an uncatalogued expression, by its language.
 function messageFor(language: string | undefined): string {
   if (language === FHIRPATH) return fhirPathMessage;
-  if (language === X_FHIR_QUERY) return queryMessage;
+  if (isQueryLanguage(language)) return queryMessage;
   return `${unrecognised}, so it was not checked.`;
 }
 
