@@ -24,6 +24,9 @@ export interface SuppressionEntry {
 // The config file's contents. Paths inside it are relative to the config's directory.
 export interface LintConfig {
   files?: string[];
+  // Names, without %, that the application running the form supplies, such as PrePopQuery: they are
+  // available to every expression (core-rules.md D1).
+  hostVariables?: string[];
   source?: { fsh?: string[] };
   // Only in an .mjs config. Installing a plugin does not enable it; listing it here does.
   plugins?: LintPlugin[];

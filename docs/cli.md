@@ -40,7 +40,7 @@ Without a config, the built-in `sdc` rules run at their default severities and t
 | Implicit input directory, FSH directories and SUSHI index | Directory containing the selected config, or the working directory when no config is used |
 | Paths rendered in reports | Current working directory |
 
-Absolute input and config paths are accepted. Report paths use `/` separators. Config `files` is a non-empty array of file, directory or glob strings; an empty array is a config failure. `source.fsh` is an array of directories, defaulting to `["input/fsh"]`; `[]` explicitly omits FSH source lookup. The SUSHI index defaults to `fsh-generated/data/fsh-index.json` beneath the same base as the implicit inputs.
+Absolute input and config paths are accepted. Report paths use `/` separators. Config `files` is a non-empty array of file, directory or glob strings; an empty array is a config failure. `source.fsh` is an array of directories, defaulting to `["input/fsh"]`; `[]` explicitly omits FSH source lookup. `hostVariables` is a non-empty array of unique, non-empty names written without `%`: the names the application running the form supplies, available to every expression (core-rules.md D1). An empty array, a repeated name or a name that starts with `%` is a config failure. The SUSHI index defaults to `fsh-generated/data/fsh-index.json` beneath the same base as the implicit inputs.
 
 For example, when invoked from the parent of `ig`, `lint --config ig/sdc-questionnaire-lint.config.json` uses defaults beneath `ig`. An additional CLI path is still relative to the caller's working directory.
 

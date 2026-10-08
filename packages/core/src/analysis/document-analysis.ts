@@ -1,3 +1,4 @@
+import { type AvailableVariables, availableVariables } from './available-variables.js';
 import { type Declaration, findDeclarations } from './declarations.js';
 import type { ExpressionSite, QuestionnaireDocument } from './expression-site.js';
 import { findVariableReferences, hasFhirPathText, type VariableReference } from './fhirpath.js';
@@ -9,16 +10,26 @@ export interface DocumentAnalysis {
   // The %name references of each FHIRPath site that parses, fragments included; a site that does
   // not parse has none (D18).
   readonly references: ReadonlyMap<ExpressionSite, readonly VariableReference[]>;
+  // The names each expression can reference at its site; undefined at an uncatalogued site, where
+  // name analysis cannot run.
+  variablesAt(site: ExpressionSite): AvailableVariables | undefined;
 }
 
 export function analyseDocument(
   document: QuestionnaireDocument,
   sites: readonly ExpressionSite[],
+  // The configured hostVariables (D1).
+  hostVariables: readonly string[] = [],
 ): DocumentAnalysis {
   const references = new Map<ExpressionSite, readonly VariableReference[]>();
   for (const site of sites) {
     const found = hasFhirPathText(site) ? findVariableReferences(site.text) : undefined;
     if (found !== undefined) references.set(site, found);
   }
-  return { declarations: findDeclarations(document, sites), references };
+  const declarations = findDeclarations(document, sites);
+  return {
+    declarations,
+    references,
+    variablesAt: availableVariables(declarations, hostVariables),
+  };
 }

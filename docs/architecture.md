@@ -66,7 +66,8 @@ This is the heart of the linter.
   - An x-fhir-query site with text is directly followed by one fragment site per `{{…}}` fragment: carrier `fragment`, language `text/fhirpath`, with offsets into the query.
   - A catalogued Expression with a `name` has `declares` set: it declares that name for other expressions.
 - `declarations.ts`: `findDeclarations` lists a document's declarations in document order: the declaring sites (`variable`, `itemPopulationContext` and other named expressions), `launchContext` names on the root, and `extractAllocateId` names on the root and items. Each records its name, kind, pointer, declaring item (none for the root), use cases and, when it is an Expression, its site. Contained resources declare nothing; sourceQueries results are host variables, not declarations.
-- `document-analysis.ts`: `analyseDocument` computes core's internal analysis of a document once per run: so far, its declarations and the variable references of each FHIRPath site that parses. `lint.ts` keeps it on each analysed document. It is not exported, and plugin rules never receive it.
+- `available-variables.ts`: `availableVariables` answers, for each catalogued site, which names its expressions can reference: the declarations on its element, its ancestor items and the root, the innermost of a name winning; the built-in names FHIRPath, FHIR and SDC define (`builtinNames`, plus the `vs-` and `ext-` prefixes); and the configured `hostVariables`. An extraction site sees only extractAllocateId names and named extraction contexts among the declarations; any other site sees every declaration except extractAllocateId names, whatever the declaring expression's use cases. An uncatalogued site gets none, because name analysis cannot run there.
+- `document-analysis.ts`: `analyseDocument` computes core's internal analysis of a document once per run, from the document, its sites and the configured `hostVariables`: its declarations, the variable references of each FHIRPath site that parses, and the available variables at each site (`variablesAt`). `lint.ts` keeps it on each analysed document. It is not exported, and plugin rules never receive it.
 
 The analysis helpers:
 
@@ -76,7 +77,7 @@ The analysis helpers:
 
 ## 5. Rules (`rules/`, run by `run/rules.ts`)
 
-`runRules` calls each rule that is not off once per Questionnaire. A rule's `check(ctx)` is synchronous; `ctx` provides `document`, `sites`, `scopeAt()` (a stub until the scope model exists), `options` (always `undefined` for now) and `report()`. An `sdc` rule also receives the document's analysis as a second argument (`CoreRule` in `plugins/core-rule.ts`); a plugin cannot register an `sdc` rule.
+`runRules` calls each rule that is not off once per Questionnaire. A rule's `check(ctx)` is synchronous; `ctx` provides `document`, `sites`, `scopeAt()` (a stub: core's available variables stay internal until a plugin rule needs them), `options` (always `undefined` for now) and `report()`. An `sdc` rule also receives the document's analysis as a second argument (`CoreRule` in `plugins/core-rule.ts`); a plugin cannot register an `sdc` rule.
 
 The runner validates every finding. A bad site, pointer or range, a throw, or a returned promise fails the run with `RULE_CRASH`; built-in and plugin rules are treated alike. It then turns each finding into a report `Finding` with its JSON location, an expression excerpt, its related locations and a fingerprint. A finding in a fragment is shown within its whole query.
 

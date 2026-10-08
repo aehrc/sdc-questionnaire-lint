@@ -29,7 +29,7 @@ sdc-lint lint --show-info                                          # also show i
 
 Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
-**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with nine built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression` and `sdc/duplicate-declaration`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules. Not built yet: the Smart Forms plugin's rules, the scope model and the rules that depend on it, and FSH source mapping. Until then every finding keeps its compiled JSON location.
+**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with ten built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration` and `sdc/reserved-name`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules. Not built yet: the Smart Forms plugin's rules, the scope model and the rules that depend on it, and FSH source mapping. Until then every finding keeps its compiled JSON location.
 
 [examples/health-check](examples/health-check/README.md) is a form with common mistakes and the output the linter gives for it.
 
@@ -54,6 +54,7 @@ Start with these docs:
 
 - `files`: the inputs `lint` checks when no paths are given: files, directories or globs. Defaults to `fsh-generated/resources`.
 - `source.fsh`: the FSH directories, defaulting to `["input/fsh"]`; `[]` omits FSH source lookup.
+- `hostVariables`: names, written without `%`, that the application running the form supplies, such as `["PrePopQuery"]`. Every expression can reference them. List exact names; a name not listed, a typo included, is not available.
 - `rules`: a rule ID set to `error`, `warning`, `info` or `off`. A rule that is `off` does not run. `lint/stale-suppression` accepts only `warning` or `off`.
 - `suppress`: suppressions; see below.
 - `plugins`: plugins whose rules run; only in an `.mjs` config. See below.

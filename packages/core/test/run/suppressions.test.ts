@@ -596,6 +596,23 @@ describe('applySuppressions: declarations without an Expression', () => {
     ]);
   });
 
+  it('hides sdc/reserved-name at a launchContext, and is stale at one whose name is not reserved', async () => {
+    const reserved = targeting(LAUNCH_CONTEXT, { rule: 'sdc/reserved-name', name: 'context' });
+    const applied = await assess(
+      { [A]: onRoot(launchContext('context')) },
+      { suppress: [reserved] },
+    );
+    expect(applied.findings).toMatchObject([
+      { ruleId: 'sdc/reserved-name', jsonLocation: { pointer: '/extension/0' } },
+    ]);
+    expect(applied.outcome.suppressions).toEqual(counts(1, 0, 0));
+    const renamed = await assess(
+      { [A]: onRoot(launchContext('patient')) },
+      { suppress: [{ ...reserved, name: 'patient' }] },
+    );
+    expect(renamed.outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
   it('is stale when the rule checked the declaration and found nothing', async () => {
     const { outcome } = await assess(
       { [A]: onRoot(launchContext('patient')) },

@@ -40,6 +40,7 @@ describe('resolveRuleSet', () => {
       ['sdc/language-not-in-value-set', 'warning'],
       ['sdc/parse-error', 'error'],
       ['sdc/query-syntax', 'error'],
+      ['sdc/reserved-name', 'error'],
       ['sdc/uncatalogued-expression', 'info'],
       ['sdc/unknown-function', 'error'],
     ]);
@@ -60,6 +61,7 @@ describe('resolveRuleSet', () => {
       ['sdc/language-not-in-value-set', 'warning'],
       ['sdc/parse-error', 'warning'],
       ['sdc/query-syntax', 'error'],
+      ['sdc/reserved-name', 'error'],
       ['sdc/uncatalogued-expression', 'off'],
       ['sdc/unknown-function', 'error'],
     ]);
@@ -145,6 +147,7 @@ describe('resolveRuleSet', () => {
       ['sdc/language-not-in-value-set', 'warning'],
       ['sdc/parse-error', 'error'],
       ['sdc/query-syntax', 'error'],
+      ['sdc/reserved-name', 'error'],
       ['sdc/uncatalogued-expression', 'info'],
       ['sdc/unknown-function', 'error'],
     ]);

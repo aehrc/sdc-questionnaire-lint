@@ -1,20 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ExpressionSite } from '../../src/analysis/expression-site.js';
-import type { RuleFinding } from '../../src/plugins/contract.js';
 import { externalExpression } from '../../src/rules/external-expression.js';
 import { expressionSite, fragmentSite } from '../support/builders.js';
+import { checkSites } from '../support/rules.js';
 
-function check(sites: ExpressionSite[]): RuleFinding[] {
-  const findings: RuleFinding[] = [];
-  externalExpression.check({
-    document: { file: 'Q.json', resource: {}, resourcePointer: '', localResources: [] },
-    sites,
-    scopeAt: () => ({ available: false, names: [] }),
-    options: undefined,
-    report: (finding) => findings.push(finding),
-  });
-  return findings;
-}
+const check = (sites: ExpressionSite[]) => checkSites(externalExpression, sites);
 
 const catalogued = {
   catalogued: true,

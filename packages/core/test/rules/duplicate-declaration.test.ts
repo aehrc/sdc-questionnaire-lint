@@ -1,15 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { analyseDocument } from '../../src/analysis/document-analysis.js';
-import type { QuestionnaireDocument } from '../../src/analysis/expression-site.js';
-import { findExpressionSites } from '../../src/analysis/expression-sites.js';
-import { sdcPlugin } from '../../src/plugins/builtin.js';
-import type { LintRule } from '../../src/plugins/contract.js';
-import { runRules } from '../../src/run/rules.js';
+import { lintQuestionnaire } from '../support/rules.js';
 
 const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
 const VARIABLE = 'http://hl7.org/fhir/StructureDefinition/variable';
-
-const rule = sdcPlugin.rules['duplicate-declaration'] as LintRule;
 
 function expression(url: string, name: string, text = '1') {
   return { url, valueExpression: { name, language: 'text/fhirpath', expression: text } };
@@ -29,25 +22,8 @@ function launchContext(name: string) {
 
 const allocateId = (name: string) => ({ url: `${sdc}extractAllocateId`, valueString: name });
 
-// The findings of sdc/duplicate-declaration on a Questionnaire, as the report shows them.
-function lintResource(resource: Record<string, unknown>) {
-  const document: QuestionnaireDocument = {
-    file: 'Q.json',
-    resource: { resourceType: 'Questionnaire', id: 'Q', ...resource },
-    resourcePointer: '',
-    localResources: [],
-  };
-  const sites = findExpressionSites(document);
-  const doc = {
-    input: { path: '/ig/Q.json', display: 'Q.json', baseRelative: 'Q.json' },
-    document,
-    sites,
-    analysis: analyseDocument(document, sites),
-  };
-  return runRules(doc, [
-    { id: 'sdc/duplicate-declaration', namespace: 'sdc', rule, setting: 'error' },
-  ]);
-}
+const lintResource = (resource: Record<string, unknown>) =>
+  lintQuestionnaire('duplicate-declaration', resource);
 
 const resource = { resourceType: 'Questionnaire', id: 'Q', pointer: '' };
 const unmapped = { status: 'unmapped', reason: 'source-unavailable' };

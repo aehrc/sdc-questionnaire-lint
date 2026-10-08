@@ -1,4 +1,5 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
+import { analyseDocument } from '../../src/analysis/document-analysis.js';
 import { lint } from '../../src/index.js';
 import type { LintRule, RuleContext, RuleFinding } from '../../src/plugins/contract.js';
 import type { ResolvedRule } from '../../src/plugins/rule-set.js';
@@ -8,16 +9,17 @@ import { expectValidReport } from '../support/report.js';
 import { tempTree } from '../support/tmp.js';
 
 const site = expressionSite();
+const document = {
+  file: 'Q.json',
+  resource: { resourceType: 'Questionnaire' },
+  resourcePointer: '',
+  localResources: [],
+};
 const doc = {
   input: { path: '/ig/Q.json', display: 'Q.json', baseRelative: 'Q.json' },
-  document: {
-    file: 'Q.json',
-    resource: { resourceType: 'Questionnaire' },
-    resourcePointer: '',
-    localResources: [],
-  },
+  document,
   sites: [site],
-  analysis: { declarations: [], references: new Map() },
+  analysis: analyseDocument(document, [site]),
 };
 
 function resolved(setting: ResolvedRule['setting'], reported?: 'info'): ResolvedRule {

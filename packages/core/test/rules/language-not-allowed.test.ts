@@ -1,20 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ExpressionSite } from '../../src/analysis/expression-site.js';
-import type { RuleFinding } from '../../src/plugins/contract.js';
 import { languageNotAllowed } from '../../src/rules/language-not-allowed.js';
 import { expressionSite } from '../support/builders.js';
+import { checkSites } from '../support/rules.js';
 
-function check(sites: ExpressionSite[]): RuleFinding[] {
-  const findings: RuleFinding[] = [];
-  languageNotAllowed.check({
-    document: { file: 'Q.json', resource: {}, resourcePointer: '', localResources: [] },
-    sites,
-    scopeAt: () => ({ available: false, names: [] }),
-    options: undefined,
-    report: (finding) => findings.push(finding),
-  });
-  return findings;
-}
+const check = (sites: ExpressionSite[]) => checkSites(languageNotAllowed, sites);
 
 const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
 const enableWhen = { catalogued: true, location: { url: `${sdc}enableWhenExpression` } } as const;

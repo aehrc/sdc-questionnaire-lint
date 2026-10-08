@@ -1,0 +1,118 @@
+import type { Declaration } from './declarations.js';
+import type { ExpressionSite, ExpressionUseCase, SiteItem } from './expression-site.js';
+
+// Available variables stay internal to core until a plugin rule needs them (core-rules.md D15):
+// do not export them from index.ts or add them to RuleContext.
+
+// The specification that defines a built-in name.
+export type BuiltinDefiner = 'FHIR' | 'FHIRPath' | 'SDC';
+
+// The names FHIRPath, FHIR and SDC define, which a form must not declare (D23). All are available
+// at every site, extraction sites included (D19), except %qitem, which needs an item.
+// %terminologies, %factory and %server belong to FHIR's R4 and R5 APIs; a Questionnaire does not
+// state its FHIR version, so they are available everywhere.
+export const builtinNames: ReadonlyMap<string, BuiltinDefiner> = new Map([
+  ['resource', 'FHIR'],
+  ['rootResource', 'FHIR'],
+  ['context', 'FHIRPath'],
+  ['ucum', 'FHIRPath'],
+  ['questionnaire', 'SDC'],
+  ['qitem', 'SDC'],
+  ['sct', 'FHIR'],
+  ['loinc', 'FHIR'],
+  ['terminologies', 'FHIR'],
+  ['factory', 'FHIR'],
+  ['server', 'FHIR'],
+]);
+
+// FHIR defines every name with these prefixes, such as %vs-conditions and %ext-birthPlace.
+export const builtinPrefixes: readonly string[] = ['vs-', 'ext-'];
+
+// A name an expression can reference at its site.
+export interface Variable {
+  readonly name: string;
+  readonly origin: 'declaration' | 'builtin' | 'host';
+  // Set only when origin is declaration.
+  readonly declaration?: Declaration;
+}
+
+export interface AvailableVariables {
+  // Each available name once: the declarations, innermost first and then in document order, then
+  // the built-in names and the host variables that no declaration overrides. Names with a built-in
+  // prefix are not listed.
+  readonly variables: readonly Variable[];
+  // The variable a %name reference gets: the innermost declaration of the name, else a built-in
+  // name, one with a built-in prefix included, else a host variable.
+  resolve(name: string): Variable | undefined;
+}
+
+// Whether an SDC extraction feature is the only use of a site or a declaration (D19).
+function extractionOnly(useCases: readonly ExpressionUseCase[]): boolean {
+  return useCases.length > 0 && useCases.every((useCase) => useCase === 'extraction');
+}
+
+// Whether a declaration is on the item, on one of its ancestors, or on the root. Compared with a
+// trailing /, so that /item/1 is not an ancestor of /item/10.
+function onElementOrAncestor({ item: owner }: Declaration, item: SiteItem | undefined): boolean {
+  if (owner === undefined) return true;
+  return (
+    item !== undefined &&
+    (item.pointer === owner.pointer || item.pointer.startsWith(`${owner.pointer}/`))
+  );
+}
+
+// An ancestor's pointer is a prefix of its descendants', so a longer pointer is further in.
+const depth = ({ item }: Declaration): number => item?.pointer.length ?? -1;
+
+// The available variables at each site of a document, from its declarations and the configured host
+// variables. An uncatalogued site has none: name analysis cannot run there, which is not the same
+// as an empty list.
+export function availableVariables(
+  declarations: readonly Declaration[],
+  hostVariables: readonly string[],
+): (site: ExpressionSite) => AvailableVariables | undefined {
+  const cache = new Map<ExpressionSite, AvailableVariables>();
+
+  function build(site: ExpressionSite): AvailableVariables {
+    // Extraction sees only extractAllocateId names and named extraction contexts (D19); every other
+    // site sees every other declaration, whatever its use cases (D13, D17).
+    const extraction = extractionOnly(site.useCases);
+    const visible = declarations
+      .filter(
+        (declaration) =>
+          onElementOrAncestor(declaration, site.item) &&
+          (extraction ? extractionOnly(declaration.useCases) : declaration.kind !== 'allocateId'),
+      )
+      // Stable, so declarations on one element keep document order (D8).
+      .sort((a, b) => depth(b) - depth(a));
+    const byName = new Map<string, Variable>();
+    const add = (variable: Variable): void => {
+      if (!byName.has(variable.name)) byName.set(variable.name, Object.freeze(variable));
+    };
+    for (const declaration of visible) {
+      add({ name: declaration.name, origin: 'declaration', declaration });
+    }
+    for (const name of builtinNames.keys()) {
+      if (name !== 'qitem' || site.item !== undefined) add({ name, origin: 'builtin' });
+    }
+    for (const name of hostVariables) add({ name, origin: 'host' });
+    return Object.freeze({
+      variables: Object.freeze([...byName.values()]),
+      resolve: (name: string) =>
+        byName.get(name) ??
+        (builtinPrefixes.some((prefix) => name.startsWith(prefix))
+          ? Object.freeze({ name, origin: 'builtin' as const })
+          : undefined),
+    });
+  }
+
+  return (site) => {
+    if (!site.catalogued) return undefined;
+    let variables = cache.get(site);
+    if (variables === undefined) {
+      variables = build(site);
+      cache.set(site, variables);
+    }
+    return variables;
+  };
+}

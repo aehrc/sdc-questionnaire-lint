@@ -12,6 +12,7 @@ import {
 } from '../rules/language-not-in-value-set.js';
 import { parseError } from '../rules/parse-error.js';
 import { querySyntax } from '../rules/query-syntax.js';
+import { reservedName } from '../rules/reserved-name.js';
 import { staleSuppression } from '../rules/stale-suppression.js';
 import { uncataloguedExpression } from '../rules/uncatalogued-expression.js';
 import { unknownFunction } from '../rules/unknown-function.js';
@@ -29,6 +30,7 @@ export const sdcPlugin: LintPlugin = {
     'language-not-in-value-set': languageNotInValueSet,
     'parse-error': parseError,
     'query-syntax': querySyntax,
+    'reserved-name': reservedName as unknown as LintRule,
     'uncatalogued-expression': uncataloguedExpression,
     'unknown-function': unknownFunction,
   },
@@ -45,6 +47,7 @@ export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => b
   'sdc/language-not-in-value-set': hasExpressionLanguage,
   'sdc/parse-error': hasFhirPathText,
   'sdc/query-syntax': hasQueryText,
+  'sdc/reserved-name': () => true,
   'sdc/uncatalogued-expression': () => true,
   'sdc/unknown-function': (site) =>
     hasFhirPathText(site) && findFhirPathSyntaxProblem(site.text) === undefined,
@@ -54,6 +57,7 @@ export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => b
 // have no Expression site (core-rules.md D22).
 export const completesDeclarationCheck: ReadonlySet<string> = new Set([
   'sdc/duplicate-declaration',
+  'sdc/reserved-name',
 ]);
 
 export const staleSuppressionId = 'lint/stale-suppression';

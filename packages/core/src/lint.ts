@@ -42,7 +42,12 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
   const sources = await findFshSources(runPaths, cwd);
   const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => {
     const sites = findExpressionSites(document);
-    return { input, document, sites, analysis: analyseDocument(document, sites) };
+    return {
+      input,
+      document,
+      sites,
+      analysis: analyseDocument(document, sites, loaded?.config.hostVariables ?? []),
+    };
   });
   const outcome = await applySuppressions({
     loaded,
