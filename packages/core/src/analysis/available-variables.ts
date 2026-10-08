@@ -58,7 +58,10 @@ export function extractionOnly(useCases: readonly ExpressionUseCase[]): boolean 
 
 // Whether a declaration is on the item, on one of its ancestors, or on the root. Compared with a
 // trailing /, so that /item/1 is not an ancestor of /item/10.
-function onElementOrAncestor({ item: owner }: Declaration, item: SiteItem | undefined): boolean {
+export function onElementOrAncestor(
+  { item: owner }: Declaration,
+  item: SiteItem | undefined,
+): boolean {
   if (owner === undefined) return true;
   return (
     item !== undefined &&

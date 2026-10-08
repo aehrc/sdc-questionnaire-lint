@@ -358,6 +358,31 @@ describe('applySuppressions: whether the rule completed its check', () => {
     expect(outcome.suppressions).toEqual(counts(0, 0, 1));
   });
 
+  it('applies sdc/unused-declaration at an unused variable, and is stale once it is referenced', async () => {
+    const suppress = [entry({ rule: 'sdc/unused-declaration', name: 'a' })];
+    const applied = await assess({ [A]: questionnaire('A', [variable('a', '1')]) }, { suppress });
+    expect(applied.outcome.suppressions).toEqual(counts(1, 0, 0));
+    const stale = await assess(
+      { [A]: questionnaire('A', [variable('a', '1'), calculated('%a')]) },
+      { suppress },
+    );
+    expect(stale.outcome.suppressions).toEqual(counts(0, 1, 0));
+  });
+
+  it.each([
+    ['CQL', calculated('%a', 'text/cql')],
+    ['FHIRPath that does not parse', calculated('%a.where(')],
+  ])(
+    'is not assessed for sdc/unused-declaration when %s could reference the variable',
+    async (_, consumer) => {
+      const { outcome } = await assess(
+        { [A]: questionnaire('A', [variable('a', '1'), consumer]) },
+        { suppress: [entry({ rule: 'sdc/unused-declaration', name: 'a' })] },
+      );
+      expect(outcome.suppressions).toEqual(counts(0, 0, 1));
+    },
+  );
+
   it('knows where every sdc rule completes its check', () => {
     const ids = Object.keys(sdcPlugin.rules).map((name) => `${sdcPlugin.meta.name}/${name}`);
     expect(Object.keys(completesCheck).sort()).toEqual(ids.sort());
@@ -562,7 +587,10 @@ describe('applySuppressions: declarations without an Expression', () => {
       {
         [A]: onRoot(launchContext('patient'), variable('patient', '1')),
       },
-      { suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })] },
+      {
+        suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })],
+        rules: { 'sdc/unused-declaration': 'off' },
+      },
     );
     expect(findings).toMatchObject([
       { jsonLocation: { pointer: '/extension/1/valueExpression/expression' } },
@@ -573,10 +601,23 @@ describe('applySuppressions: declarations without an Expression', () => {
   it('hides a finding at a launchContext that duplicates a variable name', async () => {
     const { findings, outcome } = await assess(
       { [A]: onRoot(variable('patient', '1'), launchContext('patient')) },
-      { suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })] },
+      {
+        suppress: [targeting(LAUNCH_CONTEXT, { name: 'patient' })],
+        rules: { 'sdc/unused-declaration': 'off' },
+      },
     );
     expect(findings).toMatchObject([{ jsonLocation: { pointer: '/extension/1' } }]);
     expect(outcome.suppressions).toEqual(counts(1, 0, 0));
+  });
+
+  it('is stale for sdc/unused-declaration at a launchContext, which is never reported', async () => {
+    const { outcome } = await assess(
+      { [A]: onRoot(launchContext('patient')) },
+      {
+        suppress: [targeting(LAUNCH_CONTEXT, { rule: 'sdc/unused-declaration', name: 'patient' })],
+      },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 1, 0));
   });
 
   it('selects an extractAllocateId on an item by linkId', async () => {

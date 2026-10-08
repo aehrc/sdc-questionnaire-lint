@@ -46,6 +46,7 @@ describe('resolveRuleSet', () => {
       ['sdc/uncatalogued-expression', 'info'],
       ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
+      ['sdc/unused-declaration', 'warning'],
     ]);
     expect(rules.map(({ id }) => id)).toEqual(rules.map(({ id }) => id).sort());
     expect(rules[1]?.rule.meta.defaultSeverity).toBe('warning');
@@ -70,6 +71,7 @@ describe('resolveRuleSet', () => {
       ['sdc/uncatalogued-expression', 'off'],
       ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
+      ['sdc/unused-declaration', 'warning'],
     ]);
   });
 
@@ -159,6 +161,7 @@ describe('resolveRuleSet', () => {
       ['sdc/uncatalogued-expression', 'info'],
       ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
+      ['sdc/unused-declaration', 'warning'],
     ]);
     expect(ruleSet.rules[0]?.namespace).toBe('demo');
   });

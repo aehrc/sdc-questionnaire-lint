@@ -3,6 +3,7 @@ import { type Declaration, findAssembleContextNames, findDeclarations } from './
 import { type Dependencies, findDependencies } from './dependencies.js';
 import type { ExpressionSite, QuestionnaireDocument } from './expression-site.js';
 import { findVariableReferences, hasFhirPathText, type VariableReference } from './fhirpath.js';
+import { type DeclarationUse, findUses } from './uses.js';
 
 // The facts core computes once per document and shares between its rules and the suppression
 // assessment (core-rules.md, Shared analysis). Internal: plugin rules never receive it (D15).
@@ -16,6 +17,8 @@ export interface DocumentAnalysis {
   variablesAt(site: ExpressionSite): AvailableVariables | undefined;
   // What the expression of each declaration references.
   readonly dependencies: ReadonlyMap<Declaration, Dependencies>;
+  // Whether the expressions of others reference each declaration.
+  readonly uses: ReadonlyMap<Declaration, DeclarationUse>;
 }
 
 export function analyseDocument(
@@ -40,5 +43,6 @@ export function analyseDocument(
     references,
     variablesAt,
     dependencies: findDependencies(declarations, sites, references, variablesAt),
+    uses: findUses(document, declarations, sites, references, variablesAt),
   };
 }

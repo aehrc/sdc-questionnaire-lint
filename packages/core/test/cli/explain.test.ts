@@ -26,6 +26,7 @@ describe('sdc-lint explain', () => {
         'sdc/uncatalogued-expression    info     info       Reports an expression in a place the linter does not recognise.\n' +
         'sdc/undefined-variable         error    error      Reports a %name that is not available where it is used.\n' +
         'sdc/unknown-function           error    error      Reports a call to a function that fhirpath.js does not implement.\n' +
+        'sdc/unused-declaration         warning  warning    Reports a variable that no expression references.\n' +
         '\n' +
         'Config: none, built-in defaults.\n' +
         "Run sdc-lint explain <rule-id> for a rule's documentation.\n",

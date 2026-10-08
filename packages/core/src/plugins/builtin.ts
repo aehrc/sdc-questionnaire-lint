@@ -25,6 +25,11 @@ import { staleSuppression } from '../rules/stale-suppression.js';
 import { uncataloguedExpression } from '../rules/uncatalogued-expression.js';
 import { resolvesNamesAt, undefinedVariable } from '../rules/undefined-variable.js';
 import { unknownFunction } from '../rules/unknown-function.js';
+import {
+  completesUnusedCheck,
+  leavesUnusedCheckIncomplete,
+  unusedDeclaration,
+} from '../rules/unused-declaration.js';
 import type { LintPlugin, LintRule } from './contract.js';
 import type { ResolvedRule } from './rule-set.js';
 
@@ -46,6 +51,7 @@ export const sdcPlugin: LintPlugin = {
     'uncatalogued-expression': uncataloguedExpression,
     'undefined-variable': undefinedVariable as unknown as LintRule,
     'unknown-function': unknownFunction,
+    'unused-declaration': unusedDeclaration as unknown as LintRule,
   },
 };
 
@@ -69,6 +75,7 @@ export const completesCheck: Readonly<
   'sdc/undefined-variable': resolvesNamesAt,
   'sdc/unknown-function': (site) =>
     hasFhirPathText(site) && findFhirPathSyntaxProblem(site.text) === undefined,
+  'sdc/unused-declaration': completesUnusedCheck,
 };
 
 // Where a built-in rule applies to a site but cannot complete its check there, which makes the site
@@ -80,6 +87,7 @@ const leavesUnchecked: Readonly<
   'sdc/dependency-cycle': leavesCycleCheckIncomplete,
   'sdc/undefined-variable': (site, analysis) =>
     analysis.references.has(site) && !resolvesNamesAt(site, analysis),
+  'sdc/unused-declaration': leavesUnusedCheckIncomplete,
 };
 
 // The sites of documents where an enabled rule could not complete its check; a rule that is off
@@ -101,12 +109,13 @@ export function incompleteSites(
 
 // The built-in rules that complete their check at every launchContext and extractAllocateId, which
 // have no Expression site (core-rules.md D22). They reference nothing, so they are in no dependency
-// cycle.
+// cycle, and they are not variables, so they are never reported as unused (D4).
 export const completesDeclarationCheck: ReadonlySet<string> = new Set([
   'sdc/dependency-cycle',
   'sdc/duplicate-declaration',
   'sdc/reserved-name',
   'sdc/shadowed-declaration',
+  'sdc/unused-declaration',
 ]);
 
 export const staleSuppressionId = 'lint/stale-suppression';

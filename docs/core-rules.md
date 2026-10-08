@@ -28,7 +28,7 @@ One PR per slice, in this order. The exception is slice 4, which is three PRs.
 | [4c](#4c-sdcundefined-variable) | `sdc/undefined-variable` | error | 0, 3, 4a, 4b | done |
 | [5](#5-sdcshadowed-declaration-and-sdcdependency-cycle) | `sdc/shadowed-declaration` | info | 4c | done |
 |  | `sdc/dependency-cycle` | warning (D21) | 4c | done |
-| [6](#6-sdcunused-declaration) | `sdc/unused-declaration` | warning | 4c | todo |
+| [6](#6-sdcunused-declaration) | `sdc/unused-declaration` | warning | 4c | done |
 | [7](#7-sdcunresolved-linkid) | `sdc/unresolved-linkid` | warning (D6) | 0 | todo |
 
 These severities are the core-plan defaults, with the amendments applied. The changes from §4.1's error defaults are `sdc/dependency-cycle` (D21) and `sdc/unresolved-linkid` (D6, D7).
@@ -287,6 +287,7 @@ Decisions: D4, D5.
 - Use resolution, not name matching: a reference to a shadowing declaration is not a use of the declaration it shadows.
 - Report nothing when a plausible consumer is CQL, an Expression that has only a reference, an excluded whole-string carrier, or an unsupported case of local variables. A first, conservative version can skip the unused check for the whole document instead of building analysis across languages.
 - Tests: an itemPopulationContext that is useful although nothing references it, and variables used only by opaque consumers.
+- As built: the check is per variable, not per document. A plausible consumer is an expression on the variable's element or a descendant item that could see it (D19), other than the variable's own expression: a reference from its own expression is not a use. A `subQuestionnaire` is a plausible consumer too, because its module may reference the name once assembled; the SDC modular examples rely on it. An uncatalogued FHIRPath expression is a consumer only of the names it mentions. The templateExtract `valueString` carriers are not consumers, because extraction cannot see variables (D19); for the same reason a reference to a variable from an extraction site is not a use, so it gets both `sdc/undefined-variable` and this warning. Declarations of one name on one element share their uses, as `sdc/duplicate-declaration` already reports them. A variable that only expressions with a syntax error could reference is not reported and its suppressions are not assessed, but it is not counted as unchecked: the syntax error is established.
 
 ### 7. `sdc/unresolved-linkid`
 

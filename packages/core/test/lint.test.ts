@@ -350,13 +350,14 @@ describe('config', () => {
       });
 
     it('accepts the names listed in hostVariables', async () => {
-      expect((await run({})).findings).toMatchObject([
+      const rules = { 'sdc/unused-declaration': 'off' };
+      expect((await run({ rules })).findings).toMatchObject([
         {
           ruleId: 'sdc/undefined-variable',
           message: '%PrePopQuery is not available on the Questionnaire root.',
         },
       ]);
-      expect((await run({ hostVariables: ['PrePopQuery'] })).findings).toEqual([]);
+      expect((await run({ hostVariables: ['PrePopQuery'], rules })).findings).toEqual([]);
     });
 
     it('counts a site with a reference after a computed defineVariable name as unchecked, unless the rule is off', async () => {
@@ -394,6 +395,7 @@ describe('config', () => {
     it('does not count a declaration that reaches one in another language as unchecked', async () => {
       const result = await lint({
         cwd: await tempTree({
+          [config]: JSON.stringify({ rules: { 'sdc/unused-declaration': 'off' } }),
           'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
             resourceType: 'Questionnaire',
             status: 'draft',
@@ -420,9 +422,58 @@ describe('config', () => {
           'sdc/undefined-variable': 'off',
           'sdc/parse-error': 'off',
           'sdc/dependency-cycle': 'off',
+          'sdc/unused-declaration': 'off',
         },
       });
       expect(off.summary.expressions).toEqual({ analysed: 3, unchecked: 0 });
+    });
+  });
+
+  describe('sdc/unused-declaration', () => {
+    const extension = (
+      url: string,
+      name: string | undefined,
+      language: string,
+      expression: string,
+    ) => ({
+      url,
+      valueExpression: { ...(name === undefined ? {} : { name }), language, expression },
+    });
+    const variable = (name: string) =>
+      extension('http://hl7.org/fhir/StructureDefinition/variable', name, 'text/fhirpath', '1');
+    const calculated = (language: string, expression: string) =>
+      extension(
+        'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression',
+        undefined,
+        language,
+        expression,
+      );
+    const run = async (consumer: unknown, rules: Record<string, string> = {}) =>
+      lint({
+        cwd: await tempTree({
+          [config]: JSON.stringify({ rules }),
+          'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+            resourceType: 'Questionnaire',
+            status: 'draft',
+            extension: [variable('a')],
+            item: [{ linkId: 'x', type: 'decimal', extension: [consumer] }],
+          }),
+        }),
+      });
+
+    it('counts a variable that a CQL expression could reference as unchecked, unless the rule is off', async () => {
+      const cql = calculated('text/cql', '%a');
+      expect((await run(cql)).summary.expressions).toEqual({ analysed: 0, unchecked: 2 });
+      expect((await run(cql, { 'sdc/unused-declaration': 'off' })).summary.expressions).toEqual({
+        analysed: 1,
+        unchecked: 1,
+      });
+    });
+
+    it('does not count a variable that only an expression with a syntax error could reference as unchecked', async () => {
+      const result = await run(calculated('text/fhirpath', '%a.where('));
+      expect(result.findings.map(({ ruleId }) => ruleId)).toEqual(['sdc/parse-error']);
+      expect(result.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
     });
   });
 
