@@ -17,7 +17,7 @@ const doc = {
     localResources: [],
   },
   sites: [site],
-  analysis: { declarations: [] },
+  analysis: { declarations: [], references: new Map() },
 };
 
 function resolved(setting: ResolvedRule['setting'], reported?: 'info'): ResolvedRule {

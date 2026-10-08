@@ -22,7 +22,7 @@ One PR per slice, in this order. The exception is slice 4, which is three PRs.
 |  | `sdc/language-not-allowed` | error | 0 | done |
 | [2](#2-sdcexternal-expression) | `sdc/external-expression` | info | 0 | done |
 | [3](#3-declarations-and-sdcduplicate-declaration) | Declarations, `sdc/duplicate-declaration`, suppressions that target declarations | error | 0 | done |
-| [4a](#4a-variable-references) | Variable references (no findings) | – | – | todo |
+| [4a](#4a-variable-references) | Variable references (no findings) | – | – | done |
 | [4b](#4b-available-variables) | Available variables and the `hostVariables` config key | – | 3 | todo |
 |  | `sdc/reserved-name` | error | 0, 3 | todo |
 | [4c](#4c-sdcundefined-variable) | `sdc/undefined-variable` | error | 0, 3, 4a, 4b | todo |

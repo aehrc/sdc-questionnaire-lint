@@ -140,3 +140,126 @@ export function findFunctionCalls(text: string): FunctionCall[] | undefined {
   visit(parsed.tree);
   return calls;
 }
+
+// One %name reference in a FHIRPath expression.
+export interface VariableReference {
+  // The name fhirpath.js looks up.
+  name: string;
+  // Zero-based UTF-16 offsets of the reference as written: the %, any whitespace or comments after
+  // it, and the name with its backticks or quotes.
+  startOffset: number;
+  endOffset: number;
+  // False when an earlier step of its chain is a defineVariable with a computed name, which may
+  // bind it.
+  complete: boolean;
+}
+
+// A string literal's value, decoded as fhirpath.js decodes it; anything without both quotes is
+// kept, as fhirpath.js keeps the name of %`a`.
+function stringValue(literal: string): string {
+  if (!/^'.*'$/s.test(literal)) return literal;
+  return literal.slice(1, -1).replace(/\\(u[0-9a-fA-F]{4}|.)/gs, (_, escape: string) => {
+    if (escape.length > 1) return String.fromCharCode(parseInt(escape.slice(1), 16));
+    return { r: '\r', n: '\n', t: '\t', f: '\f' }[escape] ?? escape;
+  });
+}
+
+// The offset after the whitespace and comments at offset.
+function skipTrivia(text: string, offset: number): number {
+  let at = offset;
+  for (;;) {
+    if (/[ \t\r\n]/.test(text[at] ?? '')) at++;
+    else if (text.startsWith('/*', at)) at = text.indexOf('*/', at + 2) + 2;
+    else if (text.startsWith('//', at)) at += text.slice(at).search(/[\r\n]|$/);
+    else return at;
+  }
+}
+
+// The offset after the string literal that starts at offset.
+function skipString(text: string, offset: number): number {
+  let at = offset + 1;
+  while (text[at] !== "'") at += text[at] === '\\' ? 2 : 1;
+  return at + 1;
+}
+
+// The reference an ExternalConstantTerm makes. Its length does not give the end: it excludes the %
+// and backticks, and anything between the % and the name.
+function toReference(text: string, term: ParseNode): Omit<VariableReference, 'complete'> {
+  const name = term.delimitedText === undefined ? term.text : stringValue(term.delimitedText);
+  const startOffset =
+    term.start === undefined ? undefined : toOffset(text, term.start.line, term.start.column - 1);
+  if (name === undefined || startOffset === undefined) {
+    throw new Error(`fhirpath.js gave a reference without a name or position: ${text}`);
+  }
+  // A name written as a string literal has no Identifier, so its end is found by scanning.
+  const identifier = child(child(term, 'ExternalConstant'), 'Identifier');
+  const identifierStart =
+    identifier?.start === undefined
+      ? undefined
+      : toOffset(text, identifier.start.line, identifier.start.column - 1);
+  const endOffset =
+    identifierStart === undefined || identifier?.text === undefined
+      ? skipString(text, skipTrivia(text, startOffset + 1))
+      : identifierStart + identifier.text.length;
+  return { name, startOffset, endOffset };
+}
+
+// The names defineVariable has bound for the later steps of a chain, and whether one of them was
+// computed, so that it may bind any name.
+interface LocalNames {
+  names: Set<string>;
+  computed: boolean;
+}
+
+const copy = ({ names, computed }: LocalNames): LocalNames => ({ names: new Set(names), computed });
+
+// The nodes whose children fhirpath.js evaluates in order in one context, so that a defineVariable
+// in one child binds its name in the later ones. Every other node evaluates its operands, and a
+// function its arguments, each in its own copy of the context.
+const sharedContext: ReadonlySet<string> = new Set([
+  'EntireExpression',
+  'InvocationExpression',
+  'InvocationTerm',
+  'TermExpression',
+  'ParenthesizedTerm',
+  'PolarityExpression',
+  'IndexerExpression',
+]);
+
+// The value of an argument written as a string literal, or undefined for any other argument.
+function literalString(argument: ParseNode | undefined): string | undefined {
+  const literal = child(child(argument, 'LiteralTerm'), 'StringLiteral')?.text;
+  return argument?.type === 'TermExpression' && literal !== undefined
+    ? stringValue(literal)
+    : undefined;
+}
+
+// The %name references in text, in source order, or undefined when it does not parse. A name that
+// defineVariable binds for the reference is left out (core-rules.md, slice 4a).
+export function findVariableReferences(text: string): VariableReference[] | undefined {
+  const parsed = parse(text);
+  if (!('tree' in parsed)) return undefined;
+  const references: VariableReference[] = [];
+  const visit = (node: ParseNode, local: LocalNames): void => {
+    if (node.type === 'ExternalConstantTerm') {
+      const reference = toReference(text, node);
+      if (!local.names.has(reference.name))
+        references.push({ ...reference, complete: !local.computed });
+      return;
+    }
+    if (node.type !== 'FunctionInvocation') {
+      const shared = sharedContext.has(node.type);
+      for (const next of node.children ?? []) visit(next, shared ? local : copy(local));
+      return;
+    }
+    const args = child(child(node, 'Functn'), 'ParamList')?.children ?? [];
+    for (const argument of args) visit(argument, copy(local));
+    // fhirpath.js accepts one or two arguments, and binds the name after evaluating them.
+    if (toCall(text, node)?.name !== 'defineVariable' || args.length < 1 || args.length > 2) return;
+    const name = literalString(args[0]);
+    if (name === undefined) local.computed = true;
+    else local.names.add(name);
+  };
+  visit(parsed.tree, { names: new Set(), computed: false });
+  return references;
+}

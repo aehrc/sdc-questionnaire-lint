@@ -66,11 +66,11 @@ This is the heart of the linter.
   - An x-fhir-query site with text is directly followed by one fragment site per `{{…}}` fragment: carrier `fragment`, language `text/fhirpath`, with offsets into the query.
   - A catalogued Expression with a `name` has `declares` set: it declares that name for other expressions.
 - `declarations.ts`: `findDeclarations` lists a document's declarations in document order: the declaring sites (`variable`, `itemPopulationContext` and other named expressions), `launchContext` names on the root, and `extractAllocateId` names on the root and items. Each records its name, kind, pointer, declaring item (none for the root), use cases and, when it is an Expression, its site. Contained resources declare nothing; sourceQueries results are host variables, not declarations.
-- `document-analysis.ts`: `analyseDocument` computes core's internal analysis of a document once per run: so far, its declarations. `lint.ts` keeps it on each analysed document. It is not exported, and plugin rules never receive it.
+- `document-analysis.ts`: `analyseDocument` computes core's internal analysis of a document once per run: so far, its declarations and the variable references of each FHIRPath site that parses. `lint.ts` keeps it on each analysed document. It is not exported, and plugin rules never receive it.
 
 The analysis helpers:
 
-- `fhirpath.ts` is the only place fhirpath.js is used: it parses an expression, turns parser errors into offsets (`findFhirPathSyntaxProblem`) and extracts function calls (`findFunctionCalls`).
+- `fhirpath.ts` is the only place fhirpath.js is used: it parses an expression, turns parser errors into offsets (`findFhirPathSyntaxProblem`) extracts function calls (`findFunctionCalls`) and lists `%name` references (`findVariableReferences`). A reference gives the name fhirpath.js looks up and its range as written; a name that `defineVariable` binds for the later steps of its chain is left out, and a reference after a `defineVariable` with a computed name is marked incomplete.
 - `x-fhir-query.ts` scans x-fhir-query strings for fragments and shape problems.
 - `fhirpath-function-catalog.ts` is generated from fhirpath.js's `invocationTable` by `scripts/generate-functions.ts`; never edit it by hand.
 

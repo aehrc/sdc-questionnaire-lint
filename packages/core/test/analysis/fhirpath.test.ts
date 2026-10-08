@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { findFhirPathSyntaxProblem, findFunctionCalls } from '../../src/analysis/fhirpath.js';
+import {
+  findFhirPathSyntaxProblem,
+  findFunctionCalls,
+  findVariableReferences,
+} from '../../src/analysis/fhirpath.js';
 
 describe('findFhirPathSyntaxProblem', () => {
   it('returns undefined for valid text', () => {
@@ -98,5 +102,100 @@ describe('findFunctionCalls', () => {
   it('throws when valid input overflows the parser stack, instead of blaming the expression', () => {
     const nested = `${'('.repeat(20000)}1${')'.repeat(20000)}`;
     expect(() => findFunctionCalls(nested)).toThrow(RangeError);
+  });
+});
+
+describe('findVariableReferences', () => {
+  const names = (text: string) => findVariableReferences(text)?.map(({ name }) => name);
+
+  it('gives the name and offsets of a reference', () => {
+    expect(findVariableReferences('1 + %weight')).toEqual([
+      { name: 'weight', startOffset: 4, endOffset: 11, complete: true },
+    ]);
+  });
+
+  it.each([
+    ['%`a b`', 'a b'],
+    ['%`a\\u0062`', 'a\\u0062'],
+    ["%'a b'", 'a b'],
+    ["%'a\\'b'", "a'b"],
+    ["%'a\\u0062'", 'ab'],
+  ])('reduces %s to the name fhirpath.js looks up, %s', (text, name) => {
+    expect(findVariableReferences(text)).toEqual([
+      { name, startOffset: 0, endOffset: text.length, complete: true },
+    ]);
+  });
+
+  it.each(['as', 'contains', 'in', 'is', 'asc', 'desc', 'sort'])(
+    'finds a reference to the keyword name %s',
+    (name) => {
+      expect(names(`%${name}`)).toEqual([name]);
+    },
+  );
+
+  it.each([
+    ['% a', 'a', 3],
+    ['% /* c */ a', 'a', 11],
+    ['%\n// c\na', 'a', 8],
+    ["% /* c */ 'a'", 'a', 13],
+    ["% // c 'a'\n 'a'", 'a', 15],
+    ["% /* 'a' */ 'a'", 'a', 15],
+    ["% /* c */ 'a\\'' // 'a'", "a'", 15],
+  ])('covers whitespace and comments after the %% of %j', (text, name, endOffset) => {
+    expect(findVariableReferences(text)).toEqual([
+      { name, startOffset: 0, endOffset, complete: true },
+    ]);
+  });
+
+  it('gives offsets across lines, counting from the start of the text, with CRLF line endings', () => {
+    // Line 2 starts at offset 5, after "1 +\r\n"; line 3 at 10, after "  %\r\n".
+    expect(findVariableReferences("1 +\r\n  %\r\n  'a' + %b")).toEqual([
+      { name: 'a', startOffset: 7, endOffset: 15, complete: true },
+      { name: 'b', startOffset: 18, endOffset: 20, complete: true },
+    ]);
+  });
+
+  it('finds references nested in arguments and parentheses, in source order', () => {
+    expect(names('(%a).where(%b = (%c.select(%d))) | %e')).toEqual(['a', 'b', 'c', 'd', 'e']);
+  });
+
+  it('leaves out a name defineVariable binds for the later steps of its chain', () => {
+    expect(names("defineVariable('y').select(%y).where(%y.select(%y))")).toEqual([]);
+    expect(names("%a.defineVariable('y', 1).select(%y)")).toEqual(['a']);
+    expect(names("defineVariable('a\\'b').select(%'a\\'b')")).toEqual([]);
+    expect(names("(defineVariable('y')).select(%y)")).toEqual([]);
+    expect(names("defineVariable('y', 1)[%y]")).toEqual([]);
+  });
+
+  it('keeps a reference in the initializer of defineVariable, which does not see its own name', () => {
+    expect(findVariableReferences("defineVariable('y', %y).select(%y)")).toEqual([
+      { name: 'y', startOffset: 20, endOffset: 22, complete: true },
+    ]);
+  });
+
+  it('keeps a reference outside the chain: in another operand, an argument or before it', () => {
+    expect(names("defineVariable('y', 1).select(%y) | %y")).toEqual(['y']);
+    expect(names("defineVariable('y').exists() and %y")).toEqual(['y']);
+    expect(names("a.where(defineVariable('y').exists()).select(%y)")).toEqual(['y']);
+    expect(names("%y.defineVariable('y')")).toEqual(['y']);
+    expect(names("(defineVariable('y') | a).select(%y)")).toEqual(['y']);
+  });
+
+  it('marks references after a defineVariable with a computed name incomplete', () => {
+    expect(findVariableReferences('defineVariable(%n, 1).select(%y) | %z')).toEqual([
+      { name: 'n', startOffset: 15, endOffset: 17, complete: true },
+      { name: 'y', startOffset: 29, endOffset: 31, complete: false },
+      { name: 'z', startOffset: 35, endOffset: 37, complete: true },
+    ]);
+  });
+
+  it('ignores a defineVariable that fhirpath.js rejects for its arity', () => {
+    expect(names('defineVariable().select(%y)')).toEqual(['y']);
+    expect(names("defineVariable('y', 1, 2).select(%y)")).toEqual(['y']);
+  });
+
+  it('returns undefined for text that does not parse', () => {
+    expect(findVariableReferences('%a.where(')).toBeUndefined();
+    expect(findVariableReferences('%div')).toBeUndefined();
   });
 });
