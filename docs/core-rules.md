@@ -266,6 +266,8 @@ Decisions: D2, D13, D19, D24.
 
 Decisions: D13, D19, D21, D25. **Open item:** the scope of the launchContext name restriction.
 
+The [review of b46699a](reviews/slice-5.md) records two open P2 follow-ups: cycle edges retained from partially parsed queries, and stale suppressions reported when declaration analysis is unavailable.
+
 - `sdc/shadowed-declaration` (info) reports a descendant that declares a name an ancestor or the root already declares. The related location is the ancestor's declaration.
   - The info default is a deliberate change from SDC's SHOULD-level warning; plan-amendments.md already records it.
   - Descendant shadowing of a launchContext name is reported like any other shadowing until the open item is resolved. It gets no additional error.
