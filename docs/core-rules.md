@@ -18,8 +18,8 @@ One PR per slice, in this order. The exception is slice 4, which is three PRs.
 | Slice | Delivers | Default severity | Depends on | Status |
 | :- | :- | :- | :- | :- |
 | [0](#0-corpus) | Local corpus and the command that compares its findings | – | – | done |
-| [1](#1-language-rules) | `sdc/language-not-in-value-set` | warning | 0 | todo |
-|  | `sdc/language-not-allowed` | error | 0 | todo |
+| [1](#1-language-rules) | `sdc/language-not-in-value-set` | warning | 0 | done |
+|  | `sdc/language-not-allowed` | error | 0 | done |
 | [2](#2-sdcexternal-expression) | `sdc/external-expression` | info | 0 | todo |
 | [3](#3-declarations-and-sdcduplicate-declaration) | Declarations, `sdc/duplicate-declaration`, suppressions that target declarations | error | 0 | todo |
 | [4a](#4a-variable-references) | Variable references (no findings) | – | – | todo |
@@ -254,6 +254,7 @@ Decisions: D2, D13, D19.
 - Completion: the site is catalogued, its FHIRPath parses, and local-name handling completed for the affected references. Read the internal per-rule outcome. A successful parse, or a literal `defineVariable` name alone, does not prove completion.
 - `examples/health-check` uses `%patient` without a launchContext. Add a launchContext so the example does not start reporting an error, and update `examples.test.ts` and the example's README.
 - This slice has no pass for unused host variables, and no stub rule, fingerprint or report-schema handling for them (D2).
+- Add the test slice 1 deferred: an undefined name inside a `text/x-fhir-query` fragment.
 
 **Done when** the corpus run shows zero false-positive errors.
 

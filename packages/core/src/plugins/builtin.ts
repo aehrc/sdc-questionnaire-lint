@@ -3,6 +3,11 @@ import type { ExpressionSite } from '../analysis/expression-site.js';
 import { findFhirPathSyntaxProblem, hasFhirPathText } from '../analysis/fhirpath.js';
 import { hasQueryText } from '../analysis/x-fhir-query.js';
 import { fragmentParseError } from '../rules/fragment-parse-error.js';
+import { hasCataloguedLanguage, languageNotAllowed } from '../rules/language-not-allowed.js';
+import {
+  hasExpressionLanguage,
+  languageNotInValueSet,
+} from '../rules/language-not-in-value-set.js';
 import { parseError } from '../rules/parse-error.js';
 import { querySyntax } from '../rules/query-syntax.js';
 import { staleSuppression } from '../rules/stale-suppression.js';
@@ -15,6 +20,8 @@ export const sdcPlugin: LintPlugin = {
   meta: { name: 'sdc', version: pkg.version },
   rules: {
     'fragment-parse-error': fragmentParseError,
+    'language-not-allowed': languageNotAllowed,
+    'language-not-in-value-set': languageNotInValueSet,
     'parse-error': parseError,
     'query-syntax': querySyntax,
     'uncatalogued-expression': uncataloguedExpression,
@@ -27,6 +34,8 @@ export const sdcPlugin: LintPlugin = {
 // as a plugin rule, leaves its suppressions not assessed.
 export const completesCheck: Readonly<Record<string, (site: ExpressionSite) => boolean>> = {
   'sdc/fragment-parse-error': hasQueryText,
+  'sdc/language-not-allowed': hasCataloguedLanguage,
+  'sdc/language-not-in-value-set': hasExpressionLanguage,
   'sdc/parse-error': hasFhirPathText,
   'sdc/query-syntax': hasQueryText,
   'sdc/uncatalogued-expression': () => true,

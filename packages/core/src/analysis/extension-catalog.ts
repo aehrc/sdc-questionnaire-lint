@@ -1,4 +1,8 @@
-import type { ExpressionCarrier, ExpressionUseCase } from './expression-site.js';
+import type {
+  CataloguedLocation,
+  ExpressionCarrier,
+  ExpressionUseCase,
+} from './expression-site.js';
 
 // The catalog of SDC extensions the linter understands: the kinds of location an expression may
 // sit in, not the expressions of any one Questionnaire (core-plan §3.1 calls it the registry).
@@ -20,6 +24,8 @@ export interface CatalogEntry {
   // recorded on the site without declaring.
   declares: boolean;
   useCases: readonly ExpressionUseCase[];
+  // The languages SDC allows at the location; absent when it allows any language.
+  languages?: readonly string[];
 }
 
 const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
@@ -28,7 +34,7 @@ function entry(
   url: string,
   on: CatalogEntry['on'],
   useCases: readonly ExpressionUseCase[],
-  extra: Partial<Pick<CatalogEntry, 'subExtension' | 'declares'>> = {},
+  extra: Partial<Pick<CatalogEntry, 'subExtension' | 'declares' | 'languages'>> = {},
 ): CatalogEntry {
   return Object.freeze({
     url,
@@ -43,6 +49,16 @@ function entry(
 const both = { root: true, item: true } as const;
 const item = { item: true } as const;
 
+// FHIRPath or CQL, as the SDC expressions table restricts two locations. The newer CQL codes are
+// accepted too, until the table's older CQL shorthand is reconciled with STU4 (core-rules.md, Open
+// items).
+const fhirPathOrCql = Object.freeze([
+  'text/fhirpath',
+  'text/cql',
+  'text/cql-identifier',
+  'text/cql-expression',
+]);
+
 export const extensionCatalog: readonly CatalogEntry[] = Object.freeze([
   entry(
     'http://hl7.org/fhir/StructureDefinition/variable',
@@ -51,7 +67,7 @@ export const extensionCatalog: readonly CatalogEntry[] = Object.freeze([
     { declares: true },
   ),
   entry(`${sdc}calculatedExpression`, item, ['rendering']),
-  entry(`${sdc}enableWhenExpression`, item, ['rendering']),
+  entry(`${sdc}enableWhenExpression`, item, ['rendering'], { languages: fhirPathOrCql }),
   entry(`${sdc}initialExpression`, item, ['population']),
   entry(`${sdc}candidateExpression`, item, ['rendering']),
   entry(`${sdc}answerExpression`, item, ['rendering']),
@@ -60,6 +76,7 @@ export const extensionCatalog: readonly CatalogEntry[] = Object.freeze([
   entry(`${sdc}itemExtractionContext`, both, ['extraction']),
   entry(`${sdc}answerOptionsToggleExpression`, item, ['rendering'], {
     subExtension: 'expression',
+    languages: fhirPathOrCql,
   }),
   entry('http://hl7.org/fhir/StructureDefinition/targetConstraint', both, ['rendering'], {
     subExtension: 'expression',
@@ -71,3 +88,8 @@ export const extensionCatalog: readonly CatalogEntry[] = Object.freeze([
     ['rendering'],
   ),
 ]);
+
+// The languages SDC allows at a catalogued location; undefined when it allows any language.
+export function languagesAllowedAt(location: CataloguedLocation): readonly string[] | undefined {
+  return extensionCatalog.find((entry) => entry.url === location.url)?.languages;
+}

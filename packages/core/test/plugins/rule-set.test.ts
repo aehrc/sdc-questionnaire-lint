@@ -34,6 +34,8 @@ describe('resolveRuleSet', () => {
     expect(severities(rules)).toEqual([
       ['lint/stale-suppression', 'warning'],
       ['sdc/fragment-parse-error', 'error'],
+      ['sdc/language-not-allowed', 'error'],
+      ['sdc/language-not-in-value-set', 'warning'],
       ['sdc/parse-error', 'error'],
       ['sdc/query-syntax', 'error'],
       ['sdc/uncatalogued-expression', 'info'],
@@ -50,6 +52,8 @@ describe('resolveRuleSet', () => {
     expect(severities(rules)).toEqual([
       ['lint/stale-suppression', 'warning'],
       ['sdc/fragment-parse-error', 'error'],
+      ['sdc/language-not-allowed', 'error'],
+      ['sdc/language-not-in-value-set', 'warning'],
       ['sdc/parse-error', 'warning'],
       ['sdc/query-syntax', 'error'],
       ['sdc/uncatalogued-expression', 'off'],
@@ -131,6 +135,8 @@ describe('resolveRuleSet', () => {
       ['demo/no-today', 'warning'],
       ['lint/stale-suppression', 'warning'],
       ['sdc/fragment-parse-error', 'error'],
+      ['sdc/language-not-allowed', 'error'],
+      ['sdc/language-not-in-value-set', 'warning'],
       ['sdc/parse-error', 'error'],
       ['sdc/query-syntax', 'error'],
       ['sdc/uncatalogued-expression', 'info'],

@@ -52,6 +52,7 @@ describe('FSH sources in the summary', () => {
 });
 
 describe('expression findings', () => {
+  const queryLanguages = ['application/x-fhir-query', 'text/x-fhir-query'];
   const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
   const fhirPath = (expression: string) => ({ language: 'text/fhirpath', expression });
 
@@ -68,6 +69,39 @@ describe('expression findings', () => {
     expectValidReport(report);
     return { report, findings: report.findings as QuestionnaireFinding[] };
   }
+
+  it('reports a query on an enableWhenExpression, and the language FHIR does not define', async () => {
+    const { findings } = await lintQuestionnaire({
+      item: [
+        {
+          linkId: 'q',
+          type: 'boolean',
+          extension: [
+            {
+              url: `${sdc}enableWhenExpression`,
+              valueExpression: { language: 'text/x-fhir-query', expression: 'Patient?_id=1' },
+            },
+            {
+              url: `${sdc}calculatedExpression`,
+              valueExpression: { language: 'text/fhir-path', expression: '1' },
+            },
+          ],
+        },
+      ],
+    });
+    expect(findings).toMatchObject([
+      {
+        ruleId: 'sdc/language-not-allowed',
+        severity: 'error',
+        jsonLocation: { pointer: '/item/0/extension/0/valueExpression/expression' },
+      },
+      {
+        ruleId: 'sdc/language-not-in-value-set',
+        severity: 'warning',
+        jsonLocation: { pointer: '/item/0/extension/1/valueExpression/expression' },
+      },
+    ]);
+  });
 
   it('reports broken FHIRPath in an uncatalogued site twice, at the same pointer', async () => {
     const { report, findings } = await lintQuestionnaire({
@@ -135,43 +169,49 @@ describe('expression findings', () => {
     expect(report.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
   });
 
-  it('reports a broken fragment once, as sdc/fragment-parse-error', async () => {
-    const text = 'Observation?subject={{%patient.id.}}';
-    const { findings } = await lintQuestionnaire({
-      extension: [
+  it.each(queryLanguages)(
+    'reports a broken fragment once, as sdc/fragment-parse-error, in %s',
+    async (language) => {
+      const text = 'Observation?subject={{%patient.id.}}';
+      const { findings } = await lintQuestionnaire({
+        extension: [
+          {
+            url: `${sdc}itemPopulationContext`,
+            valueExpression: { name: 'obs', language, expression: text },
+          },
+        ],
+      });
+      expect(findings).toMatchObject([
         {
-          url: `${sdc}itemPopulationContext`,
-          valueExpression: { name: 'obs', language: 'application/x-fhir-query', expression: text },
+          ruleId: 'sdc/fragment-parse-error',
+          expression: { text, range: { startOffset: 34, endOffset: 34 } },
         },
-      ],
-    });
-    expect(findings).toMatchObject([
-      {
-        ruleId: 'sdc/fragment-parse-error',
-        expression: { text, range: { startOffset: 34, endOffset: 34 } },
-      },
-    ]);
-  });
+      ]);
+    },
+  );
 
-  it('shows a finding in a fragment in its query, with the range rebased', async () => {
-    const text = 'Observation?subject={{%patient.fist()}}';
-    const { report, findings } = await lintQuestionnaire({
-      extension: [
+  it.each(queryLanguages)(
+    'shows a finding in a fragment in its query, with the range rebased, in %s',
+    async (language) => {
+      const text = 'Observation?subject={{%patient.fist()}}';
+      const { report, findings } = await lintQuestionnaire({
+        extension: [
+          {
+            url: `${sdc}itemPopulationContext`,
+            valueExpression: { name: 'obs', language, expression: text },
+          },
+        ],
+      });
+      expect(findings).toMatchObject([
         {
-          url: `${sdc}itemPopulationContext`,
-          valueExpression: { name: 'obs', language: 'application/x-fhir-query', expression: text },
+          ruleId: 'sdc/unknown-function',
+          jsonLocation: { pointer: '/extension/0/valueExpression/expression' },
+          expression: { text, range: { startOffset: 31, endOffset: 35 } },
         },
-      ],
-    });
-    expect(findings).toMatchObject([
-      {
-        ruleId: 'sdc/unknown-function',
-        jsonLocation: { pointer: '/extension/0/valueExpression/expression' },
-        expression: { text, range: { startOffset: 31, endOffset: 35 } },
-      },
-    ]);
-    expect(report.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
-  });
+      ]);
+      expect(report.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
+    },
+  );
 });
 
 describe('config', () => {

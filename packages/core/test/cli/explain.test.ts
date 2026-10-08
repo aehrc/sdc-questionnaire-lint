@@ -11,13 +11,15 @@ describe('sdc-lint explain', () => {
     expect(result).toEqual({
       code: 0,
       stdout:
-        'RULE                         DEFAULT  EFFECTIVE  DESCRIPTION\n' +
-        'lint/stale-suppression       warning  warning    Reports a suppression that is no longer needed.\n' +
-        'sdc/fragment-parse-error     error    error      Reports a FHIRPath expression embedded in an x-fhir-query that does not parse.\n' +
-        'sdc/parse-error              error    error      Reports a FHIRPath expression that does not parse.\n' +
-        'sdc/query-syntax             error    error      Reports an x-fhir-query that is not a FHIR search.\n' +
-        'sdc/uncatalogued-expression  info     info       Reports an expression in a place the linter does not recognise.\n' +
-        'sdc/unknown-function         error    error      Reports a call to a function that fhirpath.js does not implement.\n' +
+        'RULE                           DEFAULT  EFFECTIVE  DESCRIPTION\n' +
+        'lint/stale-suppression         warning  warning    Reports a suppression that is no longer needed.\n' +
+        'sdc/fragment-parse-error       error    error      Reports a FHIRPath expression embedded in an x-fhir-query that does not parse.\n' +
+        'sdc/language-not-allowed       error    error      Reports an expression language that SDC does not allow at its location.\n' +
+        'sdc/language-not-in-value-set  warning  warning    Reports an expression language that FHIR R4 and R5 do not define.\n' +
+        'sdc/parse-error                error    error      Reports a FHIRPath expression that does not parse.\n' +
+        'sdc/query-syntax               error    error      Reports an x-fhir-query that is not a FHIR search.\n' +
+        'sdc/uncatalogued-expression    info     info       Reports an expression in a place the linter does not recognise.\n' +
+        'sdc/unknown-function           error    error      Reports a call to a function that fhirpath.js does not implement.\n' +
         '\n' +
         'Config: none, built-in defaults.\n' +
         "Run sdc-lint explain <rule-id> for a rule's documentation.\n",
