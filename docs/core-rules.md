@@ -17,7 +17,7 @@ One PR per slice, in this order. The exception is slice 4, which is three PRs.
 
 | Slice | Delivers | Default severity | Depends on | Status |
 | :- | :- | :- | :- | :- |
-| [0](#0-corpus) | Local corpus and the command that compares its findings | – | – | todo |
+| [0](#0-corpus) | Local corpus and the command that compares its findings | – | – | done |
 | [1](#1-language-rules) | `sdc/language-not-in-value-set` | warning | 0 | todo |
 |  | `sdc/language-not-allowed` | error | 0 | todo |
 | [2](#2-sdcexternal-expression) | `sdc/external-expression` | info | 0 | todo |
