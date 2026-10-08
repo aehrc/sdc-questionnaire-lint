@@ -22,6 +22,8 @@ function stringValue(source: string, line: number): { literal: string; atOffset:
   return { literal, atOffset: document.text.slice(offset, offset + literal.length) };
 }
 
+// String literals, their offsets and """ strings are also rows of the SUSHI-compiled fixture
+// (fixtures.test.ts).
 describe('parseFshDocument', () => {
   it('reads definitions with their keyword, name, lines and metadata', () => {
     const { definitions } = parseFshDocument(
@@ -86,14 +88,6 @@ describe('parseFshDocument', () => {
     expect(rules[5]).toMatchObject({ value: { kind: 'other', text: '"a" (exactly)' } });
   });
 
-  it('gives each string value its literal and its offset in the text', () => {
-    const source = 'Instance: Q\n* item[0].text = "say \\"hi\\""\n';
-    expect(stringValue(source, 2)).toEqual({
-      literal: '"say \\"hi\\""',
-      atOffset: '"say \\"hi\\""',
-    });
-  });
-
   it('ignores a // comment after whitespace', () => {
     const { rules } = only('Instance: Q\n* item[+] //in-progress\n  * linkId = "a" // done');
     expect(rules).toMatchObject([
@@ -135,14 +129,6 @@ describe('parseFshDocument', () => {
     const source = 'Instance: Q\n* text = "multi\nline"\n';
     expect(stringValue(source, 2).literal).toBe('"multi\nline"');
     expect(only(source)).toMatchObject({ startLine: 1, endLine: 3 });
-  });
-
-  it('reads a """ string', () => {
-    const source = 'Instance: Q\n* text = """\n  a\n  """';
-    expect(stringValue(source, 2)).toEqual({
-      literal: '"""\n  a\n  """',
-      atOffset: '"""\n  a\n  """',
-    });
   });
 
   it('counts lines and indentation the same with CRLF', () => {

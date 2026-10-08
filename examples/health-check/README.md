@@ -71,6 +71,6 @@ Config: none, built-in defaults. FSH sources: input/fsh.
 Linter: 0.1.0. Plugins: sdc@0.1.0.
 ```
 
-An x-fhir-query and each of its `{{…}}` fragments count as separate analysed expressions: the query on the root and `smokingStatus` with its two fragments add up to five. A fragment's finding shows the whole query, with the caret inside the fragment. The 1 unchecked expression is the one on the answerOption, whose scope cannot be analysed. For `.round(1` the parser does not say a `)` is missing, so the message is the generic one. The `bmi` calculatedExpression is written over two lines as a `"""` string, which the linter does not locate in FSH, so its finding names the compiled JSON and its JSON Pointer instead, and says why. Findings are sorted by file, then by FSH position, so it comes first.
+Each `{{…}}` fragment counts as an analysed expression of its own, so the two queries and their three fragments make five of the 13. The unchecked expression is the one on the answerOption, whose scope cannot be analysed. For `.round(1` the parser does not report the missing `)`, so the message is the generic one.
 
-To change the form, edit `input/fsh/HealthCheck.fsh` and run `sushi .` in this directory; SUSHI needs `hl7.fhir.uv.sdc#4.0.0`, which it downloads to the FHIR package cache. `packages/core/test/examples.test.ts` checks this output on every `npm test`.
+To change the form, edit `input/fsh/HealthCheck.fsh` and run `sushi .` in this directory; SUSHI needs `hl7.fhir.uv.sdc#4.0.0`, which it downloads to the FHIR package cache. `packages/core/test/examples.test.ts` checks this output on every `npm test`, and uses this example as the end-to-end test of FSH source mapping.

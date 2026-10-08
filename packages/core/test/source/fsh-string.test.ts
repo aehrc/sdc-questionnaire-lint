@@ -62,59 +62,51 @@ const cases: { escape: string; literal: string; value: string; sources: string[]
 ];
 
 describe('decodeFshString', () => {
-  it.each(cases)('decodes $escape', ({ literal, value, sources }) => {
+  it.each(cases)('decodes $escape, with spans covering the literal without gaps', (each) => {
+    const { literal, value, sources } = each;
     const decoded = decodeFshString(literal);
     expect(decoded?.value).toBe(value);
     expect(decoded?.spans.map(({ start, end }) => literal.slice(start, end))).toEqual(sources);
-  });
-
-  it.each(cases)('covers the literal without gaps for $escape', ({ literal }) => {
-    const { spans } = decodeFshString(literal) ?? { spans: [] };
     let next = 1;
-    for (const { start, end } of spans) {
-      expect(start).toBe(next);
-      expect(end).toBeGreaterThan(start);
+    for (const { start, end } of decoded?.spans ?? []) {
+      expect([start, end > start]).toEqual([next, true]);
       next = end;
     }
     expect(next).toBe(literal.length - 1);
   });
 
-  it('cannot decode a \\u escape whose digits include a comma, as SUSHI cannot', () => {
-    expect(decodeFshString(String.raw`"\u0,41"`)).toBeUndefined();
-  });
-
-  // SUSHI reads the backslash \u005C makes as the start of \n, so it decodes \u005Cn to a newline.
-  it('does not decode a literal where a \\u escape for a backslash starts another escape', () => {
-    expect(decodeFshString(String.raw`"\u005Cn"`)).toBeUndefined();
-  });
-
-  it('leaves \\u with fewer than four digits as written', () => {
-    expect(decodeFshString(String.raw`"\u41"`)?.value).toBe('\\u41');
+  it.each([
+    // SUSHI cannot decode it either.
+    ['a \\u escape whose digits include a comma', String.raw`"\u0,41"`, undefined],
+    // SUSHI reads the backslash \u005C makes as the start of \n, and decodes a newline.
+    ['a \\u escape for a backslash that starts another escape', String.raw`"\u005Cn"`, undefined],
+    ['\\u with fewer than four digits, as written', String.raw`"\u41"`, '\\u41'],
+  ])('decodes %s', (_, literal, value) => {
+    expect(decodeFshString(literal)?.value).toBe(value);
   });
 });
 
 describe('decodeFshMultilineString', () => {
-  it('drops whitespace-only first and last lines and the shared indentation', () => {
-    expect(decodeFshMultilineString('"""\n    a\n      b\n    """')).toBe('a\n  b');
-  });
-
-  it('splits CRLF lines and joins them with LF', () => {
-    expect(decodeFshMultilineString('"""\r\n  a\r\n  b\r\n"""')).toBe('a\nb');
-  });
-
-  it('keeps a first line with text', () => {
-    expect(decodeFshMultilineString('"""a\n  b"""')).toBe('a\n  b');
-  });
-
-  it('empties a whitespace-only line between others', () => {
-    expect(decodeFshMultilineString('"""\n  a\n     \n  b\n"""')).toBe('a\n\nb');
-  });
-
-  it('decodes \\n, \\r, \\t and \\u but neither \\" nor \\\\', () => {
-    expect(decodeFshMultilineString(String.raw`"""a\nb\t\u0041\"\\"""`)).toBe('a\nb\tA\\"\\\\');
-  });
-
-  it('cannot decode a \\u escape whose digits include a comma', () => {
-    expect(decodeFshMultilineString(String.raw`"""\u,,,,"""`)).toBeUndefined();
+  it.each([
+    [
+      'drops whitespace-only first and last lines and the shared indentation',
+      '"""\n    a\n      b\n    """',
+      'a\n  b',
+    ],
+    ['splits CRLF lines and joins them with LF', '"""\r\n  a\r\n  b\r\n"""', 'a\nb'],
+    ['keeps a first line with text', '"""a\n  b"""', 'a\n  b'],
+    ['empties a whitespace-only line between others', '"""\n  a\n     \n  b\n"""', 'a\n\nb'],
+    [
+      'decodes \\n, \\r, \\t and \\u but neither \\" nor \\\\',
+      String.raw`"""a\nb\tA\"\\"""`,
+      'a\nb\tA\\"\\\\',
+    ],
+    [
+      'cannot decode a \\u escape whose digits include a comma',
+      String.raw`"""\u,,,,"""`,
+      undefined,
+    ],
+  ])('%s', (_, literal, value) => {
+    expect(decodeFshMultilineString(literal)).toBe(value);
   });
 });
