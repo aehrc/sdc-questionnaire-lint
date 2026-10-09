@@ -77,3 +77,10 @@ Each bullet states the override; the reasons are in [smart-forms-rules.md](smart
 - **§2.1 evidence (S11):** runtime evidence is cited at the release commit of the package it belongs to, after checking the file is identical there.
 - **§6.1, §6.2 `presets`, `languages` and rule options (S7):** not added. Listing a plugin enables its rules at their defaults, and deployment facts belong in `compat` or `hostVariables`. The plan's examples that use `presets` and `languages` are superseded.
 - **§5.3 peer range:** before the first release, the plugin's peer range stays `^0.1.0`.
+
+Accepted with P1 (2026-10-09):
+
+- **§4.2 locations (S2):** plugin rules map a location to a component through the plugin's runtime facts, never through `site.useCases`. `smart-forms/expression-evaluated-as-fhirpath` (core-plan's `unchecked-language-evaluated-as-fhirpath`, S17) also checks populate's initialExpression and itemPopulationContext.
+- **§5.2 core API for plugins (S5):** core publishes analysis to plugins in stages, each with the slice that first needs it. Stage A exports the language lookups `definedLanguages`, `languagesAllowedAt` and `isQueryLanguage` ([architecture.md](architecture.md#what-a-plugin-can-import)).
+- **§4.2 overlap with core (S9):** a plugin rule stays silent where a core rule or the Validator reports the same root cause, by checking the condition itself, never whether that rule ran.
+- **§2.1 reproduction tests (S10):** every runtime fact has a reproduction test against the pinned npm package where a harness exists; until then it is `source-only`, with a permalink, and messages based on it claim only what the source shows.

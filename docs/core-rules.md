@@ -335,7 +335,7 @@ Each decision is listed under its topic and keeps its original number.
 - **D10. `sdc/language-not-allowed` enforces only the restrictions in the SDC expressions table, minus those the Validator enforces. contextExpression counts as allowing any language.**
   _Why:_ the table and the contextExpression definition contradict each other, and core reports no error on a contradiction.
 - **D11. `sdc/language-not-in-value-set` accepts the R4 and R5 codes.**
-  _Why:_ a Questionnaire does not state its FHIR version, and an IG can target R4 or R5. Smart Forms ignoring R5's query code belongs to `smart-forms/unsupported-expression-language`.
+  _Why:_ a Questionnaire does not state its FHIR version, and an IG can target R4 or R5. How Smart Forms handles R5's query code belongs to the Smart Forms plugin: it ignores it at filtering locations (`smart-forms/unsupported-expression-language`) and evaluates it as FHIRPath at targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext (`smart-forms/expression-evaluated-as-fhirpath`).
 
 ### Declarations and availability
 
@@ -402,7 +402,7 @@ Each decision is listed under its topic and keeps its original number.
 
 - A plugin hook for supplied names. With it, the Smart Forms plugin supplies its own host variables: the sourceQueries result names it reads from the form (`%<Bundle id>`, `%sourceQuery<index>`), and its `additionalContext` names. Core's resolution then accepts names from `hostVariables` and from plugins alike, still without knowing any host's conventions (D1, D16).
 - An eagerly evaluated reference to a later variable can fail in Smart Forms when there is no earlier binding that was supplied or fetched (D8). Tell this apart from lazy branches, and from x-fhir-query contexts that are fetched first.
-- Smart Forms ignores `text/x-fhir-query` (D11). This belongs in `smart-forms/unsupported-expression-language`.
+- Smart Forms ignores `text/x-fhir-query` (D11) at filtering locations, and `application/x-fhir-query` everywhere except `variable`; it evaluates either as FHIRPath at targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext. Done in the Smart Forms plugin's P1: `smart-forms/unsupported-expression-language` and `smart-forms/expression-evaluated-as-fhirpath`.
 - sdc-populate skips item variables when the Questionnaire root has no extensions.
 - Template-extract evaluates no Questionnaire `variable`s, as SDC $extract specifies (D19). This is not a compatibility gap.
 - The renderer sees itemPopulationContext names only through populate's `additionalContext`. A reference that SDC allows (D13) can therefore be empty when the form is rendered without populate. This belongs in `smart-forms/named-expression-not-referenceable`.

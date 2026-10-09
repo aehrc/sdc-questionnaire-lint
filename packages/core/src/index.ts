@@ -34,6 +34,9 @@ export type {
 export type { FailureCode } from './failure.js';
 export { defineConfig } from './config/types.js';
 export type { LintConfig, RuleSetting, SuppressionEntry } from './config/types.js';
+// Language lookups for plugin rules (API stage A, docs/architecture.md § What a plugin can import).
+export { definedLanguages, languagesAllowedAt } from './analysis/extension-catalog.js';
+export { isQueryLanguage } from './analysis/x-fhir-query.js';
 export type {
   CataloguedLocation,
   ExpressionCarrier,

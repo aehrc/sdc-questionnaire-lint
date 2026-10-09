@@ -1,11 +1,16 @@
 import type { LintPlugin } from 'sdc-questionnaire-lint';
 import pkg from '../package.json' with { type: 'json' };
+import { expressionEvaluatedAsFhirpath } from './rules/expression-evaluated-as-fhirpath.js';
+import { unsupportedExpressionLanguage } from './rules/unsupported-expression-language.js';
 
 // The Smart Forms plugin. Listing it in plugins checks forms against the Smart Forms versions
-// selected in compat; it has no rules yet (docs/smart-forms-rules.md, P0).
+// selected in compat (docs/smart-forms-rules.md).
 const smartForms: LintPlugin = {
   meta: { name: 'smart-forms', version: pkg.version },
-  rules: {},
+  rules: {
+    'unsupported-expression-language': unsupportedExpressionLanguage,
+    'expression-evaluated-as-fhirpath': expressionEvaluatedAsFhirpath,
+  },
   compat: {
     // Oldest to newest: "latest" selects the last. Each version is verified on its own (S3).
     verified: {

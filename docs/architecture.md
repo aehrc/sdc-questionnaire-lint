@@ -88,6 +88,19 @@ The analysis helpers:
 
 The runner validates every finding. A bad site, pointer or range, a throw, or a returned promise fails the run with `RULE_CRASH`; built-in and plugin rules are treated alike. It then turns each finding into a report `Finding` with its JSON location, an expression excerpt, its related locations and a fingerprint. A finding in a fragment is shown within its whole query.
 
+### What a plugin can import
+
+A plugin imports from the `sdc-questionnaire-lint` package only; everything under `packages/core/src` that `index.ts` does not export is internal. Besides `lint`, `defineConfig` and the report and config types, `index.ts` exports:
+
+- the plugin contract: `LintPlugin`, `LintRule`, `RuleContext`, `RuleFinding`, `RuleRelatedLocation`, `RuleDocs` and `PluginCompat` (`plugins/contract.ts`);
+- the expression-site model: `QuestionnaireDocument`, `ExpressionSite`, `CataloguedLocation`, `SiteItem` and the other types in `analysis/expression-site.ts`;
+- the language lookups (API stage A, [smart-forms-rules.md](smart-forms-rules.md#public-api-stages-s5)):
+  - `definedLanguages`: the six codes FHIR R4 and R5 define, frozen. A language outside them is `sdc/language-not-in-value-set`'s.
+  - `languagesAllowedAt(location)`: the languages SDC allows at a catalogued location, or `undefined` where it allows any language. A language outside the list is `sdc/language-not-allowed`'s, or the FHIR Validator's: the list also rejects `application/x-fhir-query` on enableWhenExpression (`sdc-inv1`).
+  - `isQueryLanguage(language)`: whether a language is either x-fhir-query code.
+
+A plugin rule that stays silent where a core rule reports the same root cause checks the condition with these lookups, never whether that rule ran.
+
 ## 6. Suppressions (`run/suppressions.ts`, `run/fingerprint.ts`)
 
 - `applySuppressions` matches each `suppress` entry to exactly one expression by its selectors: `file` (required), `linkId`, `extensionUrl`, `name`, `resource` and `pointer`. An entry that matches several expressions fails the run as an invalid config. An entry whose `extensionUrl` is launchContext or extractAllocateId instead matches one name on one element among the declarations, and hides the rule's findings at every declaration of that name there.

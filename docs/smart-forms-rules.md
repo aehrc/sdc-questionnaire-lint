@@ -2,9 +2,9 @@
 
 Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §2.1, §2.3, §4.2, §4.3 and §5, and the [plugin follow-ups](core-rules.md#plugin-follow-ups-not-in-this-plan) of the core rules plan. Researched on 2026-10-09 against Smart Forms commit `7e64a22f` (renderer 1.4.0, sdc-populate 4.7.1, sdc-template-extract 1.0.15). Revised the same day after a review: its runtime claims were checked against the source, and the population claims were reproduced with the published `@aehrc/sdc-populate@4.7.1`.
 
-**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09; the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
+**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, and S2, S5, S9 and S10 with P1 the same day; the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
-P0 is done: the plugin loads with no rules, config `compat` is resolved against its verified versions, and the report names them in `run.compat`. No Smart Forms rule exists yet.
+P0 and P1 are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, and the plugin has the two language rules.
 
 ## How to work on a slice
 
@@ -21,8 +21,8 @@ One PR per slice, in this order.
 | Slice | Delivers | Default severity | Depends on | Status |
 | :- | :- | :- | :- | :- |
 | [P0](#p0-plugin-skeleton-and-compat) | Plugin skeleton, `compat` config, `run.compat`, `ctx.compat`, plugin test helper, corpus with the plugin | – | – | done |
-| [P1](#p1-language-rules) | API stage A (language lookups), the site-eligibility helper, `smart-forms/unsupported-expression-language` | error | P0 | todo |
-|  | `smart-forms/expression-evaluated-as-fhirpath` | error | P0 | todo |
+| [P1](#p1-language-rules) | API stage A (language lookups), the site-eligibility helper, `smart-forms/unsupported-expression-language` | error | P0 | done |
+|  | `smart-forms/expression-evaluated-as-fhirpath` | error | P0 | done |
 | [P2](#p2-smart-formsquestionnaire-variable-unavailable) | API stage B (`referencesAt`, `variablesAt`), populate reproduction harness, `smart-forms/questionnaire-variable-unavailable` | error | P1 | todo |
 | [P3](#p3-smart-formsunsupported-query-embedding) | `smart-forms/unsupported-query-embedding` | error | P2 | todo |
 | [P4](#p4-supplied-names-hook) | Supplied-names hook; the plugin supplies sourceQueries result names | – | P0 | todo |
@@ -71,7 +71,7 @@ flowchart TD
     versions["compat: verified versions,<br/>required components (P0)"]
     hook["hostVariables(document)<br/>sourceQueries names (P4)"]
     rules["rules: smart-forms/* (P1–P8)"]
-    eligible["evaluatedBy(site, compat)<br/>site eligibility (P1)"]
+    eligible["readBy(ctx, site)<br/>site eligibility (P1)"]
     facts["runtime facts<br/>src/facts (S4)"]
     entry --> versions
     entry --> hook
@@ -115,15 +115,15 @@ sequenceDiagram
   participant Lint as lint() (core)
   participant Runner as runRules (core)
   participant Rule as smart-forms rule
-  participant Facts as evaluatedBy and facts (plugin)
+  participant Facts as readBy and facts (plugin)
 
   Lint->>Runner: document, sites, analysis, resolved rules
   Runner->>Rule: check(ctx)
   Note over Runner,Rule: ctx: document, sites, compat (P0), referencesAt and variablesAt (P2),<br/>declarations, dependenciesOf, useOf, readsInput (P5)
   loop each expression site
-    Rule->>Facts: evaluatedBy(site, ctx.compat)
-    Facts-->>Rule: components that evaluate the site, or none
-    opt a component evaluates it
+    Rule->>Facts: readBy(ctx, site)
+    Facts-->>Rule: components that read the site, or none
+    opt a component reads it
       Rule->>Runner: ctx.referencesAt(site), ctx.variablesAt(site)
       Runner-->>Rule: references and the declarations they resolve to, or undefined
       Rule->>Facts: how does this component handle it?
@@ -192,13 +192,18 @@ Each fact names its evidence (S4, S10). When a harness exists, the evidence is a
 
 ### Site eligibility
 
-A private plugin helper, `evaluatedBy(site, compat)`, returns the selected components that evaluate a site, or none. It is built in P1 and used by every rule that reports at an expression site (P1, P2, P6). It accounts for each component's prerequisites, not only the location:
+A private plugin helper, `readBy(ctx, site)` in `src/eligibility.ts`, returns the selected components that read a site, each with how it handles the language there, or none. It answers whatever the site's language: `unsupported-expression-language` reports exactly the sites a component reads but does not evaluate. It is built in P1 and used by every rule that reports at an expression site (P1, P2, P6). It accounts for each component's prerequisites (`src/facts/prerequisites.ts`), not only the location. A prerequisite never depends on the language:
 
-- an itemPopulationContext is read only on an item with child items;
-- a targetConstraint is built only with `key`, `severity`, `expression` and `human`;
-- an answerOptionsToggleExpression is read only with an option sub-extension;
+- an itemPopulationContext is read only on an item with child items, and only the first of its URL on the item, with a `name` and expression text;
+- only the first initialExpression on an item is read. Populate evaluates it once for an item outside a repeating group with an itemPopulationContext. Below one, only a direct child of a repeating group is evaluated, once per repetition, and only when a direct child's initialExpression names a context and the group is reached; a nested repeating group is reached only when it has an itemPopulationContext of its own (`constructResponse.ts:225-238,574-713`);
+- a targetConstraint is built only with `key` (`valueId`), `severity` (`valueCode` `error` or `warning`), `human` (`valueString`) and an `expression` sub-extension; the first `expression` sub-extension with a `valueExpression` is used;
+- an answerOptionsToggleExpression is read only with an `option` sub-extension that has `valueCoding`, `valueString` or `valueInteger`; the first `expression` sub-extension with a `valueExpression` is used;
 - an answerExpression is read only as a fallback when answerValueSet produced no codings, so it is evaluated, but not always;
-- candidateExpression, contextExpression, itemExtractionContext, the root `_title` cqf-expression and a root itemPopulationContext are read by nothing.
+- candidateExpression, contextExpression, itemExtractionContext, the root `_title` cqf-expression and a root itemPopulationContext are read by nothing, and neither are uncatalogued and fragment sites.
+
+`readBy` answers per component: a site population does not read, such as a second initialExpression, can still be read by the renderer, which reads the first `text/fhirpath` initialExpression to repopulate a form. A rule that cares about one component filters on `component` or on the handling.
+
+A rule whose `ctx.compat` names no renderer or populate version throws, so an older core fails with `RULE_CRASH`. A selected version with no facts throws too: it is a plugin bug.
 
 ### Completion and suppressions
 
@@ -261,9 +266,9 @@ P0 resolves the compatibility target; it adds no Smart Forms findings and runs n
 
 ### P1. Language rules
 
-Decisions: S1, S2, S9, D3, D10, D11. Uses the [language facts](#languages-by-location).
+Decisions: S1, S2, S5, S9, S10, D3, D10, D11. Uses the [language facts](#languages-by-location). The corrections below were found in the source while implementing it.
 
-Build stage A and the [eligibility helper](#site-eligibility). Both rules check sites that are `carrier === 'expression'`, catalogued, not fragment sites, with a `language` and with `expression` text, that `evaluatedBy` returns a component for.
+Build stage A and the [eligibility helper](#site-eligibility). Both rules check sites that are `carrier === 'expression'`, catalogued, not fragment sites, with a `language` and with `expression` text, that `readBy` returns a component for. Both name the element as core does: `item "Text" (linkId)`, `item linkId`, `item "Text"`, `an item that has no linkId`, or `the Questionnaire root`.
 
 **`smart-forms/unsupported-expression-language` (error).** A component ignores the expression because of its language. Locations: root and item `variable`, calculatedExpression, enableWhenExpression, answerExpression, cqf-expression on `_text`, `_prefix` and `_answerValueSet`. Accepted: `text/fhirpath` everywhere, plus `application/x-fhir-query` for `variable`.
 - Stay silent when:
@@ -271,13 +276,14 @@ Build stage A and the [eligibility helper](#site-eligibility). Both rules check 
   - the language is outside the six value-set codes (`sdc/language-not-in-value-set`); Smart Forms also ignores it, but core already reports the code;
   - the site is uncatalogued, or no component reads the location (no finding in v1; the facts record them);
   - the site is an initialExpression (the next rule);
-  - a cqf-expression has a sibling `text/fhirpath` cqf-expression with the same URL on the same element: the renderer uses that one.
-- Message: `Smart Forms ignores this {extension} because it is written in {language}; it uses only text/fhirpath here, so {consequence}.` Consequences:
+  - a calculatedExpression, enableWhenExpression, answerExpression or cqf-expression has a sibling `text/fhirpath` extension with the same URL on the same element: the renderer reads the first `text/fhirpath` enableWhenExpression and answerExpression and every `text/fhirpath` calculatedExpression and cqf-expression, so the ignored one is an alternative, not lost behaviour (`getExpressionsFromItem.ts:48-60,137-152,178-191`);
+  - a variable has no name, so ignoring it has no consequence, or the same element has a variable of its name that Smart Forms accepts (`text/fhirpath` or `application/x-fhir-query`), which sets the name; `sdc/duplicate-declaration` reports the duplicate.
+- Message: `Smart Forms ignores this {extension} on {element} because it is written in {language}; it uses only text/fhirpath here, so {consequence}.` The extension is named `variable`, `calculatedExpression`, `enableWhenExpression`, `answerExpression`, or `cqf-expression on text`, `on prefix` or `on answerValueSet`. Consequences:
   - enableWhenExpression: "this expression never disables the item" (the item's `enableWhen` and `hidden` still apply);
   - calculatedExpression: "the answer is never calculated from it";
   - answerExpression: "its answers are not computed from it" (`answerOption` and `answerValueSet` still load);
-  - variable: "%{name} is never set and expressions that use it fail";
-  - cqf-expression on `_text` or `_prefix`: "the text is not updated from it";
+  - variable: "this variable never sets %{name}". It does not claim that expressions using the name fail: Smart Forms keeps one flat set of names, so another declaration, such as a root FHIRPath variable of the same name, may still supply it;
+  - cqf-expression on `_text`: "the text is not updated from it"; on `_prefix`: "the prefix is not updated from it";
   - cqf-expression on `_answerValueSet`: "the answer value set is not computed from it".
 - Help:
   - a `text/x-fhir-query` variable: `Smart Forms runs a query in a variable only when its language is application/x-fhir-query`. This states a runtime reason, so it does not break slice 1's rule against suggesting the R4 code for spelling reasons.
@@ -285,13 +291,15 @@ Build stage A and the [eligibility helper](#site-eligibility). Both rules check 
 - Covers the core-rules follow-up "Smart Forms ignores `text/x-fhir-query` (D11)".
 
 **`smart-forms/expression-evaluated-as-fhirpath` (error).** A component evaluates a non-FHIRPath expression as FHIRPath. Locations: targetConstraint and answerOptionsToggleExpression (renderer); initialExpression and itemPopulationContext (populate). The plan named only the first two; populate's are added (S2) because an `application/x-fhir-query` itemPopulationContext is valid SDC and occurs in the SDC demographics example.
-- Stay silent when SDC disallows the language there: either query code on answerOptionsToggleExpression is `sdc/language-not-allowed`. targetConstraint has no R4 restriction, so every non-FHIRPath language is reported there. The eligibility helper already excludes itemPopulationContexts populate never reads and targetConstraints and toggles the renderer never builds.
-- Message: `Smart Forms {renderer|population} evaluates this {extension} as FHIRPath although it is written in {language}, so {consequence}.` Consequences: targetConstraint "the constraint never reports a problem"; answerOptionsToggleExpression "its options are not toggled"; initialExpression "the answer is not prefilled"; itemPopulationContext "the group is not prefilled".
+- Stay silent when SDC disallows the language there: either query code on answerOptionsToggleExpression is `sdc/language-not-allowed`. targetConstraint has no R4 restriction, so every non-FHIRPath language is reported there. Stay silent, too, on a language outside the six codes: a misspelt `text/fhir-path` is evaluated as FHIRPath and may work, and core reports the code. The eligibility helper already excludes itemPopulationContexts populate never reads, a second initialExpression, and targetConstraints and toggles the renderer never builds.
+- Message: `Smart Forms {renderer|population} evaluates this {extension} on {element} as FHIRPath although it is written in {language}, so {consequence}.` Query text throws on `?` and the error is caught, so for both query codes the consequences are: targetConstraint "the constraint never reports a problem"; answerOptionsToggleExpression "its options are not toggled"; initialExpression "the answer is not prefilled"; itemPopulationContext "the group is not prefilled". CQL text can be valid FHIRPath that returns a value, such as `true` or an element name like `status`, and the renderer marks a targetConstraint invalid when the result is empty and the text contains `intersect` (`targetConstraint.ts:99-107`). So for the three CQL codes, and for a query targetConstraint whose text contains `intersect`, the consequence is only "the {language} is never run".
 - Help: for an itemPopulationContext query, `fetch the resources in an application/x-fhir-query variable on the Questionnaire root, and set itemPopulationContext to FHIRPath over it, such as %name.entry.resource` (the GP CCMP pattern). Otherwise `rewrite it in FHIRPath with the language text/fhirpath`.
+
+**Reference-only Expressions:** no finding in v1 (settled with P1). Core reports `sdc/external-expression` at info, and both rules check only sites with expression text.
 
 **Reproduction:** populate facts (initialExpression, itemPopulationContext) are reproduced in P2 when the harness lands; until then, and for every renderer fact, `source-only` (S10).
 
-**Tests.** Positive: variable `text/x-fhir-query` at root and item; variable `text/cql`; calculatedExpression `application/x-fhir-query`; enableWhenExpression `text/cql`; answerExpression with both query codes; `_text` and `_answerValueSet` cqf-expressions `text/cql`; targetConstraint with `text/cql`, both query codes and `text/cql-identifier`; toggle with `text/cql` and `text/cql-expression`; initialExpression `text/cql` and `application/x-fhir-query`, including a child of a repeating itemPopulationContext group; itemPopulationContext with both query codes on a group with children. Negative: every stay-silent case above, an incomplete targetConstraint, `application/x-fhir-query` variables, and `text/fhirpath` at every location.
+**Tests.** Positive: variable `text/x-fhir-query` at root and item; variable `text/cql`; calculatedExpression `application/x-fhir-query`; enableWhenExpression `text/cql`; answerExpression with both query codes; `_text`, `_prefix` and `_answerValueSet` cqf-expressions `text/cql`; a CQL item variable whose name a root FHIRPath variable declares; targetConstraint with `text/cql`, both query codes and `text/cql-identifier`; toggle with `text/cql` and `text/cql-expression`; initialExpression `text/cql` and `application/x-fhir-query`, including a child of a repeating itemPopulationContext group; itemPopulationContext with both query codes on a group with children. Negative: every stay-silent case above, with the core rule turned off for each S9 silence; an incomplete targetConstraint; `application/x-fhir-query` variables; and `text/fhirpath` at every location.
 
 **Corpus:** GP CCMP 0. Other corpus forms: 1 for each rule (SDC form-behavior answerExpression `application/x-fhir-query`; SDC demographics itemPopulationContext `application/x-fhir-query` on a repeating group).
 
@@ -305,7 +313,7 @@ Decisions: S1, S5, S9, S10, S13. Implements core-plan §4.3.
 
 **Reproduction harness:** add `@aehrc/sdc-populate@4.7.1` as an exact dev dependency of the plugin. It runs headlessly in plain Node ESM: `populateQuestionnaire({ questionnaire, patient, fetchResourceCallback, fetchResourceRequestConfig })`, asserting on the URLs passed to `fetchResourceCallback`, the OperationOutcome issues, `populatedContext` and the response. After installing, check that the lockfile resolves a single `fhirpath` 4.10.1. Reproduce in this slice: this rule's facts, P1's populate facts, and an item-level query variable feeding an initialExpression (used by P5 and P7).
 
-**Rule (error).** A complete reference that resolves to the built-in `%questionnaire` or `%qitem` (`resolve(name).origin`), at a non-fragment FHIRPath site that `evaluatedBy` returns a component for. No component supplies either name, and fhirpath.js throws on an undefined environment variable when the reference is evaluated. The renderer catches the error and leaves the variable unset, so later references to it fail too and calculations can keep a previous value. Populate turns it into an OperationOutcome warning.
+**Rule (error).** A complete reference that resolves to the built-in `%questionnaire` or `%qitem` (`resolve(name).origin`), at a non-fragment FHIRPath site that `readBy` returns a component for. No component supplies either name, and fhirpath.js throws on an undefined environment variable when the reference is evaluated. The renderer catches the error and leaves the variable unset, so later references to it fail too and calculations can keep a previous value. Populate turns it into an OperationOutcome warning.
 - A form declaration of the name resolves to the declaration and is `sdc/reserved-name`'s; `%qitem` at a root site resolves to nothing and is `sdc/undefined-variable`'s.
 - Fragments belong to P3.
 - Range: the reference.
@@ -403,7 +411,7 @@ Decisions: S1, S5, S9. Uses the [variable storage facts](#variable-storage-and-o
 
 Decisions: S1, S5, S9, S14.
 
-**Rule (error).** For each complete reference at a site that `evaluatedBy` returns a component for, resolve it with `variablesAt` and report when the declaration it resolves to is one no component exposes:
+**Rule (error).** For each complete reference at a site that `readBy` returns a component for, resolve it with `variablesAt` and report when the declaration it resolves to is one no component exposes:
 - (a) a named expression that is not a `variable`: calculated, initial, enableWhen, answer, candidate, context or answerOptionsToggle expression, targetConstraint, cqf-expression;
 - (b) an itemPopulationContext on the root or on a leaf item, which populate never reads;
 - (c) an itemExtractionContext: Smart Forms does not support definition-based extraction.
@@ -463,7 +471,7 @@ Runs only when `template-extract` is selected in `compat` (S3).
 
 ## Decisions
 
-Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09 and are recorded in [plan-amendments.md](plan-amendments.md); the others are proposals.
+Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09, and S2, S5, S9 and S10 with P1 the same day; they are recorded in [plan-amendments.md](plan-amendments.md). The others are proposals.
 
 ### Model
 
@@ -518,12 +526,12 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
 
 | Item | Blocks |
 | :- | :- |
-| Review and accept S2, S5, S6, S8–S10 and S12–S17; record the accepted overrides in plan-amendments.md. | The first slice that cites each one. |
-| A reference-only Expression (a Library reference, such as CQL) is ignored silently at every Smart Forms reader: filtering locations drop it, and unchecked locations skip an Expression with no text. Report it at every reader location as ignored, or no finding in v1 (core already reports `sdc/external-expression` at info)? | P1 |
+| Review and accept S6, S8 and S12–S17; record the accepted overrides in plan-amendments.md. | The first slice that cites each one. |
 | Embedding check 2 (no launch context): one finding per fragment, or one per form? | P3 |
 | Smart Forms-specific Expressions outside the core catalogue (binding-parameter expression, QuestionnaireItemTextAriaLabelExpression, calculatedExpression on `_text` and `_prefix`) cannot be targeted without an extension URL on uncatalogued sites. Add one, or catalogue them in the plugin? | Nothing in v1. |
 | Should P3 check embeddings in sourceQueries Bundle `request.url` through pointer findings (possible after P8)? 25 embeddings in 5 corpus forms, all fine. | Nothing in v1. |
 | Renderer-only and extraction-only targets (S1): an explicit `compat` without populate, and the findings S14 omits for such hosts. | Nothing in v1. |
+| Populate evaluates the initialExpressions of the children of a repeating group without an itemPopulationContext, but builds that group only from an itemPopulationContext, so their answers are never prefilled whatever the language. A rule for it? `expression-evaluated-as-fhirpath` still reports a non-FHIRPath one there; its consequence holds, but the language is not its cause. | Nothing in v1. |
 | itemPopulationContext on a repeating group binds only direct children, chosen by text between the first `%` and the first `.` of a child's initialExpression. A rule for consumers it does not bind? | Nothing in v1. |
 | A rule for a launchContext written type-first (S16)? | Nothing in v1. |
 
@@ -540,7 +548,7 @@ Apply with the first slice that relies on each fact.
 - **core-rules.md, "The renderer sets every x-fhir-query variable name to `[]`".** Only `application/x-fhir-query`. A `text/x-fhir-query` variable's name is unbound, so references to it throw.
 - **core-rules.md, x-fhir-query variables.** Populate fetches `application/x-fhir-query` variables on items as well as on the root.
 - **core-rules.md, sourceQueries.** The name of a `#id` reference is chosen before resolution; a value is supplied only for a contained Bundle with an `entry` element.
-- **core-rules.md, Plugin follow-ups, "Smart Forms ignores `text/x-fhir-query` (D11)".** Only at filtering locations. At targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext it is evaluated as FHIRPath. `application/x-fhir-query` is also ignored everywhere except `variable`. D11's attribution should cover both P1 rules.
+- **core-rules.md, Plugin follow-ups, "Smart Forms ignores `text/x-fhir-query` (D11)".** Applied in P1. Only at filtering locations. At targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext it is evaluated as FHIRPath. `application/x-fhir-query` is also ignored everywhere except `variable`. D11's attribution should cover both P1 rules.
 - **core-rules.md, x-fhir-query embeddings, "reproduce one before a plugin check rejects an expression".** Reproduced: populate builds an unescaped regular expression from each embedding and applies it to every query. Replace "`%context` and `%ucum` can still resolve" with the full list in P3 check 6, and note there is no model.
 - **report-format.md, "invalid rule options".** Cannot happen (S7); remove or mark as reserved.
 - **report schema, `smartFormsVersions`.** `template-extract` becomes optional. Applied in P0.
@@ -556,18 +564,18 @@ Language checks are exact string comparisons. No `text/x-fhir-query` string appe
 
 | Location | Component and handling | Any other language |
 | :- | :- | :- |
-| variable, root and item | Renderer: `text/fhirpath` evaluated; `application/x-fhir-query` names preset to `[]`, values from `additionalContext` (R`utils/questionnaireStoreUtils/extractVariables.ts:48-77`; R`utils/questionnaireStoreUtils/extractOtherExtensions.ts:318-329`). Populate: `text/fhirpath` evaluated; `application/x-fhir-query` fetched, root and item alike (PI`inputParameters.ts:143-193,272-277,435-451`; P`createFhirPathContext.ts:272-283,342-369`). _Reproduced:_ an item query fed an initialExpression. | Ignored; the name is never bound and references throw |
-| calculatedExpression | Renderer: `text/fhirpath` only (R`utils/getExpressionsFromItem.ts:137-144`). Populate does not evaluate it. | Ignored |
-| enableWhenExpression | Renderer: `text/fhirpath` only (R`utils/getExpressionsFromItem.ts:48-60`). The `hidden` extension and the item's `enableWhen` still apply (R`hooks/useHidden.ts:37-48`; R`utils/qItem.ts:49-55`). | Ignored; never disables the item |
-| answerExpression | Renderer: `text/fhirpath` only, as a fallback when answerValueSet produced no codings (R`utils/getExpressionsFromItem.ts:178-191`; R`hooks/useValueSetCodings.ts:66-124`). Populate does not read it. | Ignored; `answerOption` and `answerValueSet` still load |
-| cqf-expression on `_text`, `_prefix`, `_answerValueSet` | Renderer: `text/fhirpath` only (R`utils/getExpressionsFromItem.ts:78-126,146-152`). On `_answerValueSet` the result selects the value set (R`utils/calculatedExpression.ts:225-238`). | Ignored |
-| initialExpression | Populate: **no check**; skips an Expression with no text (P`readPopulationExpressions.ts:68,91,108-121`; P`evaluateExpressions.ts:49-75`). Renderer: `text/fhirpath` for repopulation only. | Evaluated as FHIRPath |
-| itemPopulationContext | Populate: **no check**, groups with children only (P`readPopulationExpressions.ts:53-63,128-141`; P`evaluateExpressions.ts:77-157`). The renderer does not read it. | Evaluated as FHIRPath |
-| answerOptionsToggleExpression | Renderer: **no check**; needs an option sub-extension and expression text (R`utils/answerOptionsToggleExpressions.ts:69-122`; R`utils/getExpressionsFromItem.ts:215-224`). | Evaluated as FHIRPath |
-| targetConstraint | Renderer: **no check**; built only with key, severity, expression and human (R`utils/questionnaireStoreUtils/extractTargetConstraint.ts:24-50`; R`utils/targetConstraint.ts:68-180`). | Evaluated as FHIRPath |
+| variable, root and item | Renderer: `text/fhirpath` evaluated; `application/x-fhir-query` names preset to `[]`, values from `additionalContext` (R`utils/questionnaireStoreUtils/extractVariables.ts:48-77`; R`utils/questionnaireStoreUtils/extractOtherExtensions.ts:318-329`). Populate: `text/fhirpath` evaluated; `application/x-fhir-query` fetched, root and item alike (PI`inputParameters.ts:143-193,272-277,435-451`; P`createFhirPathContext.ts:272-283,342-369`). _Reproduced:_ an item query fed an initialExpression. | Ignored; this variable never binds its name, and references throw unless another declaration supplies it (Smart Forms keeps one flat set of names). Not lost when a variable of the same name on the same element is accepted |
+| calculatedExpression | Renderer: every `text/fhirpath` one (R`utils/getExpressionsFromItem.ts:137-144`). Populate does not evaluate it. | Ignored; an alternative when a `text/fhirpath` one is on the same element |
+| enableWhenExpression | Renderer: the first `text/fhirpath` one (R`utils/getExpressionsFromItem.ts:48-60`). The `hidden` extension and the item's `enableWhen` still apply (R`hooks/useHidden.ts:37-48`; R`utils/qItem.ts:49-55`). | Ignored; never disables the item, unless a `text/fhirpath` one on the same element is used instead |
+| answerExpression | Renderer: the first `text/fhirpath` one, as a fallback when answerValueSet produced no codings (R`utils/getExpressionsFromItem.ts:178-191`; R`hooks/useValueSetCodings.ts:66-124`). Populate does not read it. | Ignored; `answerOption` and `answerValueSet` still load; an alternative when a `text/fhirpath` one is on the same element |
+| cqf-expression on `_text`, `_prefix`, `_answerValueSet` | Renderer: every `text/fhirpath` one (R`utils/getExpressionsFromItem.ts:78-126,146-152`). On `_answerValueSet` the result selects the value set (R`utils/calculatedExpression.ts:225-238`). | Ignored; an alternative when a `text/fhirpath` one is on the same element |
+| initialExpression | Populate: **no check**; only the first on an item, found by URL; skips an Expression with no text (P`readPopulationExpressions.ts:68,91,108-121`; P`evaluateExpressions.ts:49-75`). Below a repeating itemPopulationContext group, only direct children of a reached repeating group are evaluated (P`constructResponse.ts:574-713`). Renderer: `text/fhirpath` for repopulation only. | Evaluated as FHIRPath |
+| itemPopulationContext | Populate: **no check**; only the first on an item with children, found by URL, with a `name` and text (P`readPopulationExpressions.ts:53-63,128-141`; P`evaluateExpressions.ts:77-157`). The renderer does not read it. | Evaluated as FHIRPath |
+| answerOptionsToggleExpression | Renderer: **no check**; needs an `option` sub-extension with `valueCoding`, `valueString` or `valueInteger`, and uses the first `expression` sub-extension with a `valueExpression` (R`utils/answerOptionsToggleExpressions.ts:69-122`; R`utils/getExpressionsFromItem.ts:198-262`). | Evaluated as FHIRPath |
+| targetConstraint | Renderer: **no check**; root and item; built only with `key` (`valueId`), `severity` (`valueCode` `error` or `warning`), `human` (`valueString`) and an `expression` sub-extension, using the first `expression` sub-extension with a `valueExpression` (R`utils/questionnaireStoreUtils/extractTargetConstraint.ts:11-90`; R`utils/targetConstraint.ts:68-180`). | Evaluated as FHIRPath |
 | candidateExpression, contextExpression, itemExtractionContext, root `_title` cqf-expression, root itemPopulationContext | No reader. The root `_title` reaches only styled-text rendering (R`.../QuestionnaireTitleText.tsx:52`). | Unsupported whatever the language |
 
-- Evaluating non-FHIRPath text as FHIRPath: query text such as `Observation?…` throws on `?`, and the error is caught. A bare CQL identifier or a query without `?` silently returns `[]`: a targetConstraint never fires, a toggle disables its options, a population answer is empty.
+- Evaluating non-FHIRPath text as FHIRPath: query text such as `Observation?…` throws on `?`, and the error is caught. A bare CQL identifier or a query without `?` usually returns `[]`: a targetConstraint never fires, unless its text contains `intersect`, which the renderer then treats as a violation (R`utils/targetConstraint.ts:99-107`); a toggle disables its options; a population answer is empty. CQL text can also be valid FHIRPath that returns a value, such as `true`, or an identifier that names an element, such as `status`.
 - A reference-only Expression is ignored at every reader: filtering locations drop it by language, and unchecked locations skip an Expression with no text. Smart Forms has no CQL or Library handling.
 - History: renderer filters since August 2023 (cqf-expression since May 2024); targetConstraint unchecked since 6722e4ce (renderer 1.0.0-alpha.22); answerOptionsToggleExpression unchecked since 6d1dbecf (alpha.49); populate unchecked since at least 2.0.0; template-extract reads only `valueString` since 0.1.0.
 
