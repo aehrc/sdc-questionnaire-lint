@@ -39,7 +39,7 @@ Usage: #example
   * readOnly = true
   * extension[sdc-questionnaire-initialExpression].valueExpression
     * language = #text/fhirpath
-    * expression = "%observati12312313.total"
+    * expression = "%observations.total"
 * item[+]
   * linkId = "recent-records"
   * type = #integer
