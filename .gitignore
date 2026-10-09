@@ -6,3 +6,4 @@ docs/plans/*
 *.tgz
 .DS_Store
 lint-report.json
+corpus/

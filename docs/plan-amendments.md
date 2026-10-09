@@ -13,9 +13,9 @@ Where the plan and [linter-design-guidelines.md](linter-design-guidelines.md) di
 
 ## From reconciling the plan with the design guidelines (2026-10-01)
 
-- **§4.1 `sdc/shadowed-declaration`:** default severity is `info`, because SDC allows redefining a variable in a descendant item.
+- **§4.1 `sdc/shadowed-declaration`:** default severity is `info`. This deliberately departs from SDC, which says a warning SHOULD be generated: SDC also says redefining a name in a descendant item is not an error and is common in modular forms.
 - **§7.4 fix hints:** `message` states the problem only. The fix goes in a separate `help` field, phrased as an assertion: `help: a variable with a similar name exists: %patientName`. The plan's "Did you mean …?" example is superseded.
-- **§6.3, §7.3 stale suppressions:** a suppression that matches nothing is a warning locally and an error under `--strict-suppressions`, which CI uses. The flag is added to the CLI.
+- **§6.3, §7.3 stale suppressions:** a suppression that matches nothing is reported as a warning. Making it an error in CI with `--strict-suppressions` is deferred; see the CLI design session below.
 
 ## From the CLI design session (2026-10-01)
 
@@ -43,5 +43,27 @@ Where the plan and [linter-design-guidelines.md](linter-design-guidelines.md) di
 
 ## From slice 5, `sdc/unknown-function` (2026-10-06)
 
-- **§4.1 `sdc/unknown-function` catalogue:** the catalogue is the keys of `engine.invocationTable` in the pinned fhirpath.js, the engine Smart Forms runs; it supersedes "the pinned FHIRPath and SDC function catalogue". fhirpath.js fails on a call to any other name, even on an empty collection, so the rule defaults to `error`. A FHIRPath specification function that fhirpath.js lacks is reported too. `packages/core/src/analysis/fhirpath-function-catalog.ts` is generated from the installed fhirpath.js by `npm run generate:functions --workspace sdc-questionnaire-lint`, and a test fails when the two differ.
-- **§4.1 `sdc/unknown-function` scope:** calls on `%factory` and `%terminologies` are not checked, because fhirpath.js resolves them against those objects' own functions. An expression that does not parse gets no `sdc/unknown-function`; the `sdc/parse-error` finding stands alone.
+- **§4.1 `sdc/unknown-function` catalogue:** the catalogue is the keys of `engine.invocationTable` in the pinned fhirpath.js 4.10.1, the version Smart Forms' lockfile resolves (its packages declare `^4.10.1`); it supersedes "the pinned FHIRPath and SDC function catalogue". fhirpath.js fails whenever a call to any other name is evaluated, even on an empty collection, so the rule defaults to `error`. A call that is never evaluated, such as one in an untaken `iif` branch, does not fail. A FHIRPath specification function that fhirpath.js lacks is reported too. `packages/core/src/analysis/fhirpath-function-catalog.ts` is generated from the installed fhirpath.js source by `npm run generate:functions --workspace sdc-questionnaire-lint`, and a test fails when the file differs from what the generator produces.
+- **§4.1 `sdc/unknown-function` scope:** calls on `%factory` and `%terminologies` are not checked, because those objects' own functions are not in the catalogue. A misspelt function on them, such as `%factory.Codingg()`, still fails in fhirpath.js and goes unreported. An expression that does not parse gets no `sdc/unknown-function`; the `sdc/parse-error` finding stands alone.
+
+## From the core rules plan (2026-10-08)
+
+Each bullet states the override; the reasons and the implementation are in [core-rules.md](core-rules.md), under the cited decisions (Dn).
+
+- **§3, §5.2 shared analysis (D15, D18):** declarations, variable references and available variables are computed once per document and stay internal to core. The public `Scope`/`scopeAt` stub is unchanged. `RuleFinding` gains `relatedLocations`.
+- **§3.1 declarations (D9, D16, D17):** any named expression at a catalogued location declares its name, and so do launchContext and extractAllocateId names. sourceQueries results do not. `ExpressionSite.declares` changes to match, and fingerprints of the affected findings change once.
+- **§3.1 catalog use cases (D20):** use cases follow the SDC expressions table, so `ExpressionSite.useCases` values change.
+- **§3, §4.1 availability (D8, D12, D13, D19):** a name is available on its element and descendant items, in any order, whatever the declaring expression's use cases. Extraction sites see only extractAllocateId names, named extraction contexts, built-in names and host variables.
+- **§3.1 deferred content:** Library content behind `Expression.reference`, whole-string FHIRPath carriers and CQL are not analysed.
+- **§3.1 generic discovery (slice 6 review):** outside catalogued locations, an object with a string `language` and either string `expression` or string `reference` is an expression site. Reference-only Expressions remain unchecked and block an unused-variable finding when they are plausible consumers (D5).
+- **§4.1 `sdc/language-not-in-value-set` (D11):** accepts the R4 and R5 codes, six in all. Both query codes are analysed as queries.
+- **§4.1 `sdc/language-not-allowed` (D3, D10):** enforces only the expressions-table restrictions the Validator does not; contextExpression allows any language.
+- **§3 module names (D24):** the names a module lists in `sdc-questionnaire-assembleContext` are available at every site of that module, without being declarations.
+- **§3 a declaration's own name (D25):** in a declaration's own expression, its own name resolves to the next binding outward, and to the declaration itself only when nothing else supplies it.
+- **§4.1 reserved names (D23):** declaring a reserved name such as `%qitem` is an error with its own check, `sdc/reserved-name`.
+- **§4.1 `sdc/unused-declaration` (D4, D5):** reports only `variable`, and only when every plausible consumer was analysed. Supersedes "in the applicable use cases whose consumers are present".
+- **§4.1 `sdc/dependency-cycle` (D21):** defaults to `warning`, one finding per cyclic component. A future error needs a separately specified, proven failure class.
+- **§4.1 `sdc/unresolved-linkid` (D6, D7):** defaults to `warning`, checks only bounded selectors, and excludes deliberate absence probes. An uncertain target produces no finding and leaves the site unchecked. Supersedes "reported as unchecked at info".
+- **§4.3, §6.1 `hostVariables` (D1, D2, D16):** a config array of names the host supplies, available at every site. `lint/unused-host-variable` is deferred.
+- **§6.3 suppressions (D22):** a suppression can target a launchContext or extractAllocateId declaration by element and name.
+- **Rule review (D7, D14):** each core rule is checked against a local, uncommitted corpus, and an error-severity rule merges only with zero false-positive errors on it. PRs report finding changes without expression excerpts from forms whose terms restrict redistribution.

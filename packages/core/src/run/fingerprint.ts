@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { Declaration } from '../analysis/declarations.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import type { SuppressionEntry } from '../config/types.js';
 import type { ResourceIdentity } from '../report/types.js';
@@ -47,6 +48,22 @@ export function siteKeys(
     const key = occurrence === 1 ? base : `${base}#${String(occurrence)}`;
     keys.set(site, key);
     query = { key, fragments: 0 };
+  }
+  return keys;
+}
+
+// One stable key per declaration that has no site, a launchContext or an extractAllocateId, by its
+// JSON Pointer. Like a site's key, it has its item's linkId rather than array indexes, then its
+// kind and name, and #n for the n-th declaration with the same base key.
+export function declarationKeys(declarations: readonly Declaration[]): Map<string, string> {
+  const occurrences = new Map<string, number>();
+  const keys = new Map<string, string>();
+  for (const { site, item, kind, name, pointer } of declarations) {
+    if (site !== undefined) continue;
+    const base = JSON.stringify([item?.linkId ?? item?.pointer ?? '', kind, name]);
+    const occurrence = (occurrences.get(base) ?? 0) + 1;
+    occurrences.set(base, occurrence);
+    keys.set(pointer, occurrence === 1 ? base : `${base}#${String(occurrence)}`);
   }
   return keys;
 }

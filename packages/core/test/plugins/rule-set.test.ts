@@ -33,14 +33,24 @@ describe('resolveRuleSet', () => {
     const rules = resolveRules(null);
     expect(severities(rules)).toEqual([
       ['lint/stale-suppression', 'warning'],
+      ['sdc/dependency-cycle', 'warning'],
+      ['sdc/duplicate-declaration', 'error'],
+      ['sdc/external-expression', 'info'],
       ['sdc/fragment-parse-error', 'error'],
+      ['sdc/language-not-allowed', 'error'],
+      ['sdc/language-not-in-value-set', 'warning'],
       ['sdc/parse-error', 'error'],
       ['sdc/query-syntax', 'error'],
+      ['sdc/reserved-name', 'error'],
+      ['sdc/shadowed-declaration', 'info'],
       ['sdc/uncatalogued-expression', 'info'],
+      ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
+      ['sdc/unresolved-linkid', 'warning'],
+      ['sdc/unused-declaration', 'warning'],
     ]);
     expect(rules.map(({ id }) => id)).toEqual(rules.map(({ id }) => id).sort());
-    expect(rules[1]?.rule.meta.defaultSeverity).toBe('error');
+    expect(rules[1]?.rule.meta.defaultSeverity).toBe('warning');
   });
 
   it('applies a configured severity and off', () => {
@@ -49,11 +59,21 @@ describe('resolveRuleSet', () => {
     );
     expect(severities(rules)).toEqual([
       ['lint/stale-suppression', 'warning'],
+      ['sdc/dependency-cycle', 'warning'],
+      ['sdc/duplicate-declaration', 'error'],
+      ['sdc/external-expression', 'info'],
       ['sdc/fragment-parse-error', 'error'],
+      ['sdc/language-not-allowed', 'error'],
+      ['sdc/language-not-in-value-set', 'warning'],
       ['sdc/parse-error', 'warning'],
       ['sdc/query-syntax', 'error'],
+      ['sdc/reserved-name', 'error'],
+      ['sdc/shadowed-declaration', 'info'],
       ['sdc/uncatalogued-expression', 'off'],
+      ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
+      ['sdc/unresolved-linkid', 'warning'],
+      ['sdc/unused-declaration', 'warning'],
     ]);
   });
 
@@ -69,7 +89,7 @@ describe('resolveRuleSet', () => {
   });
 
   it('fails for an unknown rule ID with nothing similar, pointing at explain', () => {
-    expect(() => resolveRules(loaded({ rules: { 'sdc/undefined-variable': 'off' } }))).toThrow(
+    expect(() => resolveRules(loaded({ rules: { 'sdc/made-up-rule': 'off' } }))).toThrow(
       expect.objectContaining({
         code: 'CONFIG_INVALID',
         help: 'run sdc-lint explain to list the registered rules',
@@ -130,11 +150,21 @@ describe('resolveRuleSet', () => {
     expect(severities(ruleSet.rules)).toEqual([
       ['demo/no-today', 'warning'],
       ['lint/stale-suppression', 'warning'],
+      ['sdc/dependency-cycle', 'warning'],
+      ['sdc/duplicate-declaration', 'error'],
+      ['sdc/external-expression', 'info'],
       ['sdc/fragment-parse-error', 'error'],
+      ['sdc/language-not-allowed', 'error'],
+      ['sdc/language-not-in-value-set', 'warning'],
       ['sdc/parse-error', 'error'],
       ['sdc/query-syntax', 'error'],
+      ['sdc/reserved-name', 'error'],
+      ['sdc/shadowed-declaration', 'info'],
       ['sdc/uncatalogued-expression', 'info'],
+      ['sdc/undefined-variable', 'error'],
       ['sdc/unknown-function', 'error'],
+      ['sdc/unresolved-linkid', 'warning'],
+      ['sdc/unused-declaration', 'warning'],
     ]);
     expect(ruleSet.rules[0]?.namespace).toBe('demo');
   });

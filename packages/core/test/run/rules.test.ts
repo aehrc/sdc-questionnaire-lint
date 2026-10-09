@@ -1,4 +1,5 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
+import { analyseDocument } from '../../src/analysis/document-analysis.js';
 import { lint } from '../../src/index.js';
 import type { LintRule, RuleContext, RuleFinding } from '../../src/plugins/contract.js';
 import type { ResolvedRule } from '../../src/plugins/rule-set.js';
@@ -8,15 +9,17 @@ import { expectValidReport } from '../support/report.js';
 import { tempTree } from '../support/tmp.js';
 
 const site = expressionSite();
+const document = {
+  file: 'Q.json',
+  resource: { resourceType: 'Questionnaire' },
+  resourcePointer: '',
+  localResources: [],
+};
 const doc = {
   input: { path: '/ig/Q.json', display: 'Q.json', baseRelative: 'Q.json' },
-  document: {
-    file: 'Q.json',
-    resource: { resourceType: 'Questionnaire' },
-    resourcePointer: '',
-    localResources: [],
-  },
+  document,
   sites: [site],
+  analysis: analyseDocument(document, [site]),
 };
 
 function resolved(setting: ResolvedRule['setting'], reported?: 'info'): ResolvedRule {
@@ -101,6 +104,7 @@ describe('runRules on what a rule reports', () => {
     input: doc.input,
     document: { ...doc.document, resourcePointer },
     sites: [textSite, queryFragment],
+    analysis: doc.analysis,
   };
 
   function ruleThat(check: (ctx: RuleContext) => unknown): ResolvedRule {
@@ -187,6 +191,31 @@ describe('runRules on what a rule reports', () => {
       "range is not within the site's text: expected integer offsets with 0 <= startOffset <= endOffset <= 7",
     ],
     ['a finding that is not an object', () => 'm', 'the finding is not an object'],
+    [
+      'relatedLocations that are not an array',
+      () => ({ message: 'm', relatedLocations: {} }),
+      'relatedLocations is not an array',
+    ],
+    [
+      'a related location with no site or pointer',
+      () => ({ message: 'm', relatedLocations: [{ message: 'here' }] }),
+      'relatedLocations[0] has no site or pointer',
+    ],
+    [
+      'a related site that is not in ctx.sites',
+      ([site]) => ({ message: 'm', relatedLocations: [{ site: { ...site } }] }),
+      'relatedLocations[0].site is not one of ctx.sites',
+    ],
+    [
+      'a related pointer outside the resource',
+      () => ({ message: 'm', relatedLocations: [{ pointer: '/entry/1/resource' }] }),
+      'relatedLocations[0].pointer /entry/1/resource is outside the resource at /entry/0/resource',
+    ],
+    [
+      'a related location with an empty message',
+      ([site]) => ({ message: 'm', relatedLocations: [{ site, message: '' }] }),
+      'relatedLocations[0].message is not a non-empty string',
+    ],
     [
       'a pointer that is not a string',
       () => ({ pointer: 1n, message: 'm' }),
@@ -296,6 +325,51 @@ describe('runRules on what a rule reports', () => {
       throw new Error('boom');
     });
     expect(() => runRules(inBundle, [throwing])).toThrow(crash('rule test/rule crashed: boom'));
+  });
+
+  it('maps related sites and pointers to locations in the report', () => {
+    const rule = ruleThat((ctx) => {
+      ctx.report({
+        pointer: `${resourcePointer}/extension/1`,
+        message: 'Related.',
+        relatedLocations: [
+          { site: textSite, message: 'the site' },
+          { pointer: `${resourcePointer}/extension/0` },
+        ],
+      });
+    });
+    const [finding] = runRules(inBundle, [rule]);
+    const resource = { resourceType: 'Questionnaire', pointer: resourcePointer };
+    const sourceLocation = { status: 'unmapped', reason: 'source-unavailable' };
+    expect(finding?.relatedLocations).toEqual([
+      {
+        kind: 'questionnaire',
+        jsonLocation: { file: 'Q.json', pointer: textSite.pointer, resource },
+        sourceLocation,
+        message: 'the site',
+      },
+      {
+        kind: 'questionnaire',
+        jsonLocation: { file: 'Q.json', pointer: `${resourcePointer}/extension/0`, resource },
+        sourceLocation,
+      },
+    ]);
+  });
+
+  it("passes core's analysis to sdc rules only, never to a plugin rule", () => {
+    const received: unknown[][] = [];
+    const recording = {
+      meta: { description: 'Records its arguments.', defaultSeverity: 'error' },
+      check: (...args: unknown[]) => {
+        received.push(args);
+      },
+    } as LintRule;
+    runRules(inBundle, [
+      { id: 'test/rule', namespace: 'test', rule: recording, setting: 'error' },
+      { id: 'sdc/rule', namespace: 'sdc', rule: recording, setting: 'error' },
+    ]);
+    expect(received.map((args) => args.length)).toEqual([1, 2]);
+    expect(received[1]?.[1]).toBe(inBundle.analysis);
   });
 
   it('accepts a pointer at the resource itself, and findings with site and range', () => {

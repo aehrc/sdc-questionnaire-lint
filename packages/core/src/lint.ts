@@ -1,9 +1,11 @@
 import pkg from '../package.json' with { type: 'json' };
+import { analyseDocument } from './analysis/document-analysis.js';
 import { findExpressionSites } from './analysis/expression-sites.js';
 import { loadConfig } from './config/load.js';
 import { resolveRunPaths } from './config/paths.js';
 import { loadInputs } from './inputs/load-inputs.js';
 import type { AnalysedDocument } from './inputs/read.js';
+import { incompleteSites } from './plugins/builtin.js';
 import { resolveRuleSet } from './plugins/rule-set.js';
 import { summarizeExpressionCoverage } from './report/expression-coverage.js';
 import { buildSummary } from './report/summary.js';
@@ -39,11 +41,15 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     runPaths,
   });
   const sources = await findFshSources(runPaths, cwd);
-  const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => ({
-    input,
-    document,
-    sites: findExpressionSites(document),
-  }));
+  const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => {
+    const sites = findExpressionSites(document);
+    return {
+      input,
+      document,
+      sites,
+      analysis: analyseDocument(document, sites, loaded?.config.hostVariables ?? []),
+    };
+  });
   const outcome = await applySuppressions({
     loaded,
     rules: ruleSet.rules,
@@ -68,7 +74,10 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       findings: outcome.findings,
       files: fileCounts,
       questionnaires: documents.length,
-      expressions: summarizeExpressionCoverage(analysedDocuments.flatMap(({ sites }) => sites)),
+      expressions: summarizeExpressionCoverage(
+        analysedDocuments.flatMap(({ sites }) => sites),
+        incompleteSites(analysedDocuments, ruleSet.rules),
+      ),
       suppressedFindings: outcome.suppressedFindings,
       suppressions: outcome.suppressions,
       config: loaded?.display ?? null,

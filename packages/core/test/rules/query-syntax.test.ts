@@ -1,20 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ExpressionSite } from '../../src/analysis/expression-site.js';
-import type { RuleFinding } from '../../src/plugins/contract.js';
 import { querySyntax } from '../../src/rules/query-syntax.js';
 import { expressionSite, fragmentSite } from '../support/builders.js';
+import { checkSites } from '../support/rules.js';
 
-function check(sites: ExpressionSite[]): RuleFinding[] {
-  const findings: RuleFinding[] = [];
-  querySyntax.check({
-    document: { file: 'Q.json', resource: {}, resourcePointer: '', localResources: [] },
-    sites,
-    scopeAt: () => ({ available: false, names: [] }),
-    options: undefined,
-    report: (finding) => findings.push(finding),
-  });
-  return findings;
-}
+const check = (sites: ExpressionSite[]) => checkSites(querySyntax, sites);
 
 const catalogued = {
   catalogued: true,
@@ -72,6 +62,19 @@ describe('sdc/query-syntax', () => {
 
   it('reports a query at an uncatalogued location', () => {
     expect(check([query('%patient.id', {})])).toHaveLength(1);
+  });
+
+  it('checks a query in the R5 language code too', () => {
+    const r5 = { ...catalogued, language: 'text/x-fhir-query' };
+    expect(check([expressionSite({ ...r5, text: '%patient.id' })])).toMatchObject([
+      { message: notASearch },
+    ]);
+    expect(
+      check([expressionSite({ ...r5, text: 'Observation?subject={{%patient.id' })]),
+    ).toMatchObject([{ range: { startOffset: 20, endOffset: 22 } }]);
+    expect(check([expressionSite({ ...r5, text: 'Observation?subject={{%patient.id}}' })])).toEqual(
+      [],
+    );
   });
 
   it('reports nothing for a FHIR search', () => {

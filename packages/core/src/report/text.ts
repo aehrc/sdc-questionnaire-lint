@@ -4,6 +4,7 @@ import type {
   CompletedReport,
   ExpressionExcerpt,
   Finding,
+  RelatedLocation,
   ResourceIdentity,
   SourceMapResult,
 } from './types.js';
@@ -56,6 +57,19 @@ function excerptLines({ text, range }: ExpressionExcerpt): string[] {
   return lines;
 }
 
+// A related location of a finding: its FSH line when mapped, otherwise its JSON Pointer in the
+// finding's file, or its config entry.
+function relatedPlace(related: RelatedLocation): string {
+  if (related.kind === 'config') {
+    return `${related.configLocation.file} ${displayPointer(related.configLocation.pointer)}`;
+  }
+  if (related.sourceLocation.status === 'unmapped') {
+    return displayPointer(related.jsonLocation.pointer);
+  }
+  const { file, line, column } = related.sourceLocation.location;
+  return `${file}:${String(line)}:${String(column)}`;
+}
+
 function findingLines(finding: Finding, colour: boolean): string[] {
   let place: string;
   if (finding.kind === 'config') place = finding.configLocation.file;
@@ -74,6 +88,10 @@ function findingLines(finding: Finding, colour: boolean): string[] {
     const { pointer, resource } = finding.jsonLocation;
     lines.push(`  location: compiled JSON; ${resourceLabel(resource)}; ${displayPointer(pointer)}`);
     lines.push(`  note: FSH line not found, ${unmappedReasons[finding.sourceLocation.reason]}`);
+  }
+  for (const related of finding.relatedLocations ?? []) {
+    const message = related.message === undefined ? '' : `: ${related.message}`;
+    lines.push(`  related: ${relatedPlace(related)}${message}`);
   }
   if (finding.note !== undefined) lines.push(`  note: ${finding.note}`);
   if (finding.help !== undefined) lines.push(`  help: ${finding.help}`);

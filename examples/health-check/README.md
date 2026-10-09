@@ -1,6 +1,6 @@
 # Example: adult health check
 
-A form with seven common authoring mistakes. `fsh-generated/resources/Questionnaire-HealthCheck.json` stands in for SUSHI output.
+A form with seven common authoring mistakes. `fsh-generated/resources/Questionnaire-HealthCheck.json` stands in for SUSHI output. Its launchContext declares `%patient`, which several expressions use, so none of them gets an `sdc/undefined-variable` finding.
 
 | Item | Where | Mistake | Finding |
 | :- | :- | :- | :- |
@@ -75,12 +75,12 @@ fsh-generated/resources/Questionnaire-HealthCheck.json: error sdc/unknown-functi
   help: a function with a similar name exists: first()
 
 7 findings (6 errors, 0 warnings, 1 info) in 1 questionnaire. 1 info finding hidden; use --show-info.
-Inputs: full run; 1 file read, 0 skipped. Expressions: 13 analysed, 1 unchecked. Suppressed findings: 0.
+Inputs: full run; 1 file read, 0 skipped. Expressions: 12 analysed, 2 unchecked. Suppressed findings: 0.
 Suppressions: 0 applied, 0 stale, 0 not assessed.
 Config: none, built-in defaults. FSH sources: none found.
 Linter: 0.1.0. Plugins: sdc@0.1.0.
 ```
 
-An x-fhir-query and each of its `{{…}}` fragments count as separate analysed expressions: the query on the root and `smokingStatus` with its two fragments add up to five. A fragment's finding shows the whole query, with the caret inside the fragment. The 1 unchecked expression is the one on the answerOption, whose scope cannot be analysed. For `.round(1` the parser does not say a `)` is missing, so the message is the generic one.
+An x-fhir-query and each of its `{{…}}` fragments count as separate analysed expressions: the query on the root and `smokingStatus` with its two fragments add up to five. A fragment's finding shows the whole query, with the caret inside the fragment. The 2 unchecked expressions are the one on the answerOption, whose scope cannot be analysed, and the root variable `age`, which only that expression references, so `sdc/unused-declaration` cannot tell whether it is used. For `.round(1` the parser does not say a `)` is missing, so the message is the generic one.
 
 `packages/core/test/examples.test.ts` checks this output on every `npm test`.

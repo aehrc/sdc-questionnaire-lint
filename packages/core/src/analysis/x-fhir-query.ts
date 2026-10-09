@@ -1,11 +1,17 @@
 import type { ExpressionSite } from './expression-site.js';
 
+// The R4 code, and the R5 code that replaces it. Both are analysed as queries (D11).
 export const X_FHIR_QUERY = 'application/x-fhir-query';
+export const X_FHIR_QUERY_R5 = 'text/x-fhir-query';
 
-// Whether the query checks apply to a site: an Expression whose language is exactly
-// x-fhir-query, with text. Its fragments are FHIRPath sites of their own.
+export function isQueryLanguage(language: string | undefined): boolean {
+  return language === X_FHIR_QUERY || language === X_FHIR_QUERY_R5;
+}
+
+// Whether the query checks apply to a site: an Expression whose language is either x-fhir-query
+// code, with text. Its fragments are FHIRPath sites of their own.
 export function hasQueryText(site: ExpressionSite): site is ExpressionSite & { text: string } {
-  return site.carrier === 'expression' && site.language === X_FHIR_QUERY && site.text !== undefined;
+  return site.carrier === 'expression' && isQueryLanguage(site.language) && site.text !== undefined;
 }
 
 // Where the {{…}} fragments of an x-fhir-query are.

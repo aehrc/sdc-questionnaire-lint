@@ -17,6 +17,25 @@ describe('validateConfig', () => {
       'expected a non-empty string, got a number',
     ],
     ['an unknown key under source', { source: { java: [] } }, '/source/java', 'unknown key java'],
+    ['empty hostVariables', { hostVariables: [] }, '/hostVariables', 'hostVariables is empty'],
+    [
+      'an empty hostVariables entry',
+      { hostVariables: ['a', ''] },
+      '/hostVariables/1',
+      'expected a non-empty string, got a string',
+    ],
+    [
+      'a host variable written with %',
+      { hostVariables: ['%PrePopQuery'] },
+      '/hostVariables/0',
+      '%PrePopQuery is written with %',
+    ],
+    [
+      'a host variable listed twice',
+      { hostVariables: ['a', 'b', 'a'] },
+      '/hostVariables/2',
+      'a is listed more than once',
+    ],
     [
       'a bad rule setting',
       { rules: { 'sdc/parse-error': 'fatal' } },
@@ -36,8 +55,17 @@ describe('validateConfig', () => {
   it('lists the known keys for an unknown key', () => {
     expect(() => validateConfig({ rulez: {} }, json)).toThrow(
       expect.objectContaining({
-        help: 'the known keys are files, plugins, rules, source, suppress',
+        help: 'the known keys are files, hostVariables, plugins, rules, source, suppress',
       }),
+    );
+  });
+
+  it.each([
+    [['%PrePopQuery'], 'write the name without %, as PrePopQuery'],
+    [['a', 'a'], 'list each host variable once'],
+  ])('says how to fix the host variables %j', (hostVariables, help) => {
+    expect(() => validateConfig({ hostVariables }, json)).toThrow(
+      expect.objectContaining({ help }),
     );
   });
 
@@ -155,6 +183,7 @@ describe('validateConfig', () => {
   it('accepts a config, with source.fsh [] omitting source lookup', () => {
     const config = {
       files: ['fsh-generated/resources'],
+      hostVariables: ['PrePopQuery', 'sourceQuery0'],
       source: { fsh: [] },
       rules: { 'sdc/parse-error': 'off' },
     };

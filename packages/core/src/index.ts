@@ -51,4 +51,5 @@ export type {
   RuleContext,
   RuleDocs,
   RuleFinding,
+  RuleRelatedLocation,
 } from './plugins/contract.js';
