@@ -1,23 +1,27 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { type Evidence, sourceBase } from '../src/facts/evidence.js';
 import { languageFacts } from '../src/facts/languages.js';
+import { unsuppliedNames } from '../src/facts/names.js';
 import { prerequisites } from '../src/facts/prerequisites.js';
-import { components, type FactTable } from '../src/facts/versions.js';
+import { type Component, components, type FactTable } from '../src/facts/versions.js';
 import smartForms from '../src/index.js';
 
 const tables: FactTable<readonly { evidence: readonly Evidence[] }[]>[] = [
   languageFacts,
   prerequisites,
+  unsuppliedNames,
 ];
 
-function* allEvidence(): Generator<Evidence> {
+function* factsOf(component: Component): Generator<{ evidence: readonly Evidence[] }> {
   for (const table of tables) {
-    for (const component of components) {
-      for (const facts of Object.values(table[component])) {
-        for (const fact of facts) yield* fact.evidence;
-      }
-    }
+    for (const facts of Object.values(table[component])) yield* facts;
+  }
+}
+
+function* allEvidence(): Generator<Evidence> {
+  for (const component of components) {
+    for (const fact of factsOf(component)) yield* fact.evidence;
   }
 }
 
@@ -26,18 +30,13 @@ describe('runtime facts', () => {
     const verified = smartForms.compat?.verified[component] ?? [];
     expect(verified.length).toBeGreaterThan(0);
     for (const version of verified) {
-      expect(Object.keys(languageFacts[component])).toContain(version);
-      expect(Object.keys(prerequisites[component])).toContain(version);
+      for (const table of tables) expect(Object.keys(table[component])).toContain(version);
     }
   });
 
   it('give every fact evidence', () => {
-    for (const table of tables) {
-      for (const component of components) {
-        for (const facts of Object.values(table[component])) {
-          for (const fact of facts) expect(fact.evidence.length).toBeGreaterThan(0);
-        }
-      }
+    for (const component of components) {
+      for (const fact of factsOf(component)) expect(fact.evidence.length).toBeGreaterThan(0);
     }
   });
 
@@ -54,15 +53,26 @@ describe('runtime facts', () => {
     }
   });
 
-  it('are all source-only until the populate harness lands in P2', () => {
-    for (const evidence of allEvidence()) expect(evidence.kind).toBe('source-only');
+  it('every populate fact has reproduced evidence', () => {
+    for (const fact of factsOf('populate')) {
+      expect(fact.evidence.map(({ kind }) => kind)).toContain('reproduced');
+    }
   });
 
-  it('name a test file that exists for every reproduced fact', () => {
+  it('every renderer fact is source-only until P9', () => {
+    for (const fact of factsOf('renderer')) {
+      for (const evidence of fact.evidence) expect(evidence.kind).toBe('source-only');
+    }
+  });
+
+  it('name a test that exists for every reproduced fact', () => {
     for (const evidence of allEvidence()) {
-      if (evidence.kind === 'reproduced') {
-        expect(existsSync(new URL(`../${evidence.test}`, import.meta.url))).toBe(true);
-      }
+      if (evidence.kind !== 'reproduced') continue;
+      const file = new URL(`../${evidence.test}`, import.meta.url);
+      expect(existsSync(file)).toBe(true);
+      // The title's last segment, as the it() call writes it.
+      const title = evidence.name.split(' > ').at(-1) ?? '';
+      expect(readFileSync(file, 'utf8')).toContain(`'${title}'`);
     }
   });
 });

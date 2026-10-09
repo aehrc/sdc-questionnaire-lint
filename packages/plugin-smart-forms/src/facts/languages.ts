@@ -16,8 +16,10 @@ import {
   type Evidence,
   getExpressionsFromItem,
   inAppPopulateSource,
+  populateLanguages,
   populateSource,
   rendererSource,
+  reproduced,
   source,
 } from './evidence.js';
 import { type Component, type FactTable, factsAt } from './versions.js';
@@ -104,18 +106,46 @@ const populate471: readonly LanguageFact[] = Object.freeze([
     'fhirpath-or-query',
     source(`${inAppPopulateSource}inputParameters.ts`, 143, 193),
     source(`${populateSource}createFhirPathContext.ts`, 272, 283),
+    reproduced(
+      populateLanguages,
+      'populate 4.7.1 variables > evaluates a root text/fhirpath variable',
+    ),
+    reproduced(
+      populateLanguages,
+      'populate 4.7.1 variables > fetches a root application/x-fhir-query variable',
+    ),
+    reproduced(
+      populateLanguages,
+      'populate 4.7.1 variables > fetches an item application/x-fhir-query variable',
+    ),
+    reproduced(
+      populateLanguages,
+      'populate 4.7.1 variables > neither fetches nor evaluates a %s variable',
+    ),
   ),
   fact(
     { url: INITIAL_EXPRESSION },
     'any-as-fhirpath',
     source(`${populateSource}readPopulationExpressions.ts`, 108, 121),
     source(`${populateSource}evaluateExpressions.ts`, 49, 75),
+    reproduced(
+      populateLanguages,
+      'populate 4.7.1 initialExpression > evaluates a text/cql initialExpression as FHIRPath',
+    ),
+    reproduced(
+      populateLanguages,
+      'populate 4.7.1 initialExpression > evaluates an application/x-fhir-query initialExpression as FHIRPath, which fails',
+    ),
   ),
   fact(
     { url: ITEM_POPULATION_CONTEXT },
     'any-as-fhirpath',
     source(`${populateSource}readPopulationExpressions.ts`, 53, 63),
     source(`${populateSource}evaluateExpressions.ts`, 77, 102),
+    reproduced(
+      populateLanguages,
+      'populate 4.7.1 itemPopulationContext > evaluates an application/x-fhir-query itemPopulationContext as FHIRPath, which fails',
+    ),
   ),
 ]);
 

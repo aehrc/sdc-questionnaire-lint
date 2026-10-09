@@ -2,7 +2,9 @@
 // until a harness exists, a permalink into the Smart Forms source.
 export type Evidence =
   | { readonly kind: 'source-only'; readonly permalink: string }
-  | { readonly kind: 'reproduced'; readonly test: string };
+  // test is the test file, relative to the plugin package; name is the test's full title, its
+  // describe and it titles joined with ' > '.
+  | { readonly kind: 'reproduced'; readonly test: string; readonly name: string };
 
 // The release commit of renderer 1.4.0 and populate 4.7.1. Each cited file was checked to be
 // identical there and at the researched checkout 7e64a22f (S11).
@@ -21,3 +23,13 @@ export function source(file: string, from: number, to: number): Evidence {
     permalink: `${sourceBase}${file}#L${String(from)}-L${String(to)}`,
   });
 }
+
+// A reproduction test against the pinned npm package.
+export function reproduced(test: string, name: string): Evidence {
+  return Object.freeze({ kind: 'reproduced', test, name });
+}
+
+// The reproduction tests of populate 4.7.1, by file.
+export const populateLanguages = 'test/reproduction/populate-languages.test.ts';
+export const populatePrerequisites = 'test/reproduction/populate-prerequisites.test.ts';
+export const populateNames = 'test/reproduction/populate-names.test.ts';

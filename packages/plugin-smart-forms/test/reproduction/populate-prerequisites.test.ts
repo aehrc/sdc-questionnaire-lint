@@ -1,0 +1,253 @@
+// Reproduces, against @aehrc/sdc-populate 4.7.1, what population needs before it reads an
+// expression (src/facts/prerequisites.ts), and when population runs at all.
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
+import { expression, ext, questionnaire, sdc, VARIABLE } from '../support/sites.js';
+import { answersOf, populate, responseItems, withPatientLaunch } from './populate.js';
+
+const INITIAL_EXPRESSION = `${sdc}initialExpression`;
+const ITEM_POPULATION_CONTEXT = `${sdc}itemPopulationContext`;
+
+const undefinedVariable = (name: string): unknown =>
+  expect.stringMatching(new RegExp(`undefined environment variable: ${name}$`));
+
+const initial = (text: string) => ext(INITIAL_EXPRESSION, expression('text/fhirpath', text));
+const question = (linkId: string, ...texts: string[]) => ({
+  linkId,
+  type: 'string',
+  extension: texts.map(initial),
+});
+const context = (name: string | undefined, text?: string) =>
+  ext(ITEM_POPULATION_CONTEXT, {
+    language: 'text/fhirpath',
+    ...(text === undefined ? {} : { expression: text }),
+    ...(name === undefined ? {} : { name }),
+  });
+
+// A root query variable %obs whose search returns two Observations, one per repetition.
+const twoObservations = {
+  extension: [
+    ext(
+      VARIABLE,
+      expression('application/x-fhir-query', 'Observation?patient={{%patient.id}}', 'obs'),
+    ),
+  ],
+};
+const fetchTwo = (url: string) =>
+  url.startsWith('Observation?')
+    ? {
+        resourceType: 'Bundle',
+        type: 'searchset',
+        entry: ['a', 'b'].map((value) => ({
+          resource: { resourceType: 'Observation', valueString: value },
+        })),
+      }
+    : undefined;
+
+let warn: MockInstance<typeof console.warn>;
+beforeEach(() => {
+  warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+});
+
+describe('populate 4.7.1 initialExpression prerequisites', () => {
+  it('evaluates only the first initialExpression on an item', async () => {
+    const { issues, response } = await populate(
+      withPatientLaunch(questionnaire({ item: [question('q1', "'first'", '%missing')] })),
+    );
+    expect(issues).toEqual([]);
+    expect(answersOf(response, 'q1')).toEqual([{ valueString: 'first' }]);
+  });
+
+  it('evaluates an initialExpression in a repeating group without an itemPopulationContext, but prefills nothing', async () => {
+    const { issues, response } = await populate(
+      withPatientLaunch(
+        questionnaire({
+          item: [
+            {
+              linkId: 'g',
+              type: 'group',
+              repeats: true,
+              item: [question('q1', "'x'"), question('q2', '%missing')],
+            },
+          ],
+        }),
+      ),
+    );
+    expect(issues).toEqual([undefinedVariable('missing')]);
+    expect(answersOf(response, 'q1')).toEqual([]);
+  });
+
+  it('prefills a child of a repeating group bound by its itemPopulationContext once per repetition', async () => {
+    const { issues, response } = await populate(
+      withPatientLaunch(
+        questionnaire({
+          ...twoObservations,
+          item: [
+            {
+              linkId: 'g',
+              type: 'group',
+              repeats: true,
+              extension: [context('ob', '%obs.entry.resource')],
+              item: [question('q1', '%ob.valueString')],
+            },
+          ],
+        }),
+      ),
+      { fetch: fetchTwo },
+    );
+    expect(issues).toEqual([]);
+    expect(responseItems(response, 'q1').map((item) => item.answer)).toEqual([
+      [{ valueString: 'a' }],
+      [{ valueString: 'b' }],
+    ]);
+  });
+
+  it('does not evaluate an item in a nested repeating group without its own itemPopulationContext', async () => {
+    const { issues, response } = await populate(
+      withPatientLaunch(
+        questionnaire({
+          ...twoObservations,
+          item: [
+            {
+              linkId: 'g',
+              type: 'group',
+              repeats: true,
+              extension: [context('ob', '%obs.entry.resource')],
+              item: [
+                question('q1', '%ob.valueString'),
+                {
+                  linkId: 'h',
+                  type: 'group',
+                  repeats: true,
+                  item: [question('q2', '%ob.valueString'), question('q3', '%missing')],
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+      { fetch: fetchTwo },
+    );
+    expect(responseItems(response, 'q1')).toHaveLength(2);
+    expect(responseItems(response, 'q2').flatMap((item) => item.answer ?? [])).toEqual([]);
+    // A failing expression there neither adds an issue nor warns: it is never evaluated.
+    expect(issues).toEqual([]);
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('missing'));
+  });
+
+  it('only warns, adding no issue, when a child of a repeating itemPopulationContext group fails', async () => {
+    const { issues, response } = await populate(
+      withPatientLaunch(
+        questionnaire({
+          ...twoObservations,
+          item: [
+            {
+              linkId: 'g',
+              type: 'group',
+              repeats: true,
+              extension: [context('ob', '%obs.entry.resource')],
+              item: [question('q1', '%ob.valueString'), question('q2', '%ob.valueString & %qitem')],
+            },
+          ],
+        }),
+      ),
+      { fetch: fetchTwo },
+    );
+    expect(issues).toEqual([]);
+    expect(responseItems(response, 'q2').flatMap((item) => item.answer ?? [])).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('undefined environment variable: qitem'),
+    );
+  });
+});
+
+describe('populate 4.7.1 itemPopulationContext prerequisites', () => {
+  const group = (extension: unknown[], children = [question('q1', "'x'")]) => ({
+    linkId: 'g',
+    type: 'group',
+    repeats: true,
+    extension,
+    item: children,
+  });
+
+  it.each<[string, Record<string, unknown>]>([
+    [
+      'on a leaf item',
+      { item: [{ linkId: 'q1', type: 'string', extension: [context('a', '%missing')] }] },
+    ],
+    ['on the root', { extension: [context('a', '%missing')], item: [question('q1', "'x'")] }],
+    ['without a name', { item: [group([context(undefined, '%missing')])] }],
+    [
+      'after another on the same item',
+      { item: [group([context('a', "'x'"), context('b', '%missing')])] },
+    ],
+  ])('does not evaluate one %s', async (_, fields) => {
+    const { issues } = await populate(withPatientLaunch(questionnaire(fields)));
+    expect(issues).toEqual([]);
+  });
+
+  it('does not evaluate one with no text', async () => {
+    const { issues } = await populate(
+      withPatientLaunch(questionnaire({ item: [group([context('a')])] })),
+    );
+    expect(issues).toEqual([]);
+  });
+
+  it('never evaluates one that a later one with the same name replaces', async () => {
+    const { issues } = await populate(
+      withPatientLaunch(
+        questionnaire({
+          item: [
+            group([context('a', '%missing')]),
+            { ...group([context('a', '%obs2')]), linkId: 'h' },
+          ],
+        }),
+      ),
+    );
+    // The kept one fails, once for each time populate evaluates it; the replaced one never does.
+    expect(issues).not.toEqual([]);
+    for (const issue of issues) expect(issue).toEqual(undefinedVariable('obs2'));
+  });
+});
+
+describe('populate 4.7.1 environment', () => {
+  it('does not populate a form with no launchContext, sourceQueries or query variable', async () => {
+    const { success, response } = await populate(
+      questionnaire({
+        extension: [ext(VARIABLE, expression('text/fhirpath', "'x'", 'v'))],
+        item: [question('q1', '%v')],
+      }),
+    );
+    expect(success).toBe(false);
+    expect(response).toBeUndefined();
+  });
+
+  it('populates a form whose only input is a query variable', async () => {
+    const { success, urls } = await populate(
+      questionnaire({
+        extension: [ext(VARIABLE, expression('application/x-fhir-query', 'Observation', 'obs'))],
+        item: [question('q1', "'x'")],
+      }),
+    );
+    expect(success).toBe(true);
+    expect(urls).toEqual(['Observation']);
+  });
+
+  it('skips item FHIRPath variables when the root has no extensions', async () => {
+    const item = {
+      linkId: 'g',
+      type: 'group',
+      extension: [ext(VARIABLE, expression('text/fhirpath', "'item value'", 'v'))],
+      item: [question('q1', '%v')],
+    };
+    // The patient launchContext is a contained-free alternative to root extensions: a query
+    // variable on the item lets population run with none on the root.
+    const query = ext(VARIABLE, expression('application/x-fhir-query', 'Observation', 'obs'));
+    const withoutRoot = await populate(
+      questionnaire({ item: [{ ...item, extension: [query, ...item.extension] }] }),
+    );
+    expect(withoutRoot.success).toBe(true);
+    expect(withoutRoot.issues).toEqual([undefinedVariable('v')]);
+    const withRoot = await populate(withPatientLaunch(questionnaire({ item: [item] })));
+    expect(answersOf(withRoot.response, 'q1')).toEqual([{ valueString: 'item value' }]);
+  });
+});

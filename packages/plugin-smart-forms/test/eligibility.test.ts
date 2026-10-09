@@ -105,6 +105,30 @@ describe('readBy', () => {
     }
   });
 
+  describe.each(['initialExpression', 'enableWhenExpression', 'answerExpression'])(
+    'the renderer and %s',
+    (name) => {
+      const at = (index: number) => `/item/0/extension/${String(index)}/valueExpression`;
+      const of = (language: Record<string, unknown>) => ext(`${sdc}${name}`, language);
+      const rendererReads = (resource: Record<string, unknown>, index: number) =>
+        readersAt(resource, at(index)).includes('renderer:fhirpath-only');
+
+      it('reads a lone text/fhirpath one', () => {
+        expect(rendererReads(onItem(of(fhirpath())), 0)).toBe(true);
+      });
+
+      it('does not read a second text/fhirpath one', () => {
+        expect(rendererReads(onItem(of(fhirpath()), of(fhirpath())), 1)).toBe(false);
+      });
+
+      it('reads a text/fhirpath one after a text/cql one', () => {
+        const resource = onItem(of(cql()), of(fhirpath()));
+        expect(rendererReads(resource, 0)).toBe(true);
+        expect(rendererReads(resource, 1)).toBe(true);
+      });
+    },
+  );
+
   describe('initialExpression', () => {
     const initial = (text = 'true') => ext(`${sdc}initialExpression`, cql(text));
 
@@ -112,6 +136,17 @@ describe('readBy', () => {
       expect(readersAt(onItem(initial()), '/item/0/extension/0/valueExpression')).toEqual([
         'renderer:fhirpath-only',
         'populate:any-as-fhirpath',
+      ]);
+    });
+
+    it('after a text/cql one, is read by the renderer only, which never reads the first', () => {
+      const resource = onItem(initial(), ext(`${sdc}initialExpression`, fhirpath()));
+      expect(readersAt(resource, '/item/0/extension/0/valueExpression')).toEqual([
+        'renderer:fhirpath-only',
+        'populate:any-as-fhirpath',
+      ]);
+      expect(readersAt(resource, '/item/0/extension/1/valueExpression')).toEqual([
+        'renderer:fhirpath-only',
       ]);
     });
 

@@ -8,7 +8,10 @@ import {
   resolve,
 } from '../document.js';
 import {
+  ANSWER_EXPRESSION,
   ANSWER_OPTIONS_TOGGLE_EXPRESSION,
+  ENABLE_WHEN_EXPRESSION,
+  FHIRPATH,
   INITIAL_EXPRESSION,
   ITEM_POPULATION_CONTEXT,
   TARGET_CONSTRAINT,
@@ -16,8 +19,10 @@ import {
 import {
   type Evidence,
   getExpressionsFromItem,
+  populatePrerequisites,
   populateSource,
   rendererSource,
+  reproduced,
   source,
 } from './evidence.js';
 import type { Location } from './languages.js';
@@ -65,6 +70,24 @@ function firstOfUrl(extensions: unknown, url: unknown): Json | undefined {
 
 function isFirstOfItsUrl({ extension, siblings, index }: PlacedExtension): boolean {
   return firstOfUrl(siblings, extension.url) === siblings[index];
+}
+
+// Whether no earlier extension of the same URL on the element has the language text/fhirpath: the
+// renderer takes the first of its URL with that language (getExpressionsFromItem.ts:29-60,178-191).
+function noEarlierFhirPath(document: QuestionnaireDocument, site: ExpressionSite): boolean {
+  const holder = holderOf(document, site);
+  return (
+    holder !== undefined &&
+    !holder.siblings
+      .slice(0, holder.index)
+      .some(
+        (each) =>
+          isObject(each) &&
+          each.url === holder.extension.url &&
+          isObject(each.valueExpression) &&
+          each.valueExpression.language === FHIRPATH,
+      )
+  );
 }
 
 // Whether a site's sub-extension is the first `expression` sub-extension with a valueExpression,
@@ -239,7 +262,28 @@ const extractTargetConstraint = `${rendererSource}utils/questionnaireStoreUtils/
 const targetConstraint = { url: TARGET_CONSTRAINT };
 const toggle = { url: ANSWER_OPTIONS_TOGGLE_EXPRESSION };
 
+const firstFhirPath =
+  'no earlier extension of the same URL on the element with the language text/fhirpath';
+
 const renderer140: readonly Prerequisite[] = Object.freeze([
+  prerequisite(
+    { url: INITIAL_EXPRESSION },
+    firstFhirPath,
+    noEarlierFhirPath,
+    source(getExpressionsFromItem, 29, 41),
+  ),
+  prerequisite(
+    { url: ENABLE_WHEN_EXPRESSION },
+    firstFhirPath,
+    noEarlierFhirPath,
+    source(getExpressionsFromItem, 48, 60),
+  ),
+  prerequisite(
+    { url: ANSWER_EXPRESSION },
+    firstFhirPath,
+    noEarlierFhirPath,
+    source(getExpressionsFromItem, 178, 191),
+  ),
   prerequisite(
     targetConstraint,
     'a key (valueId), a severity (valueCode error or warning) and a human (valueString)',
@@ -299,6 +343,10 @@ const populate471: readonly Prerequisite[] = Object.freeze([
       return holder !== undefined && isFirstOfItsUrl(holder);
     },
     source(readPopulationExpressions, 108, 121),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 initialExpression prerequisites > evaluates only the first initialExpression on an item',
+    ),
   ),
   prerequisite(
     { url: INITIAL_EXPRESSION },
@@ -307,12 +355,28 @@ const populate471: readonly Prerequisite[] = Object.freeze([
     source(readPopulationExpressions, 76, 84),
     source(constructResponse, 225, 238),
     source(constructResponse, 574, 713),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 initialExpression prerequisites > evaluates an initialExpression in a repeating group without an itemPopulationContext, but prefills nothing',
+    ),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 initialExpression prerequisites > prefills a child of a repeating group bound by its itemPopulationContext once per repetition',
+    ),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 initialExpression prerequisites > does not evaluate an item in a nested repeating group without its own itemPopulationContext',
+    ),
   ),
   prerequisite(
     { url: ITEM_POPULATION_CONTEXT },
     'an item with child items; a root itemPopulationContext is read by nothing',
     (document, site) => site.item !== undefined && children(itemOf(document, site.item)).length > 0,
     source(readPopulationExpressions, 52, 56),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one %s',
+    ),
   ),
   prerequisite(
     { url: ITEM_POPULATION_CONTEXT },
@@ -328,6 +392,14 @@ const populate471: readonly Prerequisite[] = Object.freeze([
     },
     source(readPopulationExpressions, 53, 63),
     source(readPopulationExpressions, 128, 141),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one %s',
+    ),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one with no text',
+    ),
   ),
   prerequisite(
     { url: ITEM_POPULATION_CONTEXT },
@@ -337,6 +409,10 @@ const populate471: readonly Prerequisite[] = Object.freeze([
       readContexts(document).get(site.name)?.expression ===
         resolve(document, site.expressionPointer),
     source(readPopulationExpressions, 56, 63),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 itemPopulationContext prerequisites > never evaluates one that a later one with the same name replaces',
+    ),
   ),
 ]);
 

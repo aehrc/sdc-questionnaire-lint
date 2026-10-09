@@ -1,0 +1,6 @@
+{
+  "name": "fhirclient",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Empty stand-in for fhirclient, which @aehrc/sdc-populate declares but never imports at run time. See AGENTS.md."
+}
