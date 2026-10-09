@@ -1,8 +1,9 @@
 // The expression-site model: what the analysis engine finds in a Questionnaire, and what rules
 // receive. Exported from the package, so changes are public API changes.
 
-// A use case that evaluates an expression: rendering the form, populating it, or extracting
-// resources from its response.
+// An SDC feature that uses an expression, as the SDC expressions table lists it: rendering the
+// form, populating it, or extracting resources from its response. Use cases say which features use
+// a location, not which names an expression there can reference.
 export type ExpressionUseCase = 'rendering' | 'population' | 'extraction';
 
 // The supporting types below carry what the analysis engine provides so far; they gain fields as
@@ -77,10 +78,11 @@ export interface ExpressionSite {
   readonly text?: string;
   readonly reference?: string;
   readonly name?: string;
-  // Whether the location declares a name that other expressions can reference, as variable and
-  // itemPopulationContext do. A name on another expression is recorded but does not declare.
+  // Whether the site declares its name for other expressions to reference: true for an Expression
+  // with a name at a catalogued location, such as a variable, an itemPopulationContext or a named
+  // calculatedExpression. A fragment, and a name on an uncatalogued site, never declares.
   readonly declares: boolean;
-  // The use cases that evaluate the site; empty for an uncatalogued site.
+  // The use cases of the site's catalogued location; empty for an uncatalogued site.
   readonly useCases: readonly ExpressionUseCase[];
   // Set only when carrier is fragment: where the site's text sits in its query.
   readonly fragment?: QueryFragment;

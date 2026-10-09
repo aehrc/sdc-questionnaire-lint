@@ -3,12 +3,11 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { ExpressionSite } from '../../src/analysis/expression-site.js';
 import { findExpressionSites } from '../../src/analysis/expression-sites.js';
-import type { AnalysedDocument } from '../../src/inputs/read.js';
 import type { OffsetRange, SourceMapResult } from '../../src/report/types.js';
 import { excerpt } from '../../src/run/rules.js';
 import { parseFshDocument } from '../../src/source/fsh-document.js';
 import { fshFiles, type FshFiles } from '../../src/source/fsh-files.js';
-import { locateExpression, sourceContext } from '../../src/source/locate.js';
+import { locateExpression, sourceContext, type LocateTarget } from '../../src/source/locate.js';
 import { tempTree } from '../support/tmp.js';
 
 // What SUSHI cannot compile or show is tested here; every other mapping case is a row of the
@@ -45,7 +44,7 @@ async function locate(
     resourcePointer: '',
     localResources: [],
   };
-  const analysed: AnalysedDocument = {
+  const analysed: LocateTarget['document'] = {
     input: { path: path.join(dir, 'Questionnaire-Q.json'), display: '', baseRelative: '' },
     document,
     sites: findExpressionSites(document),

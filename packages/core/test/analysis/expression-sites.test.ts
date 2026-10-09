@@ -49,7 +49,7 @@ describe('findExpressionSites', () => {
         text: '1',
         name: 'a',
         declares: true,
-        useCases: ['rendering', 'population', 'extraction'],
+        useCases: ['rendering', 'population'],
       },
       {
         pointer: '/item/0/extension/0/valueExpression/expression',
@@ -62,8 +62,81 @@ describe('findExpressionSites', () => {
         text: '2',
         name: 'b',
         declares: true,
-        useCases: ['rendering', 'population', 'extraction'],
+        useCases: ['rendering', 'population'],
       },
+    ]);
+  });
+
+  it.each([
+    [`${sdc}calculatedExpression`, ['rendering']],
+    [`${sdc}enableWhenExpression`, ['rendering']],
+    [`${sdc}initialExpression`, ['rendering', 'population']],
+    [`${sdc}candidateExpression`, ['population']],
+    [`${sdc}answerExpression`, ['population']],
+    [`${sdc}itemPopulationContext`, ['population']],
+    [`${sdc}itemExtractionContext`, ['extraction']],
+    ['http://hl7.org/fhir/StructureDefinition/targetConstraint', ['rendering']],
+  ])('gives %s the use cases of the SDC expressions table', (url, useCases) => {
+    const valueExpression = fhirPath('1');
+    const wrapped = url.endsWith('targetConstraint')
+      ? { url, extension: [{ url: 'expression', valueExpression }] }
+      : extension(url, valueExpression);
+    const [site] = sitesOf({ item: [{ linkId: 'q', extension: [wrapped] }] });
+    expect(site).toMatchObject({ catalogued: true, useCases });
+  });
+
+  it('gives a contextExpression population, and a cqf-expression rendering', () => {
+    const sites = sitesOf({
+      item: [
+        {
+          linkId: 'q',
+          _text: { extension: [extension(CQF, fhirPath("'Hi'"))] },
+          extension: [
+            {
+              url: `${sdc}contextExpression`,
+              extension: [{ url: 'expression', valueExpression: query('Encounter') }],
+            },
+          ],
+        },
+      ],
+    });
+    expect(sites.map((site) => site.useCases)).toEqual([['rendering'], ['population']]);
+  });
+
+  it('makes any named Expression at a catalogued location declare its name', () => {
+    const sites = sitesOf({
+      extension: [extension(`${sdc}itemExtractionContext`, fhirPath('%resource', 'ctx'))],
+      item: [
+        {
+          linkId: 'q',
+          _text: { extension: [extension(CQF, fhirPath("'Hi'", 'greeting'))] },
+          extension: [
+            extension(`${sdc}calculatedExpression`, fhirPath('1', 'total')),
+            extension(`${sdc}calculatedExpression`, fhirPath('2')),
+            extension(VARIABLE, fhirPath('3')),
+          ],
+        },
+      ],
+    });
+    expect(sites.map((site) => [site.name, site.declares])).toEqual([
+      ['ctx', true],
+      ['greeting', true],
+      ['total', true],
+      [undefined, false],
+      [undefined, false],
+    ]);
+  });
+
+  it('never makes a named uncatalogued Expression declare its name', () => {
+    const sites = sitesOf({
+      contained: [
+        { resourceType: 'Library', extension: [extension(VARIABLE, fhirPath('1', 'a'))] },
+      ],
+      item: [{ linkId: 'q', answerOption: [{ valueExpression: fhirPath('1', 'b') }] }],
+    });
+    expect(sites.map((site) => [site.name, site.catalogued, site.declares])).toEqual([
+      ['a', false, false],
+      ['b', false, false],
     ]);
   });
 
@@ -126,6 +199,31 @@ describe('findExpressionSites', () => {
     });
   });
 
+  it('finds the expression sub-extension of a contextExpression, as SDC STU4 defines it', () => {
+    const [site, ...rest] = sitesOf({
+      item: [
+        {
+          linkId: 'q',
+          extension: [
+            {
+              url: `${sdc}contextExpression`,
+              extension: [
+                { url: 'label', valueString: 'Recent encounters' },
+                { url: 'expression', valueExpression: query('Encounter?status=finished') },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(rest).toEqual([]);
+    expect(site).toMatchObject({
+      pointer: '/item/0/extension/0/extension/1/valueExpression/expression',
+      location: { url: `${sdc}contextExpression`, subExtension: 'expression' },
+      catalogued: true,
+    });
+  });
+
   it('points at the Expression object of a reference-only site, which has no text', () => {
     const [site] = sitesOf({
       item: [
@@ -147,6 +245,37 @@ describe('findExpressionSites', () => {
       catalogued: true,
     });
     expect(site).not.toHaveProperty('text');
+  });
+
+  it('finds uncatalogued reference-only Expressions without treating ordinary References as expressions', () => {
+    const opaque = () =>
+      extension('http://example.org/custom', {
+        language: 'text/fhirpath',
+        reference: 'Library/consumer',
+        name: 'opaque',
+      });
+    const sites = sitesOf({
+      subject: { reference: 'Patient/p' },
+      extension: [opaque()],
+      item: [{ linkId: 'q', answerOption: [{ extension: [opaque()] }] }],
+      contained: [{ resourceType: 'Library', extension: [opaque()] }],
+    });
+    expect(sites.map((site) => site.pointer)).toEqual([
+      '/extension/0/valueExpression',
+      '/item/0/answerOption/0/extension/0/valueExpression',
+      '/contained/0/extension/0/valueExpression',
+    ]);
+    for (const site of sites) {
+      expect(site).toMatchObject({
+        carrier: 'expression',
+        catalogued: false,
+        declares: false,
+        reference: 'Library/consumer',
+      });
+      expect(site).not.toHaveProperty('text');
+    }
+    expect(sites[1]?.item).toEqual({ pointer: '/item/0', linkId: 'q' });
+    expect(sites[2]).not.toHaveProperty('item');
   });
 
   it('keeps the enclosing item for an uncatalogued expression on an answerOption', () => {
@@ -252,6 +381,16 @@ describe('findExpressionSites', () => {
         useCases: ['population'],
         fragment: { query: text, startOffset: 22, endOffset: 33 },
       });
+    });
+
+    it('finds the fragments of a query in the R5 language code', () => {
+      const r5 = { ...query(text, 'obs'), language: 'text/x-fhir-query' };
+      const sites = sitesOf({ extension: [extension(POPULATION_CONTEXT, r5)] });
+      expect(sites.map((site) => [site.carrier, site.language, site.text])).toEqual([
+        ['expression', 'text/x-fhir-query', text],
+        ['fragment', 'text/fhirpath', '%patient.id'],
+        ['fragment', 'text/fhirpath', '%today'],
+      ]);
     });
 
     it('gives the fragments of an uncatalogued query its item and no location', () => {

@@ -59,7 +59,7 @@ describe('sdc-lint lint', () => {
     });
 
     it('exits 0 with no findings when every expression is valid', async () => {
-      const result = runBinary(['lint'], { cwd: await ig(calculated('%a.where(b)')) });
+      const result = runBinary(['lint'], { cwd: await ig(calculated('%resource.where(b)')) });
       expect(result.code).toBe(0);
       expect(result.stdout).toMatch(/^0 findings in 1 questionnaire\./);
     });

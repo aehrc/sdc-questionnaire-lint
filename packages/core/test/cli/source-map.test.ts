@@ -15,7 +15,7 @@ const valid = fileURLToPath(new URL('../fixtures/cli/fsh-valid/', import.meta.ur
 const invalid = fileURLToPath(new URL('../fixtures/cli/fsh-invalid/', import.meta.url));
 
 // The FSH line of each finding in fsh-invalid, in report order.
-const invalidLines = [9, 14, 19, 31].map((line) => `input/fsh/Invalid.fsh:${String(line)}`);
+const invalidLines = [12, 17, 22, 34, 51].map((line) => `input/fsh/Invalid.fsh:${String(line)}`);
 
 function lintJson(cwd: string): CompletedReport {
   return JSON.parse(runBinary(['lint', '--format', 'json'], { cwd }).stdout) as CompletedReport;
@@ -58,28 +58,34 @@ describe('lint an invalid FSH project', () => {
     // The finding blocks, without the summary.
     expect(result.stdout.split('\n\n').slice(0, -1)).toEqual([
       [
-        "input/fsh/Invalid.fsh:9:19: error sdc/query-syntax This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills stay empty.",
+        "input/fsh/Invalid.fsh:12:19: error sdc/query-syntax This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills stay empty.",
         '  %patient.id',
         '  help: set the language to text/fhirpath; this expression is FHIRPath',
       ].join('\n'),
       [
-        'input/fsh/Invalid.fsh:14:81: error sdc/fragment-parse-error A closing ) is missing.',
+        'input/fsh/Invalid.fsh:17:81: error sdc/fragment-parse-error A closing ) is missing.',
         '  Observation?patient={{%patient.id}}&date=ge{{(today() - 1 year}}',
         '                                                                ^',
         "  note: the FHIRPath parser reported: missing ')' at '<EOF>'",
         '  help: add ) at the end of the expression',
       ].join('\n'),
       [
-        'input/fsh/Invalid.fsh:19:66: error sdc/unknown-function fist() is not a FHIRPath function, so this expression fails when the form runs.',
+        'input/fsh/Invalid.fsh:22:66: error sdc/unknown-function fist() is not a FHIRPath function, so this expression fails when the form runs.',
         "  %resource.item.where(linkId = 'smoker').answer.fist().value",
         '                                                 ^~~~',
         '  help: a function with a similar name exists: first()',
       ].join('\n'),
       [
-        'input/fsh/Invalid.fsh:31:39: error sdc/parse-error The expression ends before it is complete.',
+        'input/fsh/Invalid.fsh:34:39: error sdc/parse-error The expression ends before it is complete.',
         '  %smoker = true and',
         '                    ^',
         "  note: the FHIRPath parser reported: mismatched input '<EOF>'",
+      ].join('\n'),
+      [
+        'input/fsh/Invalid.fsh:51:21: error sdc/undefined-variable %recnet is not available on item "Observations in the last year" (recent-records).',
+        '  %recnet.total',
+        '  ^~~~~~~',
+        '  help: declare it on this item, an ancestor item or the root, or list it in hostVariables if the application running the form supplies it',
       ].join('\n'),
     ]);
   });

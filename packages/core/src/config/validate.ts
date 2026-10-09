@@ -8,7 +8,7 @@ type Path = readonly (string | number)[];
 export type ConfigFormat = 'json' | 'mjs';
 
 // Only keys that do something: one accepted and ignored would let an author believe it is in effect.
-const knownKeys = ['files', 'plugins', 'rules', 'source', 'suppress'];
+const knownKeys = ['files', 'hostVariables', 'plugins', 'rules', 'source', 'suppress'];
 const ruleSettings = ['error', 'warning', 'info', 'off'];
 const requiredSuppressionKeys = ['rule', 'reason', 'file'];
 const selectorKeys = ['linkId', 'extensionUrl', 'name', 'resource', 'pointer'];
@@ -99,6 +99,35 @@ export function validateConfig(
       );
     }
     expectStrings(config.files, ['files'], 'input files, directories or globs');
+  }
+
+  if (config.hostVariables !== undefined) {
+    if (Array.isArray(config.hostVariables) && config.hostVariables.length === 0) {
+      fail(
+        ['hostVariables'],
+        'hostVariables is empty',
+        'list at least one name the host supplies, or remove hostVariables',
+      );
+    }
+    expectStrings(config.hostVariables, ['hostVariables'], 'host variable names');
+    // expectStrings has checked the entries; it does not check that they are unique.
+    const names = config.hostVariables as string[];
+    names.forEach((name, index) => {
+      if (name.startsWith('%')) {
+        fail(
+          ['hostVariables', index],
+          `${name} is written with %`,
+          `write the name without %, as ${name.slice(1)}`,
+        );
+      }
+      if (names.indexOf(name) !== index) {
+        fail(
+          ['hostVariables', index],
+          `${name} is listed more than once`,
+          'list each host variable once',
+        );
+      }
+    });
   }
 
   if (config.source !== undefined) {

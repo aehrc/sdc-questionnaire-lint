@@ -78,6 +78,28 @@ describe('siteKeys', () => {
   });
 });
 
+describe('siteKeys for named expressions', () => {
+  const calculated = (name: string, expression: string) => ({
+    url: `${sdc}calculatedExpression`,
+    valueExpression: { name, language: 'text/fhirpath', expression },
+  });
+
+  // Since slice 3 of core-rules.md, any named Expression at a catalogued location declares, so its
+  // name is part of its key: the keys, and fingerprints, of such sites changed once.
+  it('includes the name of a named calculatedExpression, which declares it', () => {
+    const keys = keysByText([{ linkId: 'q', extension: [calculated('total', 'c')] }]);
+    expect(keys.c).toBe(JSON.stringify(['q', `${sdc}calculatedExpression`, null, null, 'total']));
+  });
+
+  it('keeps the keys of named calculatedExpressions when they swap places', () => {
+    const a = calculated('a', 'ca');
+    const b = calculated('b', 'cb');
+    expect(keysByText([{ linkId: 'q', extension: [b, a] }])).toEqual(
+      keysByText([{ linkId: 'q', extension: [a, b] }]),
+    );
+  });
+});
+
 describe('siteKeys for fragments', () => {
   const xFhirQuery = (expression: string) => ({
     language: 'application/x-fhir-query',

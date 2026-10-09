@@ -24,8 +24,11 @@ import type { SushiIndexEntry } from './sushi-index.js';
 // literal and one expression; otherwise, and whenever the evidence is missing, the finding keeps
 // its JSON location and a reason.
 
+// The mapper needs a document's sites, not core's analysis of it.
+type MappedDocument = Pick<AnalysedDocument, 'input' | 'document' | 'sites'>;
+
 export interface LocateTarget {
-  readonly document: AnalysedDocument;
+  readonly document: MappedDocument;
   readonly site: ExpressionSite | undefined;
   // The finding's excerpt: the site's expression, or a fragment's whole query, with the reported
   // range in it.
@@ -156,7 +159,7 @@ const jsonExpressions = new WeakMap<
 >();
 
 function expressionsWithText(
-  { document, sites }: AnalysedDocument,
+  { document, sites }: MappedDocument,
   text: string,
 ): readonly JsonExpression[] {
   let byText = jsonExpressions.get(sites);

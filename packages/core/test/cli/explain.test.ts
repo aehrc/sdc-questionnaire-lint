@@ -11,13 +11,23 @@ describe('sdc-lint explain', () => {
     expect(result).toEqual({
       code: 0,
       stdout:
-        'RULE                         DEFAULT  EFFECTIVE  DESCRIPTION\n' +
-        'lint/stale-suppression       warning  warning    Reports a suppression that is no longer needed.\n' +
-        'sdc/fragment-parse-error     error    error      Reports a FHIRPath expression embedded in an x-fhir-query that does not parse.\n' +
-        'sdc/parse-error              error    error      Reports a FHIRPath expression that does not parse.\n' +
-        'sdc/query-syntax             error    error      Reports an x-fhir-query that is not a FHIR search.\n' +
-        'sdc/uncatalogued-expression  info     info       Reports an expression in a place the linter does not recognise.\n' +
-        'sdc/unknown-function         error    error      Reports a call to a function that fhirpath.js does not implement.\n' +
+        'RULE                           DEFAULT  EFFECTIVE  DESCRIPTION\n' +
+        'lint/stale-suppression         warning  warning    Reports a suppression that is no longer needed.\n' +
+        'sdc/dependency-cycle           warning  warning    Reports declarations whose expressions reference each other in a cycle.\n' +
+        'sdc/duplicate-declaration      error    error      Reports a name declared more than once on one item or on the root.\n' +
+        'sdc/external-expression        info     info       Reports an expression whose content is only behind a reference.\n' +
+        'sdc/fragment-parse-error       error    error      Reports a FHIRPath expression embedded in an x-fhir-query that does not parse.\n' +
+        'sdc/language-not-allowed       error    error      Reports an expression language that SDC does not allow at its location.\n' +
+        'sdc/language-not-in-value-set  warning  warning    Reports an expression language that FHIR R4 and R5 do not define.\n' +
+        'sdc/parse-error                error    error      Reports a FHIRPath expression that does not parse.\n' +
+        'sdc/query-syntax               error    error      Reports an x-fhir-query that is not a FHIR search.\n' +
+        'sdc/reserved-name              error    error      Reports a declaration of a name that FHIRPath, FHIR or SDC defines.\n' +
+        'sdc/shadowed-declaration       info     info       Reports a name an item declares that an ancestor item or the root also declares.\n' +
+        'sdc/uncatalogued-expression    info     info       Reports an expression in a place the linter does not recognise.\n' +
+        'sdc/undefined-variable         error    error      Reports a %name that is not available where it is used.\n' +
+        'sdc/unknown-function           error    error      Reports a call to a function that fhirpath.js does not implement.\n' +
+        'sdc/unresolved-linkid          warning  warning    Reports a literal linkId that no item in the Questionnaire has.\n' +
+        'sdc/unused-declaration         warning  warning    Reports a variable that no expression references.\n' +
         '\n' +
         'Config: none, built-in defaults.\n' +
         "Run sdc-lint explain <rule-id> for a rule's documentation.\n",

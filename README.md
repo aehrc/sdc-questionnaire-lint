@@ -31,7 +31,7 @@ sdc-lint lint --show-info                                          # also show i
 
 Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
-**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with five built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error` and `sdc/uncatalogued-expression`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules. FSH source mapping works. Not built yet: the Smart Forms plugin's rules, and the scope model and the rules that depend on it.
+**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with fifteen built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration`, `sdc/reserved-name`, `sdc/undefined-variable`, `sdc/shadowed-declaration`, `sdc/dependency-cycle`, `sdc/unused-declaration` and `sdc/unresolved-linkid`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules. FSH source mapping works. Not built yet: the Smart Forms plugin's rules.
 
 Start with these docs:
 
@@ -54,6 +54,7 @@ Start with these docs:
 
 - `files`: the inputs `lint` checks when no paths are given: files, directories or globs. Defaults to `fsh-generated/resources`.
 - `source.fsh`: the FSH directories, defaulting to `["input/fsh"]`; `[]` omits FSH source lookup.
+- `hostVariables`: names, written without `%`, that the application running the form supplies, such as `["PrePopQuery"]`. Every expression can reference them. List exact names; a name not listed, a typo included, is not available.
 - `rules`: a rule ID set to `error`, `warning`, `info` or `off`. A rule that is `off` does not run. `lint/stale-suppression` accepts only `warning` or `off`.
 - `suppress`: suppressions; see below.
 - `plugins`: plugins whose rules run; only in an `.mjs` config. See below.
@@ -98,11 +99,11 @@ const myPlugin = {
 };
 ```
 
-`check` must be synchronous; it runs once per Questionnaire. A rule that throws, returns a promise or reports an invalid finding, such as one with an empty message, stops the run with exit 2 and `RULE_CRASH` naming the rule. The types `LintPlugin`, `LintRule`, `RuleContext` and `RuleFinding` are exported from the package. Logging from a config or a rule goes to stderr, so it never mixes with the report.
+`check` must be synchronous; it runs once per Questionnaire. A rule that throws, returns a promise or reports an invalid finding, such as one with an empty message, stops the run with exit 2 and `RULE_CRASH` naming the rule. A finding can also give `relatedLocations`, each a `site` or a `pointer` with an optional `message`, such as the other declaration of a duplicated name. The types `LintPlugin`, `LintRule`, `RuleContext`, `RuleFinding` and `RuleRelatedLocation` are exported from the package. Logging from a config or a rule goes to stderr, so it never mixes with the report.
 
 ### Suppressing a finding
 
-A suppression hides one rule's findings at one expression. Add it to `suppress` in the config:
+A suppression hides one rule's findings at one expression, or at one name declared by a launchContext or an extractAllocateId, which are not expressions. Add it to `suppress` in the config:
 
 ```json
 {
@@ -131,7 +132,19 @@ Every entry needs `rule`, `file` and a non-blank `reason`. `file` and the option
 
 The selectors must match exactly one expression; matching several is a config error. A suppression of an x-fhir-query also covers the FHIRPath in its `{{…}}` fragments.
 
-A suppression is **stale** when the run establishes that it hides nothing: its file was deleted, no expression matches it any more, or its rule checked the expression and found no problem. It is reported as a `lint/stale-suppression` warning at the config entry. A suppression the run cannot judge, such as one for a file outside a targeted run, is **not assessed** and reported only in the counts; [cli.md](docs/cli.md#stale-suppressions) has the full rules.
+An entry whose `extensionUrl` is `http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext` or `…/sdc-questionnaire-extractAllocateId` selects a declared name instead of an expression: the name on the item its `linkId` selects, or on the Questionnaire root when it has no `linkId`. For an item without a linkId, give the item's JSON Pointer, such as `/item/2`, as `pointer` instead; unlike for an expression, it is not the finding's pointer, so the entry survives reordering the item's extensions. It hides the rule's findings at every declaration of that name on that element, including a variable that repeats the name. The selectors must match one name on one element. For example, for two launchContexts named `patient` on the root:
+
+```json
+{
+  "rule": "sdc/duplicate-declaration",
+  "file": "fsh-generated/resources/Questionnaire-intake.json",
+  "extensionUrl": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext",
+  "name": "patient",
+  "reason": "The host supplies one patient; the second launchContext is removed in the next release."
+}
+```
+
+A suppression is **stale** when the run establishes that it hides nothing: its file was deleted, no expression or declared name matches it any more, or its rule checked the expression or declaration and found no problem. It is reported as a `lint/stale-suppression` warning at the config entry. A suppression the run cannot judge, such as one for a file outside a targeted run, is **not assessed** and reported only in the counts; [cli.md](docs/cli.md#stale-suppressions) has the full rules.
 
 ## Development
 

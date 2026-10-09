@@ -2,6 +2,9 @@ Instance: Invalid
 InstanceOf: Questionnaire
 Usage: #example
 * status = #draft
+* extension[sdc-questionnaire-launchContext][+]
+  * extension[name].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient
+  * extension[type].valueCode = #Patient
 // sdc/query-syntax: FHIRPath marked as x-fhir-query.
 * extension[variable][+].valueExpression
   * name = "observations"
@@ -29,3 +32,20 @@ Usage: #example
   * extension[sdc-questionnaire-enableWhenExpression].valueExpression
     * language = #text/fhirpath
     * expression = "%smoker = true and"
+* item[+]
+  * linkId = "smoking-records"
+  * type = #integer
+  * text = "Smoking status records"
+  * readOnly = true
+  * extension[sdc-questionnaire-initialExpression].valueExpression
+    * language = #text/fhirpath
+    * expression = "%observati12312313.total"
+* item[+]
+  * linkId = "recent-records"
+  * type = #integer
+  * text = "Observations in the last year"
+  * readOnly = true
+  // sdc/undefined-variable: %recnet for %recent.
+  * extension[sdc-questionnaire-initialExpression].valueExpression
+    * language = #text/fhirpath
+    * expression = "%recnet.total"

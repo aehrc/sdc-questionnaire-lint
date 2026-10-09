@@ -20,6 +20,18 @@ describe('summarizeExpressionCoverage', () => {
     expect(summarizeExpressionCoverage(sites)).toEqual({ analysed: 2, unchecked: 0 });
   });
 
+  it('counts a site where an enabled check did not complete as unchecked', () => {
+    const complete = expressionSite({ ...catalogued, ...fhirPath('%a') });
+    const incomplete = expressionSite({
+      ...catalogued,
+      ...fhirPath('defineVariable(%n).select(%a)'),
+    });
+    expect(summarizeExpressionCoverage([complete, incomplete], new Set([incomplete]))).toEqual({
+      analysed: 1,
+      unchecked: 1,
+    });
+  });
+
   it('counts uncatalogued, other-language and reference-only sites as unchecked', () => {
     const sites = [
       expressionSite(fhirPath('1 + 1')),
@@ -30,19 +42,21 @@ describe('summarizeExpressionCoverage', () => {
     expect(summarizeExpressionCoverage(sites)).toEqual({ analysed: 0, unchecked: 4 });
   });
 
-  describe('a query and its fragment, counted separately', () => {
-    const text = 'Observation?subject={{%patient.id}}';
-    const query = (overrides = {}) =>
-      expressionSite({ language: 'application/x-fhir-query', text, ...overrides });
+  describe.each(['application/x-fhir-query', 'text/x-fhir-query'])(
+    'a query in %s and its fragment, counted separately',
+    (language) => {
+      const text = 'Observation?subject={{%patient.id}}';
+      const query = (overrides = {}) => expressionSite({ language, text, ...overrides });
 
-    it('counts both as analysed when the query is catalogued', () => {
-      const sites = [query(catalogued), fragmentSite(text, '%patient.id', catalogued)];
-      expect(summarizeExpressionCoverage(sites)).toEqual({ analysed: 2, unchecked: 0 });
-    });
+      it('counts both as analysed when the query is catalogued', () => {
+        const sites = [query(catalogued), fragmentSite(text, '%patient.id', catalogued)];
+        expect(summarizeExpressionCoverage(sites)).toEqual({ analysed: 2, unchecked: 0 });
+      });
 
-    it('counts both as unchecked when the query is uncatalogued', () => {
-      const sites = [query(), fragmentSite(text, '%patient.id')];
-      expect(summarizeExpressionCoverage(sites)).toEqual({ analysed: 0, unchecked: 2 });
-    });
-  });
+      it('counts both as unchecked when the query is uncatalogued', () => {
+        const sites = [query(), fragmentSite(text, '%patient.id')];
+        expect(summarizeExpressionCoverage(sites)).toEqual({ analysed: 0, unchecked: 2 });
+      });
+    },
+  );
 });

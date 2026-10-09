@@ -3,6 +3,22 @@
   "id": "Invalid",
   "extension": [
     {
+      "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext",
+      "extension": [
+        {
+          "url": "name",
+          "valueCoding": {
+            "code": "patient",
+            "system": "http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext"
+          }
+        },
+        {
+          "url": "type",
+          "valueCode": "Patient"
+        }
+      ]
+    },
+    {
       "url": "http://hl7.org/fhir/StructureDefinition/variable",
       "valueExpression": {
         "name": "observations",
@@ -46,6 +62,36 @@
       "linkId": "packs",
       "type": "integer",
       "text": "Packs per day"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%observati12312313.total"
+          }
+        }
+      ],
+      "linkId": "smoking-records",
+      "type": "integer",
+      "text": "Smoking status records",
+      "readOnly": true
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%recnet.total"
+          }
+        }
+      ],
+      "linkId": "recent-records",
+      "type": "integer",
+      "text": "Observations in the last year",
+      "readOnly": true
     }
   ],
   "status": "draft"

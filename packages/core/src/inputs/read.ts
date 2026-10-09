@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import type { DocumentAnalysis } from '../analysis/document-analysis.js';
 import type {
   ExpressionSite,
   LocalResource,
@@ -14,9 +15,10 @@ export interface InputDocument {
   document: QuestionnaireDocument;
 }
 
-// An input document with the expression sites found in it.
+// An input document with the expression sites found in it, and core's analysis of them.
 export interface AnalysedDocument extends InputDocument {
   sites: readonly ExpressionSite[];
+  analysis: DocumentAnalysis;
 }
 
 export interface ReadResult {

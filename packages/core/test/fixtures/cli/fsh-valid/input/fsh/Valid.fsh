@@ -2,6 +2,9 @@ Instance: Valid
 InstanceOf: Questionnaire
 Usage: #example
 * status = #draft
+* extension[sdc-questionnaire-launchContext][+]
+  * extension[name].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient
+  * extension[type].valueCode = #Patient
 * extension[variable][+].valueExpression
   * name = "observations"
   * language = #application/x-fhir-query
@@ -25,3 +28,19 @@ Usage: #example
   * extension[sdc-questionnaire-enableWhenExpression].valueExpression
     * language = #text/fhirpath
     * expression = "%smoker = true"
+* item[+]
+  * linkId = "smoking-records"
+  * type = #integer
+  * text = "Smoking status records"
+  * readOnly = true
+  * extension[sdc-questionnaire-initialExpression].valueExpression
+    * language = #text/fhirpath
+    * expression = "%observations.total"
+* item[+]
+  * linkId = "recent-records"
+  * type = #integer
+  * text = "Observations in the last year"
+  * readOnly = true
+  * extension[sdc-questionnaire-initialExpression].valueExpression
+    * language = #text/fhirpath
+    * expression = "%recent.total"
