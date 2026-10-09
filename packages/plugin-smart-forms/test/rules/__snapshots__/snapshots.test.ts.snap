@@ -38,6 +38,51 @@ exports[`smart-forms/expression-evaluated-as-fhirpath > prints its finding in te
   help: fetch the resources in an application/x-fhir-query variable on the Questionnaire root, and set itemPopulationContext to FHIRPath over it, such as %name.entry.resource"
 `;
 
+exports[`smart-forms/questionnaire-variable-unavailable > prints its finding in JSON 1`] = `
+[
+  {
+    "expression": {
+      "range": {
+        "endOffset": 6,
+        "startOffset": 0,
+      },
+      "text": "%qitem.linkId & '-1'",
+    },
+    "fingerprint": "ad1fe3551ddff94d85395004fe976c294be240fee8732cfbfcba3fbd12469509",
+    "help": "use the literal value instead, such as 'code'",
+    "jsonLocation": {
+      "file": "Questionnaire-Q.json",
+      "linkId": "code",
+      "pointer": "/item/0/extension/0/valueExpression/expression",
+      "resource": {
+        "id": "Q",
+        "pointer": "",
+        "resourceType": "Questionnaire",
+      },
+    },
+    "kind": "questionnaire",
+    "message": "Smart Forms does not supply %qitem, so this calculatedExpression on item "Code" (code) fails when the reference is evaluated, and the answer is not calculated from it.",
+    "note": "if the application running the form supplies %qitem, suppress this finding with a reason that names the application",
+    "ruleId": "smart-forms/questionnaire-variable-unavailable",
+    "severity": "error",
+    "sourceLocation": {
+      "reason": "source-unavailable",
+      "status": "unmapped",
+    },
+  },
+]
+`;
+
+exports[`smart-forms/questionnaire-variable-unavailable > prints its finding in text 1`] = `
+"Questionnaire-Q.json: error smart-forms/questionnaire-variable-unavailable Smart Forms does not supply %qitem, so this calculatedExpression on item "Code" (code) fails when the reference is evaluated, and the answer is not calculated from it.
+  %qitem.linkId & '-1'
+  ^~~~~~
+  location: compiled JSON; Questionnaire/Q; /item/0/extension/0/valueExpression/expression
+  note: FSH line not found, no FSH sources are available
+  note: if the application running the form supplies %qitem, suppress this finding with a reason that names the application
+  help: use the literal value instead, such as 'code'"
+`;
+
 exports[`smart-forms/unsupported-expression-language > prints its finding in JSON 1`] = `
 [
   {

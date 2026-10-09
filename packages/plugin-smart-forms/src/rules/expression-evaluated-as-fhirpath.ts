@@ -86,8 +86,8 @@ export const expressionEvaluatedAsFhirpath: LintRule = {
         'reports; an expression Smart Forms never reads, such as a second initialExpression or a ' +
         'targetConstraint without a human. Uncatalogued Smart Forms extensions and ' +
         'reference-only Expressions are not checked. The ' +
-        'renderer facts come from the Smart Forms source, and the population facts are not yet ' +
-        'reproduced against sdc-populate.',
+        'renderer facts come from the Smart Forms source; the population facts are reproduced ' +
+        'against sdc-populate.',
     },
   },
   check(ctx) {

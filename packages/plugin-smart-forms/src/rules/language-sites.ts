@@ -8,10 +8,16 @@ import { CQF_EXPRESSION } from '../urls.js';
 
 // What the two language rules share.
 
+// A site at a catalogued location.
+export type LocatedSite = ExpressionSite & { location: CataloguedLocation };
+
+export function isLocatedSite(site: ExpressionSite): site is LocatedSite {
+  return site.location !== undefined;
+}
+
 // A site the language rules check: an Expression at a catalogued location, with a language and
 // expression text. A reference-only Expression is sdc/external-expression's.
-export type LanguageSite = ExpressionSite & {
-  location: CataloguedLocation;
+export type LanguageSite = LocatedSite & {
   language: string;
   text: string;
 };
@@ -39,7 +45,7 @@ export function coreReportsLanguage({ language, location }: LanguageSite): boole
 
 // The extension's name in a message: the last segment of its URL without the SDC prefix, such as
 // calculatedExpression; for cqf-expression, also the element, such as cqf-expression on text.
-export function extensionName(site: LanguageSite): string {
+export function extensionName(site: LocatedSite): string {
   const name = site.location.url.slice(site.location.url.lastIndexOf('/') + 1);
   const short = name.replace(/^sdc-questionnaire-/, '');
   return site.location.url === CQF_EXPRESSION && site.element !== undefined

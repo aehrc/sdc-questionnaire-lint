@@ -38,6 +38,18 @@ const fixtures = {
       },
     ],
   }),
+  'smart-forms/questionnaire-variable-unavailable': questionnaire({
+    item: [
+      {
+        linkId: 'code',
+        text: 'Code',
+        type: 'string',
+        extension: [
+          ext(`${sdc}calculatedExpression`, expression('text/fhirpath', "%qitem.linkId & '-1'")),
+        ],
+      },
+    ],
+  }),
 };
 
 describe.each(Object.entries(fixtures))('%s', (ruleId, resource) => {
