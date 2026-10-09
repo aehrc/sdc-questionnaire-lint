@@ -93,22 +93,28 @@ describe('populate 4.7.1 variables', () => {
     expect(answersOf(response, 'q1')).toEqual([{ valueString: 'from the query' }]);
   });
 
-  it.each(['text/x-fhir-query', 'text/cql'])(
-    'neither fetches nor evaluates a %s variable',
-    async (language) => {
-      const { issues, response, urls } = await populate(
-        withPatientLaunch(
-          questionnaire({
-            extension: [ext(VARIABLE, expression(language, 'Observation?code=1', 'v'))],
-            item: [question('q1', 'text/fhirpath', '%v')],
-          }),
-        ),
-      );
-      expect(urls).toEqual([]);
-      expect(issues).toEqual([undefinedVariable('v')]);
-      expect(answersOf(response, 'q1')).toEqual([]);
-    },
-  );
+  // A variable in a language population ignores: no request, and a reference to it fails.
+  async function expectIgnored(language: string) {
+    const { issues, response, urls } = await populate(
+      withPatientLaunch(
+        questionnaire({
+          extension: [ext(VARIABLE, expression(language, 'Observation?code=1', 'v'))],
+          item: [question('q1', 'text/fhirpath', '%v')],
+        }),
+      ),
+    );
+    expect(urls).toEqual([]);
+    expect(issues).toEqual([undefinedVariable('v')]);
+    expect(answersOf(response, 'q1')).toEqual([]);
+  }
+
+  it('neither fetches nor evaluates a text/x-fhir-query variable', async () => {
+    await expectIgnored('text/x-fhir-query');
+  });
+
+  it('neither fetches nor evaluates a text/cql variable', async () => {
+    await expectIgnored('text/cql');
+  });
 });
 
 describe('populate 4.7.1 initialExpression', () => {

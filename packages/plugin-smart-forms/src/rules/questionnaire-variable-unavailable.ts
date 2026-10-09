@@ -107,8 +107,7 @@ export const questionnaireVariableUnavailable: LintRule = {
         'itemPopulationContext.',
       why:
         'SDC defines %questionnaire and %qitem, but Smart Forms supplies neither. fhirpath.js ' +
-        'fails on a reference to an undefined environment variable when the reference is ' +
-        'evaluated, and Smart Forms catches the failure and keeps the previous result: a ' +
+        'fails when it evaluates a reference to a name it was not given, and Smart Forms catches the failure and keeps the previous result: a ' +
         'variable gets no value, an answer is not calculated or prefilled, an item starts ' +
         'disabled, or a group is not prefilled.',
       exampleMessage: message(

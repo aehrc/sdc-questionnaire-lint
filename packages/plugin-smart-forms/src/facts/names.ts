@@ -34,7 +34,7 @@ const renderer140: readonly NameFact[] = Object.freeze([
 ]);
 
 const populateContext = source(`${populateSource}createFhirPathContext.ts`, 68, 71);
-const names = 'populate 4.7.1 does not supply %questionnaire or %qitem > ';
+const namesSuite = 'populate 4.7.1 does not supply %questionnaire or %qitem > ';
 
 const populate471: readonly NameFact[] = Object.freeze([
   unsupplied(
@@ -42,11 +42,11 @@ const populate471: readonly NameFact[] = Object.freeze([
     populateContext,
     reproduced(
       populateNames,
-      `${names}fails a root variable that uses %questionnaire, and the initialExpression that uses it`,
+      `${namesSuite}fails a root variable that uses %questionnaire, and the initialExpression that uses it`,
     ),
     reproduced(
       populateNames,
-      `${names}fails an itemPopulationContext that uses %questionnaire, so the group is absent`,
+      `${namesSuite}fails an itemPopulationContext that uses %questionnaire, so the group is absent`,
     ),
   ),
   unsupplied(
@@ -54,12 +54,14 @@ const populate471: readonly NameFact[] = Object.freeze([
     populateContext,
     reproduced(
       populateNames,
-      `${names}fails an item variable that uses %qitem, and the initialExpression that uses it`,
+      `${namesSuite}fails an item variable that uses %qitem, and the initialExpression that uses it`,
     ),
-    reproduced(populateNames, `${names}fails an initialExpression that uses %qitem`),
+    reproduced(populateNames, `${namesSuite}fails an initialExpression that uses %qitem`),
   ),
 ]);
 
+// Upstream issues aehrc/smart-forms#2140 (%questionnaire) and #2141 (%qitem) track the fix. A later
+// verified version that supplies a name gets facts without it.
 export const unsuppliedNames: FactTable<readonly NameFact[]> = Object.freeze({
   renderer: Object.freeze({ '1.4.0': renderer140 }),
   populate: Object.freeze({ '4.7.1': populate471 }),

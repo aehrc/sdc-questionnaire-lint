@@ -169,20 +169,31 @@ describe('populate 4.7.1 itemPopulationContext prerequisites', () => {
     item: children,
   });
 
-  it.each<[string, Record<string, unknown>]>([
-    [
-      'on a leaf item',
-      { item: [{ linkId: 'q1', type: 'string', extension: [context('a', '%missing')] }] },
-    ],
-    ['on the root', { extension: [context('a', '%missing')], item: [question('q1', "'x'")] }],
-    ['without a name', { item: [group([context(undefined, '%missing')])] }],
-    [
-      'after another on the same item',
-      { item: [group([context('a', "'x'"), context('b', '%missing')])] },
-    ],
-  ])('does not evaluate one %s', async (_, fields) => {
+  // An itemPopulationContext with failing text that population never evaluates: no issue.
+  async function expectNotEvaluated(fields: Record<string, unknown>) {
     const { issues } = await populate(withPatientLaunch(questionnaire(fields)));
     expect(issues).toEqual([]);
+  }
+
+  it('does not evaluate one on a leaf item', async () => {
+    await expectNotEvaluated({
+      item: [{ linkId: 'q1', type: 'string', extension: [context('a', '%missing')] }],
+    });
+  });
+
+  it('does not evaluate one on the root', async () => {
+    await expectNotEvaluated({
+      extension: [context('a', '%missing')],
+      item: [question('q1', "'x'")],
+    });
+  });
+
+  it('does not evaluate one without a name', async () => {
+    await expectNotEvaluated({ item: [group([context(undefined, '%missing')])] });
+  });
+
+  it('does not evaluate one after another on the same item', async () => {
+    await expectNotEvaluated({ item: [group([context('a', "'x'"), context('b', '%missing')])] });
   });
 
   it('does not evaluate one with no text', async () => {

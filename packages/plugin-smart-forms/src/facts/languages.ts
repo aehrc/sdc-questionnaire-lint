@@ -120,7 +120,11 @@ const populate471: readonly LanguageFact[] = Object.freeze([
     ),
     reproduced(
       populateLanguages,
-      'populate 4.7.1 variables > neither fetches nor evaluates a %s variable',
+      'populate 4.7.1 variables > neither fetches nor evaluates a text/x-fhir-query variable',
+    ),
+    reproduced(
+      populateLanguages,
+      'populate 4.7.1 variables > neither fetches nor evaluates a text/cql variable',
     ),
   ),
   fact(

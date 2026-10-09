@@ -375,7 +375,11 @@ const populate471: readonly Prerequisite[] = Object.freeze([
     source(readPopulationExpressions, 52, 56),
     reproduced(
       populatePrerequisites,
-      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one %s',
+      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on a leaf item',
+    ),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on the root',
     ),
   ),
   prerequisite(
@@ -394,7 +398,11 @@ const populate471: readonly Prerequisite[] = Object.freeze([
     source(readPopulationExpressions, 128, 141),
     reproduced(
       populatePrerequisites,
-      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one %s',
+      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one without a name',
+    ),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one after another on the same item',
     ),
     reproduced(
       populatePrerequisites,

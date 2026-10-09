@@ -6,7 +6,7 @@ import {
 } from 'sdc-questionnaire-lint';
 import { CQF_EXPRESSION } from '../urls.js';
 
-// What the two language rules share.
+// What the rules that report at an expression site share.
 
 // A site at a catalogued location.
 export type LocatedSite = ExpressionSite & { location: CataloguedLocation };
