@@ -2,6 +2,7 @@
 // Its declarations import fhir/r4, which is not installed, so its own types are any; the harness
 // gives its results loose types of its own instead.
 import { populateQuestionnaire } from '@aehrc/sdc-populate';
+import { expect } from 'vitest';
 import { sdc } from '../support/sites.js';
 
 type Json = Record<string, unknown>;
@@ -96,3 +97,7 @@ export function answersOf(response: Json | undefined, linkId: string): unknown[]
   const [item] = responseItems(response, linkId);
   return Array.isArray(item?.answer) ? (item.answer as unknown[]) : [];
 }
+
+// Matches the issue text of a reference to a name population does not supply.
+export const undefinedVariable = (name: string): unknown =>
+  expect.stringMatching(new RegExp(`undefined environment variable: ${name}$`));

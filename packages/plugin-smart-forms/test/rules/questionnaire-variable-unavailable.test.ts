@@ -152,7 +152,7 @@ describe(ruleId, () => {
           range: { startOffset: 0, endOffset: 14 },
           message:
             'Smart Forms does not supply %questionnaire to an answerExpression, so its answers on ' +
-            'item "Age" (age) are not computed from this expression.',
+            'item "Age" (age) are never computed from this expression.',
           help: copy,
           note: undefined,
         },
@@ -168,7 +168,8 @@ describe(ruleId, () => {
           range: { startOffset: 27, endOffset: 33 },
           message:
             'Smart Forms does not supply %qitem to an answerExpression, so its answers on ' +
-            'item "Age" (age) are not computed from this expression.',
+            'item "Age" (age) are not computed from this expression when the reference is ' +
+            'evaluated.',
           note: undefined,
         }),
       ]);
@@ -190,6 +191,21 @@ describe(ruleId, () => {
           help: "use the literal value instead, such as 'age'",
           note: note('qitem'),
         },
+      ]);
+    });
+
+    it('a %qitem.linkId help literal with its quote and backslash escaped', async () => {
+      const resource = questionnaire({
+        extension: [patientLaunch],
+        item: [
+          item({
+            linkId: "O'Brien\\1",
+            extension: [ext(`${sdc}initialExpression`, fhirpath('%qitem.linkId'))],
+          }),
+        ],
+      });
+      expect((await check(resource)).map(({ help }) => help)).toEqual([
+        "use the literal value instead, such as 'O\\'Brien\\\\1'",
       ]);
     });
 

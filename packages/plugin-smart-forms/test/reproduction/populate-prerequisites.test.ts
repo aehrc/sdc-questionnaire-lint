@@ -2,13 +2,16 @@
 // expression (src/facts/prerequisites.ts), and when population runs at all.
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { expression, ext, questionnaire, sdc, VARIABLE } from '../support/sites.js';
-import { answersOf, populate, responseItems, withPatientLaunch } from './populate.js';
+import {
+  answersOf,
+  populate,
+  responseItems,
+  undefinedVariable,
+  withPatientLaunch,
+} from './populate.js';
 
 const INITIAL_EXPRESSION = `${sdc}initialExpression`;
 const ITEM_POPULATION_CONTEXT = `${sdc}itemPopulationContext`;
-
-const undefinedVariable = (name: string): unknown =>
-  expect.stringMatching(new RegExp(`undefined environment variable: ${name}$`));
 
 const initial = (text: string) => ext(INITIAL_EXPRESSION, expression('text/fhirpath', text));
 const question = (linkId: string, ...texts: string[]) => ({

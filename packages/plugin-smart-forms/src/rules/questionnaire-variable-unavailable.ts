@@ -56,11 +56,14 @@ const message = (name: string, extension: string, element: string, result: strin
   `reference is evaluated, and ${result}.`;
 
 // The renderer evaluates an answerExpression only when the name before the first . names a launch
-// context or a query variable, and gives it no other name, so it is never evaluated with %name as
-// that head, and fails when %name comes later.
-const answerMessage = (name: string, element: string): string =>
+// context or a query variable, and gives it no other name. With %name as that head it is never
+// evaluated; when %name comes later it fails only if the reference is evaluated, as it may not be
+// inside an iif branch.
+const answerMessage = (name: string, element: string, head: boolean): string =>
   `Smart Forms does not supply %${name} to an answerExpression, so its answers on ${element} ` +
-  'are not computed from this expression.';
+  (head
+    ? 'are never computed from this expression.'
+    : 'are not computed from this expression when the reference is evaluated.');
 
 const copyHelp = 'copy the value the expression needs from the Questionnaire into the expression';
 
@@ -74,8 +77,9 @@ function linkIdHelp(
   if (name !== 'qitem' || site.item === undefined) return undefined;
   if (!/^\s*\.\s*linkId\b/.test(site.text?.slice(endOffset) ?? '')) return undefined;
   const linkId = itemOf(ctx.document, site.item)?.linkId;
+  // As a FHIRPath string literal: a backslash or a quote is escaped.
   return typeof linkId === 'string'
-    ? `use the literal value instead, such as '${linkId}'`
+    ? `use the literal value instead, such as '${linkId.replace(/[\\']/g, '\\$&')}'`
     : undefined;
 }
 
@@ -158,7 +162,7 @@ export const questionnaireVariableUnavailable: LintRule = {
           site,
           range: { startOffset, endOffset },
           message: answer
-            ? answerMessage(name, element)
+            ? answerMessage(name, element, startOffset === site.text?.indexOf('%'))
             : message(name, extensionName(site), element, consequence(site, readers)),
           help: linkIdHelp(ctx, site, name, endOffset) ?? copyHelp,
           ...(answer

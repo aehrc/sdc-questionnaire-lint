@@ -334,9 +334,9 @@ Decisions: S1, S5, S9, S10, S13. Implements core-plan §4.3.
   | initialExpression, read only by the renderer | `the answer is not refilled from it when the form is repopulated` |
   | itemPopulationContext | `the group is not prefilled` |
 
-- An answerExpression is never evaluated when the reference is its head, and throws when the reference comes later: `Smart Forms does not supply %{name} to an answerExpression, so its answers on {element} are not computed from this expression.`
+- An answerExpression is never evaluated when the reference is its head, and throws when the reference comes later and is evaluated; inside an `iif` branch it may not be, and the other branch's answers are used. Head: `Smart Forms does not supply %{name} to an answerExpression, so its answers on {element} are never computed from this expression.` Later: `…are not computed from this expression when the reference is evaluated.`
 - Dependents of a variable whose evaluation failed fail too; the rule reports only the reference itself.
-- Help: for `%qitem` followed by `.linkId` on an item with a linkId, `use the literal value instead, such as '{linkId}'`; otherwise `copy the value the expression needs from the Questionnaire into the expression`.
+- Help: for `%qitem` followed by `.linkId` on an item with a linkId, `use the literal value instead, such as '{linkId}'`, with any `\` or `'` in the linkId escaped; otherwise `copy the value the expression needs from the Questionnaire into the expression`.
 - Note, at every location except answerExpression: `if the application running the form supplies %{name}, suppress this finding with a reason that names the application`.
 - Host exceptions (S13): a renderer host can supply `%questionnaire` through `additionalContext`, and a direct `populate()` caller through a `context` parameter; the app does neither. A host can supply `%qitem` correctly only when every expression that uses it is on one item, because `additionalContext` is one value for the whole form. A host that does either records a suppression with a reason naming itself. `hostVariables` cannot express it: core resolves built-in names before host names. No host can supply a name to an answerExpression: the renderer builds its context from the name before the first `.` alone, and `additionalContext` never reaches it.
 

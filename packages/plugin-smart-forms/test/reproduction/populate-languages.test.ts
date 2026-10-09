@@ -2,13 +2,16 @@
 // location it reads (src/facts/languages.ts).
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { expression, ext, questionnaire, sdc, VARIABLE } from '../support/sites.js';
-import { answersOf, populate, responseItems, withPatientLaunch } from './populate.js';
+import {
+  answersOf,
+  populate,
+  responseItems,
+  undefinedVariable,
+  withPatientLaunch,
+} from './populate.js';
 
 const INITIAL_EXPRESSION = `${sdc}initialExpression`;
 const ITEM_POPULATION_CONTEXT = `${sdc}itemPopulationContext`;
-
-const undefinedVariable = (name: string): unknown =>
-  expect.stringMatching(new RegExp(`undefined environment variable: ${name}$`));
 
 // fhirpath.js fails to parse query text at its ?.
 const queryParseError: unknown = expect.stringContaining("token recognition error at: '?'");
