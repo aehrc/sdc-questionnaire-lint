@@ -1,50 +1,84 @@
 import type { Finding } from '../report/types.js';
-import type { FindingOrigins } from '../run/rules.js';
+import type { FindingOrigin, FindingOrigins } from '../run/rules.js';
 import { canonical, fshFiles } from './fsh-files.js';
-import { locateExpression, sourceContext, unmapped } from './locate.js';
+import { locateExpression, sourceContext, unmapped, type SourceContext } from './locate.js';
 import { readSushiIndex } from './sushi-index.js';
 
 export interface SourceMapOptions {
-  // The existing FSH directories (run/sources.ts); empty when none exist or lookup is omitted.
   readonly directories: readonly string[];
-  // The SUSHI index's path, whether or not it exists.
   readonly sushiIndex: string;
   readonly cwd: string;
 }
 
-// Gives each Questionnaire finding its FSH location, or the reason it has none, by its origin; it
-// changes nothing else: fingerprints, severities and counts stay as they are. Runs on the findings
-// that will be reported, so after suppressions, and reads the FSH sources only when one of them is
-// a Questionnaire finding. Without FSH directories, or without an origin, findings keep
-// source-unavailable.
-export async function mapSourceLocations(
+const invalidFinding = (
+  finding: Finding,
+  sourceContext?: SourceContext,
+  findingOrigin?: FindingOrigin,
+): boolean =>
+  finding.kind !== 'questionnaire' || sourceContext === undefined || findingOrigin === undefined;
+
+async function mapFinding(
+  finding: Finding,
+  sourceContext?: SourceContext,
+  findingOrigin?: FindingOrigin,
+) {
+  const defaultFinding = {
+    ...finding,
+    sourceLocation: unmapped('not-found'),
+  };
+
+  if (sourceContext === undefined || findingOrigin === undefined) {
+    return defaultFinding;
+  }
+
+  const localeTarget = {
+    document: findingOrigin.document,
+    site: findingOrigin.site,
+    expression: finding.expression,
+  };
+
+  defaultFinding.sourceLocation = await locateExpression(localeTarget, sourceContext).catch(() =>
+    unmapped('not-found'),
+  );
+
+  return defaultFinding;
+}
+
+const invalidDataForContext = (options: SourceMapOptions, findings: readonly Finding[]) =>
+  options.directories.length === 0 || !findings.some(({ kind }) => kind === 'questionnaire');
+
+async function buildContext(
+  options: SourceMapOptions,
+  findings: readonly Finding[],
+): Promise<SourceContext | undefined> {
+  return invalidDataForContext(options, findings)
+    ? undefined
+    : sourceContext(
+        await readSushiIndex(options.sushiIndex),
+        fshFiles(options.directories),
+        (await canonical(options.cwd)) ?? options.cwd,
+      );
+}
+
+const mapSourceLocation = async (
+  finding: Finding,
+  sourceContext: SourceContext | undefined,
+  origins: FindingOrigins,
+) => {
+  const origin = finding.kind === 'questionnaire' ? origins.get(finding) : undefined;
+  return invalidFinding(finding, sourceContext, origin)
+    ? finding
+    : await mapFinding(finding, sourceContext, origin);
+};
+
+// Gives each Questionnaire finding its FSH location, or the reason it has none, by its origin;
+export const mapSourceLocations = async (
   findings: readonly Finding[],
   origins: FindingOrigins,
   options: SourceMapOptions,
-): Promise<Finding[]> {
-  const context =
-    options.directories.length === 0 || !findings.some(({ kind }) => kind === 'questionnaire')
-      ? undefined
-      : sourceContext(
-          await readSushiIndex(options.sushiIndex),
-          fshFiles(options.directories),
-          (await canonical(options.cwd)) ?? options.cwd,
-        );
-  const mapped: Finding[] = [];
-  for (const finding of findings) {
-    const origin = finding.kind === 'questionnaire' ? origins.get(finding) : undefined;
-    mapped.push(
-      finding.kind !== 'questionnaire' || context === undefined || origin === undefined
-        ? finding
-        : {
-            ...finding,
-            // An exception while mapping one finding leaves it not-found; it never fails the run.
-            sourceLocation: await locateExpression(
-              { document: origin.document, site: origin.site, expression: finding.expression },
-              context,
-            ).catch(() => unmapped('not-found')),
-          },
-    );
-  }
-  return mapped;
-}
+): Promise<Finding[]> =>
+  await Promise.all(
+    findings.map(async (finding) =>
+      mapSourceLocation(finding, await buildContext(options, findings), origins),
+    ),
+  );
