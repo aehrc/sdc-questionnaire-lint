@@ -1,5 +1,6 @@
 import { readFile, realpath } from 'node:fs/promises';
 import { glob } from 'tinyglobby';
+import { getOrSet } from '../cache.js';
 import { compareStrings } from '../compare.js';
 import { parseFshDocument, type FshDocument } from './fsh-document.js';
 
@@ -56,17 +57,13 @@ export function fshFiles(directories: readonly string[]): FshFiles {
   let everyFile: Promise<FshFile[]> | undefined;
   let everyAlias: Promise<Map<string, string>> | undefined;
 
-  function file(path: string): Promise<FshFile | undefined> {
-    let read = files.get(path);
-    if (read === undefined) {
-      // A file that cannot be parsed is left out too.
-      read = readFile(path, 'utf8')
+  // A file that cannot be parsed is left out too.
+  const file = (path: string): Promise<FshFile | undefined> =>
+    getOrSet(files, path, () =>
+      readFile(path, 'utf8')
         .then((text) => ({ path, document: parseFshDocument(text) }))
-        .catch(() => undefined);
-      files.set(path, read);
-    }
-    return read;
-  }
+        .catch(() => undefined),
+    );
 
   function canonicalDirectoriesOnce(): Promise<string[]> {
     canonicalDirectories ??= Promise.all(directories.map(canonical)).then((found) => [

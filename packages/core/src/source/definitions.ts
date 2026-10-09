@@ -1,5 +1,6 @@
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { getOrSet } from '../cache.js';
 import type { ResourceIdentity } from '../report/types.js';
 import type { FshDefinition } from './fsh-document.js';
 import type { FshFile, FshFiles } from './fsh-files.js';
@@ -84,12 +85,7 @@ interface SearchIndex {
   readonly profiles: readonly FshDefinition[];
 }
 
-// Worked out once per run: keyed by the run's list of every FSH file, which FshFiles caches.
-const searchIndexes = new WeakMap<readonly FshFile[], SearchIndex>();
-
-function searchIndex(files: readonly FshFile[]): SearchIndex {
-  let built = searchIndexes.get(files);
-  if (built !== undefined) return built;
+function buildSearchIndex(files: readonly FshFile[]): SearchIndex {
   const instances = new Map<string, FoundDefinition[]>();
   const profiles: FshDefinition[] = [];
   for (const file of files) {
@@ -102,9 +98,14 @@ function searchIndex(files: readonly FshFile[]): SearchIndex {
       else found.push({ file, definition });
     }
   }
-  built = { instances, profiles };
-  searchIndexes.set(files, built);
-  return built;
+  return { instances, profiles };
+}
+
+// Keyed by the run's list of every FSH file, which FshFiles caches, so built once per run.
+const searchIndexes = new WeakMap<readonly FshFile[], SearchIndex>();
+
+function searchIndex(files: readonly FshFile[]): SearchIndex {
+  return getOrSet(searchIndexes, files, () => buildSearchIndex(files));
 }
 
 // Whether an InstanceOf names the resource type: the type itself, or a Profile in the FSH

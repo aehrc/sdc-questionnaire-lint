@@ -1,4 +1,5 @@
 import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
+import { getOrSet } from '../cache.js';
 import { displayPath } from '../inputs/paths.js';
 import type { AnalysedDocument } from '../inputs/read.js';
 import { valueAt } from '../json-pointer.js';
@@ -53,15 +54,10 @@ export function sourceContext(
   return {
     files,
     cwd,
-    definitionOf(target) {
-      const key = JSON.stringify([target.inputPath, target.resource.pointer]);
-      let lookup = definitions.get(key);
-      if (lookup === undefined) {
-        lookup = findDefinition(target, index, files);
-        definitions.set(key, lookup);
-      }
-      return lookup;
-    },
+    definitionOf: (target) =>
+      getOrSet(definitions, JSON.stringify([target.inputPath, target.resource.pointer]), () =>
+        findDefinition(target, index, files),
+      ),
   };
 }
 
@@ -151,58 +147,53 @@ interface JsonExpression {
   readonly anchors: Anchors;
 }
 
-// Each document's expressions by text, worked out once: every finding in it looks its text up.
-// Keyed by the document's sites, which stay the same object for the whole run.
+function groupJsonExpressions({ document, sites }: MappedDocument): Map<string, JsonExpression[]> {
+  const grouped = new Map<string, JsonExpression[]>();
+  for (const site of sites) {
+    if (site.carrier === 'fragment' || site.text === undefined) continue;
+    const expression = {
+      site,
+      resource: resourceAt(document, site.pointer).pointer,
+      anchors: anchorsOf(document, site),
+    };
+    const group = grouped.get(site.text);
+    if (group === undefined) grouped.set(site.text, [expression]);
+    else group.push(expression);
+  }
+  return grouped;
+}
+
+// Keyed by sites: the coverage script builds a new MappedDocument for each site.
 const jsonExpressions = new WeakMap<
   readonly ExpressionSite[],
   ReadonlyMap<string, readonly JsonExpression[]>
 >();
 
-function expressionsWithText(
-  { document, sites }: MappedDocument,
-  text: string,
-): readonly JsonExpression[] {
-  let byText = jsonExpressions.get(sites);
-  if (byText === undefined) {
-    const grouped = new Map<string, JsonExpression[]>();
-    for (const site of sites) {
-      if (site.carrier === 'fragment' || site.text === undefined) continue;
-      const expression = {
-        site,
-        resource: resourceAt(document, site.pointer).pointer,
-        anchors: anchorsOf(document, site),
-      };
-      const group = grouped.get(site.text);
-      if (group === undefined) grouped.set(site.text, [expression]);
-      else group.push(expression);
-    }
-    byText = grouped;
-    jsonExpressions.set(sites, byText);
-  }
-  return byText.get(text) ?? [];
+function expressionsWithText(document: MappedDocument, text: string): readonly JsonExpression[] {
+  return (
+    getOrSet(jsonExpressions, document.sites, () => groupJsonExpressions(document)).get(text) ?? []
+  );
 }
 
-// Each definition's literals by their decoded text, worked out once.
+function groupLiterals(definition: FshDefinition): Map<string, ExpressionLiteral[]> {
+  const grouped = new Map<string, ExpressionLiteral[]>();
+  for (const literal of expressionLiterals(definition)) {
+    const value = decode(literal.literal);
+    if (value === undefined) continue;
+    const group = grouped.get(value);
+    if (group === undefined) grouped.set(value, [literal]);
+    else group.push(literal);
+  }
+  return grouped;
+}
+
 const definitionLiterals = new WeakMap<
   FshDefinition,
   ReadonlyMap<string, readonly ExpressionLiteral[]>
 >();
 
 function literalsWithText(definition: FshDefinition, text: string): readonly ExpressionLiteral[] {
-  let byText = definitionLiterals.get(definition);
-  if (byText === undefined) {
-    const grouped = new Map<string, ExpressionLiteral[]>();
-    for (const literal of expressionLiterals(definition)) {
-      const value = decode(literal.literal);
-      if (value === undefined) continue;
-      const group = grouped.get(value);
-      if (group === undefined) grouped.set(value, [literal]);
-      else group.push(literal);
-    }
-    byText = grouped;
-    definitionLiterals.set(definition, byText);
-  }
-  return byText.get(text) ?? [];
+  return getOrSet(definitionLiterals, definition, () => groupLiterals(definition)).get(text) ?? [];
 }
 
 const noAliases: ReadonlyMap<string, string> = new Map();

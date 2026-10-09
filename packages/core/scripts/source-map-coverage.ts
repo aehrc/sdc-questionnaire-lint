@@ -7,6 +7,7 @@ import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import type { ExpressionSite, QuestionnaireDocument } from '../src/analysis/expression-site.js';
 import { findExpressionSites } from '../src/analysis/expression-sites.js';
+import { getOrSet } from '../src/cache.js';
 import { loadConfig } from '../src/config/load.js';
 import { resolveRunPaths } from '../src/config/paths.js';
 import { loadInputs } from '../src/inputs/load-inputs.js';
@@ -90,15 +91,11 @@ async function main(igDirectory: string): Promise<number> {
   // The checks below share the mapper's owner lookup and aliases, but read the FSH files from
   // disk again, independently of the mapper's cache.
   const aliases = await context.files.aliases();
-  const reread = new Map<string, FshDocument>();
-  const fshAt = async (file: string): Promise<FshDocument> => {
-    let document = reread.get(file);
-    if (document === undefined) {
-      document = parseFshDocument(await readFile(path.join(cwd, file), 'utf8'));
-      reread.set(file, document);
-    }
-    return document;
-  };
+  const reread = new Map<string, Promise<FshDocument>>();
+  const fshAt = (file: string): Promise<FshDocument> =>
+    getOrSet(reread, file, async () =>
+      parseFshDocument(await readFile(path.join(cwd, file), 'utf8')),
+    );
 
   const counts = new Map<string, number>();
   const failures: string[] = [];

@@ -1,3 +1,4 @@
+import { getOrSet } from '../cache.js';
 import type { FshDefinition } from './fsh-document.js';
 import { assemblePath, parsePath, resolvePaths, type PathPart } from './fsh-paths.js';
 import { decodeFshString } from './fsh-string.js';
@@ -47,16 +48,10 @@ function keyOf(parts: readonly PathPart[]): string {
   );
 }
 
-// Each definition's literals, worked out once.
 const literalsOf = new WeakMap<FshDefinition, readonly ExpressionLiteral[]>();
 
 export function expressionLiterals(definition: FshDefinition): readonly ExpressionLiteral[] {
-  let literals = literalsOf.get(definition);
-  if (literals === undefined) {
-    literals = findExpressionLiterals(definition);
-    literalsOf.set(definition, literals);
-  }
-  return literals;
+  return getOrSet(literalsOf, definition, () => findExpressionLiterals(definition));
 }
 
 function findExpressionLiterals(definition: FshDefinition): ExpressionLiteral[] {
