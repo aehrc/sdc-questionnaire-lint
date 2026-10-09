@@ -215,6 +215,48 @@ describe(ruleId, () => {
       expect(await check(resource)).toEqual([]);
     });
 
+    it('on a targetConstraint a later one with the same key replaces', async () => {
+      const resource = questionnaire({
+        extension: [targetConstraint(expression('text/cql', 'true'))],
+        item: [item({ extension: [targetConstraint(expression('text/fhirpath', 'true'))] })],
+      });
+      expect(await check(resource)).toEqual([]);
+    });
+
+    it('but reports the targetConstraint that replaces an earlier one with the same key', async () => {
+      const resource = questionnaire({
+        extension: [targetConstraint(expression('text/fhirpath', 'true'))],
+        item: [item({ extension: [targetConstraint(expression('text/cql', 'true'))] })],
+      });
+      expect(await check(resource)).toEqual([
+        expect.objectContaining({
+          pointer: '/item/0/extension/0/extension/2/valueExpression/expression',
+        }),
+      ]);
+    });
+
+    it('on an itemPopulationContext a later one with the same name replaces', async () => {
+      const context = (language: string) =>
+        ext(`${sdc}itemPopulationContext`, expression(language, 'Patient', 'ctx'));
+      const resource = questionnaire({
+        item: [
+          {
+            linkId: 'a',
+            type: 'group',
+            extension: [context('application/x-fhir-query')],
+            item: [item()],
+          },
+          {
+            linkId: 'b',
+            type: 'group',
+            extension: [context('text/fhirpath')],
+            item: [item({ linkId: 'c' })],
+          },
+        ],
+      });
+      expect(await check(resource)).toEqual([]);
+    });
+
     it('on a toggle without an option', async () => {
       expect(
         await check(onItem(toggle(expression('text/cql', 'true'), { option: undefined }))),

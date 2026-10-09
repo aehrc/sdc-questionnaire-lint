@@ -284,6 +284,19 @@ describe('readBy', () => {
       expect(readersAt(group([context()]), '/item/0/extension/0/valueExpression')).toEqual([]);
     });
 
+    it('is read by nothing when a later group in the form has one with the same name', () => {
+      const resource = questionnaire({
+        item: [
+          { linkId: 'a', type: 'group', extension: [context('p')], item: [item()] },
+          { linkId: 'b', type: 'group', extension: [context('p')], item: [item({ linkId: 'c' })] },
+        ],
+      });
+      expect(readersAt(resource, '/item/0/extension/0/valueExpression')).toEqual([]);
+      expect(readersAt(resource, '/item/1/extension/0/valueExpression')).toEqual([
+        'populate:any-as-fhirpath',
+      ]);
+    });
+
     it('is read by nothing when it is not the first on the item', () => {
       expect(
         readersAt(group([context('p'), context('q')]), '/item/0/extension/1/valueExpression'),
@@ -327,6 +340,27 @@ describe('readBy', () => {
         targetConstraint(cql(), { severity: { url: 'severity', valueCode: 'warning' } }),
       );
       expect(readersAt(resource, '/item/0/extension/0/extension/2/valueExpression')).toEqual([
+        'renderer:any-as-fhirpath',
+      ]);
+    });
+
+    it('is read by nothing when a later one in the form has the same key', () => {
+      const resource = questionnaire({
+        extension: [targetConstraint(cql())],
+        item: [item({ extension: [targetConstraint(fhirpath())] })],
+      });
+      expect(readersAt(resource, '/extension/0/extension/2/valueExpression')).toEqual([]);
+      expect(readersAt(resource, '/item/0/extension/0/extension/2/valueExpression')).toEqual([
+        'renderer:any-as-fhirpath',
+      ]);
+    });
+
+    it('is not replaced by a later one with the same key that the renderer does not build', () => {
+      const resource = questionnaire({
+        extension: [targetConstraint(cql())],
+        item: [item({ extension: [targetConstraint(fhirpath(), { human: undefined })] })],
+      });
+      expect(readersAt(resource, '/extension/0/extension/2/valueExpression')).toEqual([
         'renderer:any-as-fhirpath',
       ]);
     });

@@ -10,7 +10,8 @@ const rewrite =
   'rewrite it in FHIRPath with the language text/fhirpath; to use server data, fetch it in an ' +
   'application/x-fhir-query variable on this item or an ancestor and reference that variable';
 const queryCode =
-  'Smart Forms runs a query in a variable only when its language is application/x-fhir-query';
+  'set the language of this variable to application/x-fhir-query: Smart Forms runs a query in ' +
+  'a variable only with that code';
 
 const item = (fields: Record<string, unknown> = {}) => ({
   linkId: 'age',
@@ -232,6 +233,27 @@ describe(ruleId, () => {
         expect(await check(resource)).toEqual([]);
       },
     );
+
+    it.each(['calculatedExpression', 'enableWhenExpression'])(
+      'but reports a text/cql %s whose text/fhirpath alternative has no expression text',
+      async (name) => {
+        const resource = onItem(
+          ext(`${sdc}${name}`, expression('text/cql', 'true')),
+          ext(`${sdc}${name}`, { language: 'text/fhirpath', reference: 'Library/x' }),
+        );
+        expect(await check(resource)).toHaveLength(1);
+      },
+    );
+
+    it('but reports a text/cql enableWhenExpression when the first text/fhirpath one has no text', async () => {
+      // The renderer uses only the first text/fhirpath enableWhenExpression.
+      const resource = onItem(
+        ext(`${sdc}enableWhenExpression`, expression('text/cql', 'true')),
+        ext(`${sdc}enableWhenExpression`, { language: 'text/fhirpath', expression: '' }),
+        ext(`${sdc}enableWhenExpression`, expression('text/fhirpath', 'true')),
+      );
+      expect(await check(resource)).toHaveLength(1);
+    });
 
     it('on a text/cql cqf-expression next to a text/fhirpath one', async () => {
       const resource = questionnaire({

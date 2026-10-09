@@ -56,7 +56,8 @@ const message = (extension: string, element: string, language: string, lost: str
 // A runtime reason, not a spelling one, so it does not contradict core's rule against suggesting
 // the R4 code for the R5 one.
 const queryCodeHelp =
-  'Smart Forms runs a query in a variable only when its language is application/x-fhir-query';
+  'set the language of this variable to application/x-fhir-query: Smart Forms runs a query in ' +
+  'a variable only with that code';
 const rewriteHelp =
   'rewrite it in FHIRPath with the language text/fhirpath; to use server data, fetch it in an ' +
   'application/x-fhir-query variable on this item or an ancestor and reference that variable';
@@ -67,16 +68,23 @@ function siblingsOf(document: QuestionnaireDocument, site: LanguageSite): unknow
   return holder === undefined ? [] : holder.siblings.filter((_, index) => index !== holder.index);
 }
 
-// Whether the element has a text/fhirpath extension of the same URL, which the renderer uses
-// instead: the ignored one is an alternative, not lost behaviour.
+// The locations where the renderer uses only the first text/fhirpath extension of a URL; at the
+// other filtering locations it uses every one with expression text.
+const firstOnly: readonly string[] = [ENABLE_WHEN_EXPRESSION, ANSWER_EXPRESSION];
+
+// Whether the renderer runs a text/fhirpath extension of the same URL on the element instead: the
+// ignored one is then an alternative, not lost behaviour. One without expression text runs nothing.
 function hasFhirPathAlternative(document: QuestionnaireDocument, site: LanguageSite): boolean {
-  return siblingsOf(document, site).some(
-    (each) =>
-      isObject(each) &&
-      each.url === site.location.url &&
-      isObject(each.valueExpression) &&
-      each.valueExpression.language === FHIRPATH,
+  const alternatives = siblingsOf(document, site).flatMap((each) =>
+    isObject(each) &&
+    each.url === site.location.url &&
+    isObject(each.valueExpression) &&
+    each.valueExpression.language === FHIRPATH
+      ? [each.valueExpression]
+      : [],
   );
+  const used = firstOnly.includes(site.location.url) ? alternatives.slice(0, 1) : alternatives;
+  return used.some(({ expression }) => typeof expression === 'string' && expression !== '');
 }
 
 // Whether the element has a variable of the same name that Smart Forms accepts, which sets the

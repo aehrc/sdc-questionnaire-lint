@@ -1,5 +1,12 @@
 import type { ExpressionSite, QuestionnaireDocument } from 'sdc-questionnaire-lint';
-import { extensionOf, isObject, itemOf, type Json, type PlacedExtension } from '../document.js';
+import {
+  extensionOf,
+  isObject,
+  itemOf,
+  type Json,
+  type PlacedExtension,
+  resolve,
+} from '../document.js';
 import {
   ANSWER_OPTIONS_TOGGLE_EXPRESSION,
   INITIAL_EXPRESSION,
@@ -96,17 +103,23 @@ function itemsOnPath(document: QuestionnaireDocument, site: ExpressionSite): Jso
   return path;
 }
 
-// The itemPopulationContexts populate reads, by name to the linkId of their group: on every item
-// with child items, the first of its URL when it has a name and text; a later one of the same name
-// replaces an earlier one (readPopulationExpressions.ts:47-63).
-function readContexts(document: QuestionnaireDocument): Map<string, unknown> {
-  const contexts = new Map<string, unknown>();
+// An itemPopulationContext populate keeps: its Expression and the linkId of its group.
+interface ReadContext {
+  readonly expression: Json;
+  readonly linkId: unknown;
+}
+
+// The itemPopulationContexts populate reads, by name: on every item with child items, the first of
+// its URL when it has a name and text; a later one of the same name replaces an earlier one, which
+// is then never evaluated (readPopulationExpressions.ts:47-63).
+function readContexts(document: QuestionnaireDocument): Map<string, ReadContext> {
+  const contexts = new Map<string, ReadContext>();
   const visit = (items: readonly unknown[]): void => {
     for (const item of items) {
       if (!isObject(item) || children(item).length === 0) continue;
       const context = firstOfUrl(item.extension, ITEM_POPULATION_CONTEXT)?.valueExpression;
       if (isObject(context) && nonEmptyString(context.expression) && nonEmptyString(context.name)) {
-        contexts.set(context.name, item.linkId);
+        contexts.set(context.name, { expression: context, linkId: item.linkId });
       }
       visit(children(item));
     }
@@ -128,7 +141,7 @@ function initialExpressionText(item: unknown): string | undefined {
 // repetitions of a repeating group from the first child whose context has a value, and evaluates
 // no child otherwise. The name is the text between the first % and the first .
 // (constructResponse.ts:574-594, readPopulationExpressions.ts:143-148).
-function childNamesContext(group: Json, contexts: Map<string, unknown>): boolean {
+function childNamesContext(group: Json, contexts: Map<string, ReadContext>): boolean {
   return children(group).some((child) => {
     const text = initialExpressionText(child);
     const name = text?.substring(text.indexOf('%') + 1, text.indexOf('.'));
@@ -165,9 +178,9 @@ function populateEvaluatesInitialExpression(
     if (!childNamesContext(item, contexts)) return false;
     const next = path[index + 1];
     if (index === ancestors.length - 1) return true;
-    const name = [...contexts].find(([, linkId]) => linkId === next?.linkId)?.[0];
-    if (name === undefined) return false;
-    contexts = new Map([[name, next?.linkId]]);
+    const own = [...contexts].find(([, context]) => context.linkId === next?.linkId);
+    if (own === undefined) return false;
+    contexts = new Map([own]);
   }
   // The item's parent is not a repeating group, and populate leaves items below a context out of
   // the expressions it evaluates once.
@@ -183,6 +196,44 @@ function holderOf(
 
 const readPopulationExpressions = `${populateSource}readPopulationExpressions.ts`;
 const constructResponse = `${populateSource}constructResponse.ts`;
+// The key of a targetConstraint extension the renderer builds, or undefined when it builds none.
+// It finds each sub-extension as constructTargetConstraint does, and keeps one only with a key.
+function builtConstraintKey(extension: Json): string | undefined {
+  const find = (url: string, valid: (each: Json) => boolean): Json | undefined =>
+    subExtensions(extension, url).find(valid);
+  const key = find('key', (each) => typeof each.valueId === 'string');
+  const built =
+    key !== undefined &&
+    find('severity', (each) => each.valueCode === 'error' || each.valueCode === 'warning') &&
+    find('expression', (each) => isObject(each.valueExpression)) &&
+    find('human', (each) => nonEmptyString(each.valueString));
+  return built && nonEmptyString(key.valueId) ? key.valueId : undefined;
+}
+
+// The targetConstraints the renderer keeps, by key: root extensions, then each item's extensions
+// before its child items'; a later one with the same key replaces an earlier one, which is then
+// never evaluated (extractTargetConstraint.ts:55-90).
+function keptConstraints(document: QuestionnaireDocument): Map<string, Json> {
+  const kept = new Map<string, Json>();
+  const keep = (extensions: unknown): void => {
+    for (const extension of Array.isArray(extensions) ? (extensions as unknown[]) : []) {
+      if (!isObject(extension) || extension.url !== TARGET_CONSTRAINT) continue;
+      const key = builtConstraintKey(extension);
+      if (key !== undefined) kept.set(key, extension);
+    }
+  };
+  const visit = (items: readonly unknown[]): void => {
+    for (const item of items) {
+      if (!isObject(item)) continue;
+      keep(item.extension);
+      visit(children(item));
+    }
+  };
+  keep(document.resource.extension);
+  visit(children(document.resource));
+  return kept;
+}
+
 const extractTargetConstraint = `${rendererSource}utils/questionnaireStoreUtils/extractTargetConstraint.ts`;
 
 const targetConstraint = { url: TARGET_CONSTRAINT };
@@ -194,16 +245,19 @@ const renderer140: readonly Prerequisite[] = Object.freeze([
     'a key (valueId), a severity (valueCode error or warning) and a human (valueString)',
     (document, site) => {
       const holder = holderOf(document, site);
-      if (holder === undefined) return false;
-      const has = (url: string, valid: (each: Json) => boolean): boolean =>
-        subExtensions(holder.extension, url).some(valid);
-      return (
-        has('key', (each) => nonEmptyString(each.valueId)) &&
-        has('severity', (each) => each.valueCode === 'error' || each.valueCode === 'warning') &&
-        has('human', (each) => nonEmptyString(each.valueString))
-      );
+      return holder !== undefined && builtConstraintKey(holder.extension) !== undefined;
     },
     source(extractTargetConstraint, 11, 53),
+  ),
+  prerequisite(
+    targetConstraint,
+    'no later targetConstraint in the form with the same key',
+    (document, site) => {
+      const holder = holderOf(document, site);
+      const key = holder === undefined ? undefined : builtConstraintKey(holder.extension);
+      return key !== undefined && keptConstraints(document).get(key) === holder?.extension;
+    },
+    source(extractTargetConstraint, 55, 90),
   ),
   prerequisite(
     targetConstraint,
@@ -274,6 +328,15 @@ const populate471: readonly Prerequisite[] = Object.freeze([
     },
     source(readPopulationExpressions, 53, 63),
     source(readPopulationExpressions, 128, 141),
+  ),
+  prerequisite(
+    { url: ITEM_POPULATION_CONTEXT },
+    'no later itemPopulationContext in the form with the same name',
+    (document, site) =>
+      site.name !== undefined &&
+      readContexts(document).get(site.name)?.expression ===
+        resolve(document, site.expressionPointer),
+    source(readPopulationExpressions, 56, 63),
   ),
 ]);
 

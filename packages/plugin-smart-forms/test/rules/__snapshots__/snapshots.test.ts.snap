@@ -45,7 +45,7 @@ exports[`smart-forms/unsupported-expression-language > prints its finding in JSO
       "text": "Condition?clinical-status=active",
     },
     "fingerprint": "2ff56b25b7020cc19b18d5aea452b8b7bf667c081391aec089e7b9585527529f",
-    "help": "Smart Forms runs a query in a variable only when its language is application/x-fhir-query",
+    "help": "set the language of this variable to application/x-fhir-query: Smart Forms runs a query in a variable only with that code",
     "jsonLocation": {
       "file": "Questionnaire-Q.json",
       "linkId": "conditions",
@@ -73,5 +73,5 @@ exports[`smart-forms/unsupported-expression-language > prints its finding in tex
   Condition?clinical-status=active
   location: compiled JSON; Questionnaire/Q; /item/0/extension/0/valueExpression/expression
   note: FSH line not found, no FSH sources are available
-  help: Smart Forms runs a query in a variable only when its language is application/x-fhir-query"
+  help: set the language of this variable to application/x-fhir-query: Smart Forms runs a query in a variable only with that code"
 `;
