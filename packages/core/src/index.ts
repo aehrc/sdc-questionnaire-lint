@@ -45,9 +45,13 @@ export type {
   LocalResource,
   QueryFragment,
   QuestionnaireDocument,
-  Scope,
   SiteItem,
 } from './analysis/expression-site.js';
+// Core's name analysis for plugin rules (API stage B, docs/architecture.md § What a plugin can
+// import).
+export type { AvailableVariables, Variable } from './analysis/available-variables.js';
+export type { Declaration, DeclarationKind } from './analysis/declarations.js';
+export type { VariableReference } from './analysis/fhirpath.js';
 export type {
   LintPlugin,
   LintRule,

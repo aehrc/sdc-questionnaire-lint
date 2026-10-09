@@ -1,10 +1,7 @@
 // The plugin contract (core-plan §5.2). Exported from the package, so changes are public API changes.
-import type {
-  ExpressionSite,
-  ExpressionUseCase,
-  QuestionnaireDocument,
-  Scope,
-} from '../analysis/expression-site.js';
+import type { AvailableVariables } from '../analysis/available-variables.js';
+import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
+import type { VariableReference } from '../analysis/fhirpath.js';
 import type { OffsetRange, Severity } from '../report/types.js';
 
 export type { Severity };
@@ -41,7 +38,17 @@ export interface RuleFinding {
 export interface RuleContext {
   readonly document: QuestionnaireDocument;
   readonly sites: readonly ExpressionSite[];
-  scopeAt(site: ExpressionSite, useCase: ExpressionUseCase): Scope;
+  // The %name references in a site's FHIRPath text, in source order, fragments included; [] when
+  // the text parses and references nothing. undefined when the site has no FHIRPath analysis: its
+  // language is not text/fhirpath, it has no text, or the text does not parse. A rule treats
+  // undefined as "cannot check", never as "no references". The array and its references are
+  // frozen.
+  referencesAt(site: ExpressionSite): readonly VariableReference[] | undefined;
+  // The names an expression can reference at a site, and the variable each name resolves to;
+  // undefined at an uncatalogued site, where name analysis cannot run.
+  variablesAt(site: ExpressionSite): AvailableVariables | undefined;
+  // Both return undefined for an object that is not one of sites: they compare by identity, so a
+  // copy of a site is not one.
   // The component versions the run checks against for this rule's namespace, such as
   // { renderer: '1.4.0', populate: '4.7.1' }; {} when the plugin declares no compat.
   readonly compat: Readonly<Record<string, string>>;

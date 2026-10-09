@@ -1,5 +1,7 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
 import { analyseDocument } from '../../src/analysis/document-analysis.js';
+import type { ExpressionSite, QuestionnaireDocument } from '../../src/analysis/expression-site.js';
+import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import { lint } from '../../src/index.js';
 import type { LintRule, RuleContext, RuleFinding } from '../../src/plugins/contract.js';
 import type { ResolvedRule } from '../../src/plugins/rule-set.js';
@@ -378,6 +380,156 @@ describe('runRules on what a rule reports', () => {
       ctx.report({ site: textSite, message: 'Ranged.', range: { startOffset: 0, endOffset: 7 } });
     });
     expect(runRules(inBundle, [rule])).toHaveLength(2);
+  });
+});
+
+describe('RuleContext name analysis (API stage B)', () => {
+  const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
+  const VARIABLE = 'http://hl7.org/fhir/StructureDefinition/variable';
+  const expression = (language: string, text: string, name?: string) => ({
+    ...(name === undefined ? {} : { name }),
+    language,
+    expression: text,
+  });
+  const calculated = (language: string, text: string) => ({
+    url: `${sdc}calculatedExpression`,
+    valueExpression: expression(language, text),
+  });
+  const document: QuestionnaireDocument = {
+    file: 'Q.json',
+    resource: {
+      resourceType: 'Questionnaire',
+      extension: [
+        { url: VARIABLE, valueExpression: expression('text/fhirpath', "'T'", 'title') },
+        {
+          url: VARIABLE,
+          valueExpression: expression(
+            'application/x-fhir-query',
+            'Observation?subject={{%patient.id}}',
+            'obs',
+          ),
+        },
+        { url: 'http://example.org/x', valueExpression: expression('text/fhirpath', '%title') },
+      ],
+      item: [
+        {
+          linkId: 'a',
+          extension: [
+            calculated('text/fhirpath', '%title & %qitem.linkId'),
+            calculated('text/fhirpath', "'x'"),
+            calculated('text/cql', '%title'),
+            calculated('text/fhirpath', '%title.('),
+            calculated('text/fhirpath', "defineVariable('v' + 'w', 1).select(%v)"),
+          ],
+        },
+      ],
+    },
+    resourcePointer: '',
+    localResources: [],
+  };
+  const sites = findExpressionSites(document);
+  const analysed = {
+    input: doc.input,
+    document,
+    sites,
+    analysis: analyseDocument(document, sites, ['host']),
+  };
+  const at = (carrier: ExpressionSite['carrier'], text: string): ExpressionSite => {
+    const found = sites.find((site) => site.carrier === carrier && site.text === text);
+    if (found === undefined) throw new Error(`no ${carrier} site with ${text}`);
+    return found;
+  };
+
+  // What a plugin rule receives from ctx for each of the given sites.
+  function received<T>(read: (ctx: RuleContext, site: ExpressionSite) => T, of: ExpressionSite[]) {
+    const results: T[] = [];
+    const rule = {
+      meta: { description: 'Records what it receives.', defaultSeverity: 'error' },
+      check: (ctx: RuleContext) => {
+        for (const site of of) results.push(read(ctx, site));
+      },
+    } as LintRule;
+    runRules(analysed, [
+      { id: 'test/rule', namespace: 'test', rule, setting: 'error', compat: {} },
+    ]);
+    return results;
+  }
+  const references = (...of: ExpressionSite[]) =>
+    received((ctx, site) => ctx.referencesAt(site), of);
+
+  it('gives the references of a FHIRPath site, with offsets and complete', () => {
+    expect(references(at('expression', '%title & %qitem.linkId'))).toEqual([
+      [
+        { name: 'title', startOffset: 0, endOffset: 6, complete: true },
+        { name: 'qitem', startOffset: 9, endOffset: 15, complete: true },
+      ],
+    ]);
+    expect(references(at('expression', "defineVariable('v' + 'w', 1).select(%v)"))).toEqual([
+      [{ name: 'v', startOffset: 36, endOffset: 38, complete: false }],
+    ]);
+  });
+
+  it('gives [] for FHIRPath that references nothing', () => {
+    expect(references(at('expression', "'x'"))).toEqual([[]]);
+  });
+
+  it('gives undefined where there is no FHIRPath analysis', () => {
+    const cql = sites.find((site) => site.language === 'text/cql');
+    if (cql === undefined) throw new Error('no CQL site');
+    const query = at('expression', 'Observation?subject={{%patient.id}}');
+    expect(references(cql, query, at('expression', '%title.('))).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it('gives undefined for a copy of a site', () => {
+    const copy = { ...at('expression', "'x'") };
+    expect(
+      received((ctx, site) => [ctx.referencesAt(site), ctx.variablesAt(site)], [copy]),
+    ).toEqual([[undefined, undefined]]);
+  });
+
+  it('gives the references of a fragment site', () => {
+    expect(references(at('fragment', '%patient.id'))).toEqual([
+      [{ name: 'patient', startOffset: 0, endOffset: 8, complete: true }],
+    ]);
+  });
+
+  it('freezes the references, so a rule cannot change what later rules and suppressions read', () => {
+    const [found] = references(at('expression', '%title & %qitem.linkId'));
+    expect(Object.isFrozen(found)).toBe(true);
+    expect(() => (found as unknown as { name: string }[]).push({ name: 'x' })).toThrow(TypeError);
+    expect(() => {
+      (found?.[0] as { name: string }).name = 'x';
+    }).toThrow(TypeError);
+  });
+
+  it('gives no variables at an uncatalogued site', () => {
+    const uncatalogued = sites.find((site) => !site.catalogued);
+    expect(uncatalogued).toBeDefined();
+    expect(
+      received((ctx, site) => ctx.variablesAt(site), [uncatalogued as ExpressionSite]),
+    ).toEqual([undefined]);
+  });
+
+  it('resolves built-in, declared and host names', () => {
+    const item = at('expression', "'x'");
+    const root = at('fragment', '%patient.id');
+    const [atItem, atRoot] = received((ctx, site) => ctx.variablesAt(site), [item, root]);
+    expect(atItem?.resolve('questionnaire')).toEqual({ name: 'questionnaire', origin: 'builtin' });
+    expect(atItem?.resolve('qitem')).toEqual({ name: 'qitem', origin: 'builtin' });
+    expect(atRoot?.resolve('qitem')).toBeUndefined();
+    expect(atItem?.resolve('title')).toMatchObject({
+      origin: 'declaration',
+      declaration: {
+        name: 'title',
+        kind: 'variable',
+        pointer: '/extension/0/valueExpression/expression',
+      },
+    });
+    expect(atItem?.resolve('host')).toEqual({ name: 'host', origin: 'host' });
   });
 });
 
