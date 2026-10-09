@@ -42,6 +42,9 @@ export interface RuleContext {
   readonly document: QuestionnaireDocument;
   readonly sites: readonly ExpressionSite[];
   scopeAt(site: ExpressionSite, useCase: ExpressionUseCase): Scope;
+  // The component versions the run checks against for this rule's namespace, such as
+  // { renderer: '1.4.0', populate: '4.7.1' }; {} when the plugin declares no compat.
+  readonly compat: Readonly<Record<string, string>>;
   // Always undefined: the config cannot pass rule options yet.
   readonly options: unknown;
   report(finding: RuleFinding): void;
@@ -71,10 +74,22 @@ export interface LintRule {
   check(ctx: RuleContext): void;
 }
 
+// The runtime versions a plugin's rules can check against (core-plan §2.3). Each component's
+// versions are verified independently, so any combination of listed versions can be selected.
+export interface PluginCompat {
+  // The verified versions of each component, oldest to newest: "latest" selects the last one.
+  // Core treats versions as opaque strings and never compares them.
+  verified: Readonly<Record<string, readonly string[]>>;
+  // The components a config's explicit compat object must name; the others may be omitted.
+  required: readonly string[];
+}
+
 // A plugin: listed in plugins in an .mjs config, it registers its rules under its namespace.
 export interface LintPlugin {
   // name is the rule namespace: smart-forms plus flat-variable-context gives
   // smart-forms/flat-variable-context.
   meta: { name: string; version: string };
   rules: Readonly<Record<string, LintRule>>;
+  // Declared by a plugin that checks forms against runtime versions selected in config compat.
+  compat?: PluginCompat;
 }

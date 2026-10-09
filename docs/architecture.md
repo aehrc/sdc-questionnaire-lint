@@ -41,7 +41,9 @@ The CLI (`cli/run.ts`) calls `lint()` and passes the report to one of the two fo
 - the reserved `lint` namespace (`lintPlugin` in `builtin.ts`), used only for `lint/stale-suppression`;
 - the plugins listed in the config.
 
-It validates each plugin's shape against the plugin contract (`contract.ts`), rejects a reserved or duplicate namespace, and gives each rule its effective setting: the configured one, or the rule's default severity. It also rejects unknown rule IDs in `rules` and `suppress`, and suggests a similar name when one exists. All of this happens before any input is read, so `lint` and `explain` fail the same way.
+It validates each plugin's shape against the plugin contract (`contract.ts`), rejects a reserved or duplicate namespace, and gives each rule its effective setting: the configured one, or the rule's default severity. It also rejects unknown rule IDs in `rules` and `suppress`, and suggests a similar name when one exists.
+
+It then resolves the config's `compat` against the versions each plugin declares in `LintPlugin.compat`: `"latest"`, the default, takes the last, newest, verified version of every component, and an explicit object must name exact verified versions of the required components. Core treats versions as opaque strings. The result becomes the report's `run.compat`, and each rule's `compat`, frozen, the versions of its own namespace. All of this happens before any input is read, so `lint` and `explain` fail the same way.
 
 ## 3. Inputs (`inputs/`)
 
@@ -80,7 +82,7 @@ The analysis helpers:
 
 ## 5. Rules (`rules/`, run by `run/rules.ts`)
 
-`runRules` calls each rule that is not off once per Questionnaire. A rule's `check(ctx)` is synchronous; `ctx` provides `document`, `sites`, `scopeAt()` (a stub: core's available variables stay internal until a plugin rule needs them), `options` (always `undefined` for now) and `report()`. An `sdc` rule also receives the document's analysis as a second argument (`CoreRule` in `plugins/core-rule.ts`); a plugin cannot register an `sdc` rule.
+`runRules` calls each rule that is not off once per Questionnaire. A rule's `check(ctx)` is synchronous; `ctx` provides `document`, `sites`, `scopeAt()` (a stub: core's available variables stay internal until a plugin rule needs them), `compat` (the versions selected for the rule's namespace; `{}` for a plugin without compat), `options` (always `undefined` for now) and `report()`. An `sdc` rule also receives the document's analysis as a second argument (`CoreRule` in `plugins/core-rule.ts`); a plugin cannot register an `sdc` rule.
 
 `rules/describe.ts` names the element a finding is on, by the item's text and linkId, and places a finding about a declaration at its Expression or its extension.
 

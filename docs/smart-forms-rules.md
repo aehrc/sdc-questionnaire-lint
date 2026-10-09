@@ -2,16 +2,16 @@
 
 Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §2.1, §2.3, §4.2, §4.3 and §5, and the [plugin follow-ups](core-rules.md#plugin-follow-ups-not-in-this-plan) of the core rules plan. Researched on 2026-10-09 against Smart Forms commit `7e64a22f` (renderer 1.4.0, sdc-populate 4.7.1, sdc-template-extract 1.0.15). Revised the same day after a review: its runtime claims were checked against the source, and the population claims were reproduced with the published `@aehrc/sdc-populate@4.7.1`.
 
-**Status: draft.** The decisions S1–S17 are proposals until reviewed; once agreed, record their overrides of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
+**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09; the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
-Nothing of the plugin exists yet: `packages/plugin-smart-forms/src/index.ts` is a placeholder, config has no `compat` key, and `lint.ts` reports `run.compat: {}`.
+P0 is done: the plugin loads with no rules, config `compat` is resolved against its verified versions, and the report names them in `run.compat`. No Smart Forms rule exists yet.
 
 ## How to work on a slice
 
 1. Pick the next slice in the [slice table](#slices-at-a-glance) whose status is `todo` and whose dependencies are done.
 2. Read the slice section, every decision it cites (Sn, and Dn in [core-rules.md](core-rules.md#decisions)), the [GLOSSARY](../GLOSSARY.md) terms it uses, and the [runtime facts](#reference-smart-forms-runtime-facts) it relies on.
 3. Re-check every runtime fact the slice relies on against the pinned source before writing the rule, and reproduce it where a harness exists (S10). Several facts in the first draft of this plan were wrong until reproduced.
-4. If the slice has an [open item](#open-items), ask the user to settle it before the PR merges.
+4. If a decision the slice cites is not accepted, or the slice has an [open item](#open-items), ask the user to settle it before the PR merges. An unresolved decision blocks only the first slice that depends on it.
 5. Complete the [checklist for every slice PR](#checklist-for-every-slice-pr), then set the slice's status to `done`.
 
 ## Slices at a glance
@@ -20,7 +20,7 @@ One PR per slice, in this order.
 
 | Slice | Delivers | Default severity | Depends on | Status |
 | :- | :- | :- | :- | :- |
-| [P0](#p0-plugin-skeleton-and-compat) | Plugin skeleton, `compat` config, `run.compat`, `ctx.compat`, plugin test helper, corpus with the plugin | – | – | todo |
+| [P0](#p0-plugin-skeleton-and-compat) | Plugin skeleton, `compat` config, `run.compat`, `ctx.compat`, plugin test helper, corpus with the plugin | – | – | done |
 | [P1](#p1-language-rules) | API stage A (language lookups), the site-eligibility helper, `smart-forms/unsupported-expression-language` | error | P0 | todo |
 |  | `smart-forms/expression-evaluated-as-fhirpath` | error | P0 | todo |
 | [P2](#p2-smart-formsquestionnaire-variable-unavailable) | API stage B (`referencesAt`, `variablesAt`), populate reproduction harness, `smart-forms/questionnaire-variable-unavailable` | error | P1 | todo |
@@ -214,7 +214,7 @@ Document this in [cli.md](cli.md) and the plugin README.
 
 - A plugin test helper writes a temporary `.mjs` config that imports the plugin's built `dist` by absolute file URL, and calls `lint({ cwd, configPath })` in-process. This already works (`packages/core/test/lint.test.ts`, `test/support/tmp.ts`). Do not add an inline `config` option to `LintOptions` for tests: it would need its own answers for the base directory of `files`, `source.fsh` and suppression paths, the config path shown in the report, and the `.mjs`-only rule for plugins.
 - CLI tests reuse the inline-plugin `.mjs` pattern in `packages/core/test/cli/lint.test.ts`.
-- Give the plugin's Vitest project the same build global setup core has, or confirm that `npm run check` builds both packages before the plugin tests run.
+- Both Vitest projects use one shared global setup that builds core at most once per run; the plugin's then builds the plugin (P0).
 - Add a plugin docs test like core's `docs.test.ts`, which covers only built-in rules.
 
 ## Slices
@@ -223,33 +223,41 @@ Document this in [cli.md](cli.md) and the plugin README.
 
 Decisions: S1, S3, S4, S7, S11.
 
+P0 resolves the compatibility target; it adds no Smart Forms findings and runs no compatibility checks. `run.compat` names the selected versions that enabled plugin rules run against, and its presence does not imply any coverage.
+
 **Core:**
 - Add `compat` to `knownKeys` and `LintConfig` (`config/validate.ts`, `config/types.ts`). Shape: `compat?: { [namespace]: "latest" | { [component]: string } }`. `validateConfig` checks the shape only.
+- `validatePlugin` checks a plugin's `compat`: `verified` is a non-empty object whose lists are non-empty, unique, non-empty strings, none of them `"latest"`; `required` holds unique keys of `verified`. Failures point at `/plugins/<i>/compat/…`.
 - `resolveRuleSet` checks the meaning, so `lint` and `explain` fail the same way before inputs are read. Each is `CONFIG_INVALID` with a pointer:
   - `/compat/<ns>` names no listed plugin. Help: list the plugin in `plugins`.
   - The plugin declares no compat.
   - A component is unknown, or a required component is missing.
   - A version is not verified. Help lists the verified versions; never fall back to the nearest one (core-plan §2.3).
 - A listed plugin with compat and no `compat` entry gets `"latest"` (C1).
-- `"latest"` selects every component, each at its highest verified version in the installed plugin, not npm's latest. npm already has renderer 1.5.0, populate 4.7.2 and template-extract 1.0.16; they stay unverified until a PR verifies them.
-- `lint.ts` fills `run.compat` from the resolved versions, always exact. The report schema requires all three Smart Forms components today (`smartFormsVersions`); make `template-extract` optional there and in [report-format.md](report-format.md). `report/text.ts` already prints the Smart Forms line.
-- `ctx.compat` (stage 0).
+- `"latest"` selects every component, each at the last, newest, entry of its verified list in the installed plugin, not npm's latest (S3). npm already has renderer 1.5.0, populate 4.7.2 and template-extract 1.0.16; they stay unverified until a PR verifies them.
+- `lint.ts` fills `run.compat` from the resolved versions, always exact. Make `template-extract` optional in the report schema (`smartFormsVersions`), `SmartFormsVersions` and [report-format.md](report-format.md); `schemaVersion` stays 1 before the first release. `report/text.ts` prints the Smart Forms line without template-extract when it is not selected.
+- `ctx.compat` (stage 0): a frozen copy of the resolved versions for the rule's own namespace; `{}` for `sdc` and for a plugin without compat.
 
-**Plugin contract addition:** `LintPlugin.compat?: { verified: Readonly<Record<string, readonly string[]>>; required: readonly string[] }`. The components are the keys of `verified`; `required` lists those an explicit object must name. Core reads only this.
+**Plugin contract addition:** `LintPlugin.compat?: { verified: Readonly<Record<string, readonly string[]>>; required: readonly string[] }`. The components are the keys of `verified`, each list oldest to newest; `required` lists those an explicit object must name. Core reads only this.
 
 **Plugin:**
 - Default export `{ meta: { name: 'smart-forms', version }, rules: {}, compat }`, with the version from a `package.json` JSON import.
 - Components: `renderer` and `populate` (required), `template-extract` (optional). Verified: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.
-- Runtime facts as typed modules in `src/facts/` (S4). Remove `compat` from `files` in `package.json`; nothing ships outside `dist`.
-- Peer range: the core minor that ships `compat`. A rule that receives no `ctx.compat` throws, so an older core fails with `RULE_CRASH` instead of running silently.
+- No runtime facts yet: each arrives with its first consumer (S4). Remove `compat` from `files` in `package.json`; nothing ships outside `dist`.
+- Peer range stays `^0.1.0`: core is unreleased, so 0.1.0 is the version that ships `compat`. From P1, a rule that receives no `ctx.compat` throws, so an older core fails with `RULE_CRASH` instead of running silently.
+- Tests build through one shared global setup that builds core at most once per Vitest run, then the plugin, so the plugin's tests also run alone from a clean checkout.
 
-**Corpus:** add a plugin mode to `npm run corpus`: build both packages, lint with a committed `packages/plugin-smart-forms/scripts/corpus.config.mjs` that imports `../dist/index.js` with `compat: 'latest'`, and compare with a separate snapshot `corpus/findings.smart-forms.json`. Core slices keep their snapshot and stay independent of the plugin build.
+**Corpus:** `npm run corpus -- --smart-forms` builds both packages, lints with the committed `packages/plugin-smart-forms/scripts/corpus.config.mjs` (it imports `../dist/index.js`, with `compat: 'latest'`), prints the Smart Forms versions from `run.compat`, and compares with a separate snapshot, `corpus/findings.smart-forms.json`. The snapshot keeps findings of every namespace, without messages; `--smart-forms --update` writes only that snapshot. Core slices keep their snapshot and stay independent of the plugin build.
 
-**Docs:** cli.md (the `compat` key, its default and errors), report-format.md (the compat `CONFIG_INVALID` cases, optional `template-extract`), GLOSSARY ("Compatibility matrix", "Component"), plan-amendments.md (S3, S7).
+**Docs:** cli.md (the `compat` key, its default and errors), report-format.md (the compat `CONFIG_INVALID` cases, optional `template-extract`), architecture.md (compat resolution and `ctx.compat`), GLOSSARY ("Compatibility matrix", "Component"), plan-amendments.md (S1, S3, S4, S7, S11 and the merge gate).
 
-**Tests:** `latest` resolves all three; an object with renderer and populate resolves without template-extract; an unknown version, an unknown component, a missing required component and a namespace with no plugin each fail with their pointer; text and JSON reports show the versions; `explain` fails on the same config errors.
+**Tests:**
+- Resolution: `latest` resolves all three; no entry resolves like `latest`; with two versions per component, `latest` takes the last; an object with renderer and populate resolves without template-extract; an unknown version, an unknown component, a missing required component, a per-component `"latest"` and a namespace with no plugin each fail with their pointer; `explain` fails on the same config errors.
+- Plugin validation: each invariant of `compat` above.
+- Runner: a synthetic plugin rule receives its own namespace's versions as a frozen copy; a plugin without compat receives `{}`; with two compat plugins, neither sees the other's versions.
+- Report: text and JSON show the versions, with and without template-extract.
 
-**Done when** the plugin loads with no rules, the report names the selected Smart Forms versions, and the corpus command runs with the plugin.
+**Done when** `npm run check` passes, `npm run corpus -- --smart-forms` prints `Smart Forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.`, and its findings are identical to the core-only run's.
 
 ### P1. Language rules
 
@@ -455,11 +463,11 @@ Runs only when `template-extract` is selected in `compat` (S3).
 
 ## Decisions
 
-All proposed on 2026-10-09 and revised after review; none accepted yet.
+Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09 and are recorded in [plan-amendments.md](plan-amendments.md); the others are proposals.
 
 ### Model
 
-- **S1. The supported integration is population followed by rendering, assuming population succeeded.** The app populates only with a SMART client, a patient and a user, and only for an unedited, unsaved response; when population fails it renders without populated context. After a successful population it passes `populatedContext` as `additionalContext` (`usePopulate.tsx:62-151`), which holds `%patient` only when a patient launchContext is declared. Template extraction is a separate step on the response, checked when selected (S3). Renderer-only and extraction-only targets are deferred.
+- **S1. The supported integration is population followed by rendering, assuming population succeeded.** The app populates only with a SMART client, a patient and a user, and only for an unedited, unsaved response; when population fails it renders without populated context. After a successful population it passes `populatedContext` as `additionalContext` (`usePopulate.tsx:62-151`), which holds `%patient` only when a patient launchContext is declared. Template extraction is a separate step on the response, checked when selected (S3). Renderer-only and extraction-only targets are deferred: a renderer used without population, and a run where population failed, are outside the supported integration, and rules may report or miss findings there.
   _Why:_ this is the pipeline the app runs when it works, and a rule that assumed the renderer alone would report every itemPopulationContext reference in GP CCMP. Suppressions remove false findings in other integrations, but cannot add findings S14 omits for them, which is why those targets are deferred rather than claimed.
 - **S2. Plugin rules map a location to a component through the runtime facts, never through `site.useCases`.**
   _Why:_ D20 made use cases follow the SDC table, not Smart Forms' evaluators. Populate evaluates initialExpression without a language check although SDC files it under both rendering and population.
@@ -470,11 +478,11 @@ All proposed on 2026-10-09 and revised after review; none accepted yet.
 
 ### Compat
 
-- **S3. `compat` is validated by core and resolved against the plugin's declared versions.** `"latest"` is the default and selects every component at its newest verified version in the installed plugin. An explicit object must name renderer and populate with exact verified versions, and may omit template-extract; extraction rules run only when template-extract is selected. There is no per-component `"latest"` and no nearest-version fallback.
+- **S3. `compat` is validated by core and resolved against the plugin's declared versions.** `"latest"` is the default and selects every component at its newest verified version in the installed plugin. An explicit object must name renderer and populate with exact verified versions, and may omit template-extract; extraction rules run only when template-extract is selected. There is no per-component `"latest"` and no nearest-version fallback. A plugin lists each component's verified versions oldest to newest, and `"latest"` takes the last; core treats versions as opaque strings and never compares them, so keeping the order is the plugin's job. Each component's versions are verified independently: under S1 any combination of listed versions is accepted, and a selected stack is never described as verified as a whole. If evidence shows that one component's behaviour depends on another's version, add supported combinations then.
   _Why:_ core-plan §2.3 forbids silent fallback, C1 sets the default, and a project that does not use template extraction should not have to pin it. Validation in core makes `lint` and `explain` fail identically before inputs are read.
-- **S4. Runtime facts are small typed structures in the plugin, each with its evidence.** Group them by what they describe: language handling by location and component, eligibility prerequisites, supplied names, the evaluation order. Each fact that varies by version is keyed by component version, and carries its evidence: a reproduction test, or `source-only` with a permalink. A location can relate to several rules; a fact does not name a rule. JSON is optional packaging. A unit test checks that every referenced reproduction test exists.
+- **S4. Runtime facts are small typed structures in the plugin, each with its evidence.** Group them by what they describe: language handling by location and component, eligibility prerequisites, supplied names, the evaluation order. Each fact that varies by version is keyed by component version, and carries its evidence: a reproduction test, or `source-only` with a permalink. A location can relate to several rules; a fact does not name a rule. JSON is optional packaging. A unit test checks that every referenced reproduction test exists. Each fact, and that test, arrive with the first slice that consumes a fact (P1); P0 ships only the verified versions.
   _Why:_ the facts have different shapes, and one universal entry schema would become a second rule engine. A new Smart Forms version can change facts, reproductions and rules.
-- **S11. Runtime evidence is cited at a release commit where possible.** The local checkout is `7e64a22f`; the release commit for renderer 1.4.0 and populate 4.7.1 is `f846e2d8`. They differ by three UI fixes in the renderer (including `utils/manageForm.ts`), the addition of `questionnaire-test-toolkit`, and a change to `sdc-assemble/src/utils/assemble.ts`. The populate source, the app's prepopulate code, and the renderer's `utils/fhirpath.ts` and `stores/questionnaireStore.ts` are identical in both. Link to `f846e2d8` for a file after checking it is identical (`git diff f846e2d8 7e64a22f -- <file>`). `smart-forms-replay` (branch `feature/questionnaire-test-toolkit`) holds unreleased code under the same version numbers and is not evidence.
+- **S11. Runtime evidence is cited at a release commit where possible.** The local checkout is `7e64a22f`; the release commit for renderer 1.4.0 and populate 4.7.1 is `f846e2d8`. They differ by three UI fixes in the renderer (including `utils/manageForm.ts`), the addition of `questionnaire-test-toolkit`, and a change to `sdc-assemble/src/utils/assemble.ts`. The populate source, the app's prepopulate code, and the renderer's `utils/fhirpath.ts` and `stores/questionnaireStore.ts` are identical in both. Link to `f846e2d8` for a file after checking it is identical (`git diff f846e2d8 7e64a22f -- <file>`). Check each cited file against the release of the package it belongs to: one commit need not cover every component, and template-extract 1.0.15 may have its own release commit. `smart-forms-replay` (branch `feature/questionnaire-test-toolkit`) holds unreleased code under the same version numbers and is not evidence.
   _Why:_ a fact claims behaviour of a published version.
 
 ### Core contract
@@ -510,7 +518,7 @@ All proposed on 2026-10-09 and revised after review; none accepted yet.
 
 | Item | Blocks |
 | :- | :- |
-| Review and accept S1–S17; record the accepted overrides in plan-amendments.md. | Every slice. |
+| Review and accept S2, S5, S6, S8–S10 and S12–S17; record the accepted overrides in plan-amendments.md. | The first slice that cites each one. |
 | A reference-only Expression (a Library reference, such as CQL) is ignored silently at every Smart Forms reader: filtering locations drop it, and unchecked locations skip an Expression with no text. Report it at every reader location as ignored, or no finding in v1 (core already reports `sdc/external-expression` at info)? | P1 |
 | Embedding check 2 (no launch context): one finding per fragment, or one per form? | P3 |
 | Smart Forms-specific Expressions outside the core catalogue (binding-parameter expression, QuestionnaireItemTextAriaLabelExpression, calculatedExpression on `_text` and `_prefix`) cannot be targeted without an extension URL on uncatalogued sites. Add one, or catalogue them in the plugin? | Nothing in v1. |
@@ -535,8 +543,8 @@ Apply with the first slice that relies on each fact.
 - **core-rules.md, Plugin follow-ups, "Smart Forms ignores `text/x-fhir-query` (D11)".** Only at filtering locations. At targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext it is evaluated as FHIRPath. `application/x-fhir-query` is also ignored everywhere except `variable`. D11's attribution should cover both P1 rules.
 - **core-rules.md, x-fhir-query embeddings, "reproduce one before a plugin check rejects an expression".** Reproduced: populate builds an unescaped regular expression from each embedding and applies it to every query. Replace "`%context` and `%ucum` can still resolve" with the full list in P3 check 6, and note there is no model.
 - **report-format.md, "invalid rule options".** Cannot happen (S7); remove or mark as reserved.
-- **report schema, `smartFormsVersions`.** `template-extract` becomes optional (P0).
-- **plugin `package.json`, `files: ["dist", "compat"]`.** Fixed by P0.
+- **report schema, `smartFormsVersions`.** `template-extract` becomes optional. Applied in P0.
+- **plugin `package.json`, `files: ["dist", "compat"]`.** Fixed in P0.
 
 ## Reference: Smart Forms runtime facts
 

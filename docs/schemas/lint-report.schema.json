@@ -572,8 +572,7 @@
       },
       "required": [
         "renderer",
-        "populate",
-        "template-extract"
+        "populate"
       ]
     },
     "run": {

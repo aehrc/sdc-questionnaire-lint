@@ -67,3 +67,13 @@ Each bullet states the override; the reasons and the implementation are in [core
 - **§4.3, §6.1 `hostVariables` (D1, D2, D16):** a config array of names the host supplies, available at every site. `lint/unused-host-variable` is deferred.
 - **§6.3 suppressions (D22):** a suppression can target a launchContext or extractAllocateId declaration by element and name.
 - **Rule review (D7, D14):** each core rule is checked against a local, uncommitted corpus, and an error-severity rule merges only with zero false-positive errors on it. PRs report finding changes without expression excerpts from forms whose terms restrict redistribution.
+
+## From the Smart Forms rules plan (2026-10-09)
+
+Each bullet states the override; the reasons are in [smart-forms-rules.md](smart-forms-rules.md), under the cited decisions (Sn). The plan's other decisions are proposals until accepted, and a slice merges once every decision it cites is accepted.
+
+- **§2.1, §4.2 supported integration (S1):** plugin rules check population followed by rendering, assuming population succeeded. Template extraction is checked only when selected in `compat`. A renderer used without population, and a run where population failed, are outside the supported integration.
+- **§2.3 compatibility matrix (S3, S4):** core validates `compat` and resolves it against the versions the plugin declares in `LintPlugin.compat`. An explicit object names renderer and populate and may omit template-extract; there is no per-component `"latest"` and no nearest-version fallback. Each component's versions are listed oldest to newest, `"latest"` takes the last, and core never compares versions. Each component's versions are verified independently, and any combination of listed versions is accepted. The matrix is small typed runtime facts in the plugin, each with its evidence, not a universal entry schema; a fact does not name a rule.
+- **§2.1 evidence (S11):** runtime evidence is cited at the release commit of the package it belongs to, after checking the file is identical there.
+- **§6.1, §6.2 `presets`, `languages` and rule options (S7):** not added. Listing a plugin enables its rules at their defaults, and deployment facts belong in `compat` or `hostVariables`. The plan's examples that use `presets` and `languages` are superseded.
+- **§5.3 peer range:** before the first release, the plugin's peer range stays `^0.1.0`.

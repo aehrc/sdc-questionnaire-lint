@@ -35,7 +35,7 @@ function resolved(setting: ResolvedRule['setting'], reported?: 'info'): Resolved
       }
     },
   };
-  return { id: 'test/every-site', namespace: 'test', rule, setting };
+  return { id: 'test/every-site', namespace: 'test', rule, setting, compat: {} };
 }
 
 describe('runRules', () => {
@@ -74,7 +74,7 @@ describe('runRules on a fragment site', () => {
         }
       },
     };
-    return { id: 'test/every-fragment', namespace: 'test', rule, setting: 'error' };
+    return { id: 'test/every-fragment', namespace: 'test', rule, setting: 'error', compat: {} };
   }
 
   const run = (rule: ResolvedRule) => runRules({ ...doc, sites }, [rule]);
@@ -112,7 +112,7 @@ describe('runRules on what a rule reports', () => {
       meta: { description: 'A test rule.', defaultSeverity: 'error' },
       check,
     } as LintRule;
-    return { id: 'test/rule', namespace: 'test', rule, setting: 'error' };
+    return { id: 'test/rule', namespace: 'test', rule, setting: 'error', compat: {} };
   }
   const reporting = (finding: unknown) =>
     ruleThat((ctx) => {
@@ -365,8 +365,8 @@ describe('runRules on what a rule reports', () => {
       },
     } as LintRule;
     runRules(inBundle, [
-      { id: 'test/rule', namespace: 'test', rule: recording, setting: 'error' },
-      { id: 'sdc/rule', namespace: 'sdc', rule: recording, setting: 'error' },
+      { id: 'test/rule', namespace: 'test', rule: recording, setting: 'error', compat: {} },
+      { id: 'sdc/rule', namespace: 'sdc', rule: recording, setting: 'error', compat: {} },
     ]);
     expect(received.map((args) => args.length)).toEqual([1, 2]);
     expect(received[1]?.[1]).toBe(inBundle.analysis);

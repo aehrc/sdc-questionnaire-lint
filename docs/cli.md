@@ -42,6 +42,14 @@ Without a config, the built-in `sdc` rules run at their default severities and t
 
 Absolute input and config paths are accepted. Report paths use `/` separators. Config `files` is a non-empty array of file, directory or glob strings; an empty array is a config failure. `source.fsh` is an array of directories, defaulting to `["input/fsh"]`; `[]` explicitly omits FSH source lookup. `hostVariables` is a non-empty array of unique, non-empty names written without `%`: the names the application running the form supplies, available to every expression (core-rules.md D1). An empty array, a repeated name or a name that starts with `%` is a config failure. The SUSHI index defaults to `fsh-generated/data/fsh-index.json` beneath the same base as the implicit inputs.
 
+`compat` selects the runtime versions a compatibility plugin checks forms against, by plugin namespace: `"latest"`, or exact versions by component. For the Smart Forms plugin, `"latest"` (the default when `compat` has no `smart-forms` entry) selects the newest versions the installed plugin has verified, not the newest on npm. An explicit object names `renderer` and `populate`, and names `template-extract` only when template extraction is checked:
+
+```js
+compat: { 'smart-forms': { renderer: '1.4.0', populate: '4.7.1' } }
+```
+
+Each of these fails `lint` and `explain` with `CONFIG_INVALID` before any input is read: a namespace whose plugin is not listed in `plugins`, a plugin that declares no compatibility target, an unknown component, a missing required component, a version the plugin has not verified (the help lists the verified ones; there is no fallback to a nearby version), and `"latest"` for a single component. The selected versions appear in the report's `run.compat`.
+
 For example, when invoked from the parent of `ig`, `lint --config ig/sdc-questionnaire-lint.config.json` uses defaults beneath `ig`. An additional CLI path is still relative to the caller's working directory.
 
 ## `lint`

@@ -16,6 +16,7 @@ export function ruleContext(
     document: { file: 'Q.json', resource: {}, resourcePointer: '', localResources: [] },
     sites,
     scopeAt: () => ({ available: false, names: [] }),
+    compat: {},
     options: undefined,
     report: (finding) => findings.push(finding),
   };
@@ -51,6 +52,12 @@ export function lintQuestionnaire(
     analysis: analyseDocument(document, sites, hostVariables),
   };
   return runRules(doc, [
-    { id: `sdc/${ruleName}`, namespace: 'sdc', rule, setting: rule.meta.defaultSeverity },
+    {
+      id: `sdc/${ruleName}`,
+      namespace: 'sdc',
+      rule,
+      setting: rule.meta.defaultSeverity,
+      compat: {},
+    },
   ]);
 }

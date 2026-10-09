@@ -48,6 +48,7 @@ export type {
 export type {
   LintPlugin,
   LintRule,
+  PluginCompat,
   RuleContext,
   RuleDocs,
   RuleFinding,

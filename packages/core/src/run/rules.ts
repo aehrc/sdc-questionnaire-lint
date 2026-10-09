@@ -271,7 +271,7 @@ export function runRules(
   }
 
   for (const resolved of rules) {
-    const { id, namespace, rule, setting } = resolved;
+    const { id, namespace, rule, setting, compat } = resolved;
     if (setting === 'off') continue;
     // report() never throws, so a rule cannot swallow its own invalid finding: the first problem
     // is kept here, later reports are ignored, and the run fails once check returns.
@@ -283,6 +283,7 @@ export function runRules(
         sites,
         // A stub until the scope model exists (core-plan §3.1).
         scopeAt: () => ({ available: false, names: [] }),
+        compat,
         options: undefined,
         report: (reported) => {
           if (problem !== undefined) return;

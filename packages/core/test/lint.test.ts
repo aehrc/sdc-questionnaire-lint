@@ -680,3 +680,77 @@ describe('a plugin rule', () => {
     }
   });
 });
+
+describe('compat', () => {
+  const resources = { 'fsh-generated/resources/Questionnaire-A.json': questionnaire };
+  // A plugin module source whose rule records the ctx.compat it receives under its namespace.
+  const plugin = (name: string, compat?: object) => `{
+    meta: { name: '${name}', version: '0.0.0' },
+    ${compat === undefined ? '' : `compat: ${JSON.stringify(compat)},`}
+    rules: {
+      record: {
+        meta: { description: 'Records ctx.compat.', defaultSeverity: 'info' },
+        check(ctx) { globalThis.sdcLintCompat['${name}'] = ctx.compat; },
+      },
+    },
+  }`;
+
+  it("gives each rule a frozen copy of its own namespace's versions, and run.compat all of them", async () => {
+    const seen: Record<string, Readonly<Record<string, string>>> = {};
+    (globalThis as { sdcLintCompat?: typeof seen }).sdcLintCompat = seen;
+    const cwd = await tempTree({
+      ...resources,
+      'sdc-questionnaire-lint.config.mjs': `export default {
+        plugins: [
+          ${plugin('alpha', { verified: { engine: ['1.0.0', '2.0.0'] }, required: ['engine'] })},
+          ${plugin('beta', { verified: { runtime: ['3.0.0'] }, required: [] })},
+          ${plugin('gamma')},
+        ],
+        compat: { alpha: { engine: '1.0.0' } },
+      };`,
+    });
+    const report = await lint({ cwd });
+    expectValidReport(report);
+    expect(report.run.compat).toEqual({ alpha: { engine: '1.0.0' }, beta: { runtime: '3.0.0' } });
+    expect(seen).toEqual({
+      alpha: { engine: '1.0.0' },
+      beta: { runtime: '3.0.0' },
+      gamma: {},
+    });
+    expect(Object.values(seen).every((compat) => Object.isFrozen(compat))).toBe(true);
+  });
+
+  it('reports Smart Forms versions without template-extract when it is not selected', async () => {
+    const cwd = await tempTree({
+      ...resources,
+      'sdc-questionnaire-lint.config.mjs': `export default {
+        plugins: [{
+          meta: { name: 'smart-forms', version: '0.0.0' },
+          rules: {},
+          compat: {
+            verified: { renderer: ['1.4.0'], populate: ['4.7.1'], 'template-extract': ['1.0.15'] },
+            required: ['renderer', 'populate'],
+          },
+        }],
+        compat: { 'smart-forms': { renderer: '1.4.0', populate: '4.7.1' } },
+      };`,
+    });
+    const report = await lint({ cwd });
+    expectValidReport(report);
+    expect(report.run.compat).toEqual({ 'smart-forms': { renderer: '1.4.0', populate: '4.7.1' } });
+  });
+
+  it('fails before reading inputs when compat names a version that is not verified', async () => {
+    const cwd = await tempTree({
+      'sdc-questionnaire-lint.config.mjs': `export default {
+        plugins: [${plugin('alpha', { verified: { engine: ['1.0.0'] }, required: ['engine'] })}],
+        compat: { alpha: { engine: '0.9.0' } },
+      };`,
+    });
+    await expect(lint({ cwd })).rejects.toMatchObject({
+      code: 'CONFIG_INVALID',
+      message:
+        'config sdc-questionnaire-lint.config.mjs is invalid at /compat/alpha/engine: engine 0.9.0 is not a verified version',
+    });
+  });
+});

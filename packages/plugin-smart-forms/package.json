@@ -10,7 +10,7 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "compat"],
+  "files": ["dist"],
   "engines": {
     "node": ">=22.12"
   },

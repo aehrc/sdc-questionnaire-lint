@@ -307,3 +307,193 @@ describe('resolveRuleSet', () => {
     ).not.toThrow();
   });
 });
+
+describe('resolveRuleSet compat', () => {
+  // A plugin that declares compat, with two verified versions of renderer.
+  function stackPlugin(
+    compat: unknown = {
+      verified: {
+        renderer: ['1.3.0', '1.4.0'],
+        populate: ['4.7.1'],
+        'template-extract': ['1.0.15'],
+      },
+      required: ['renderer', 'populate'],
+    },
+  ): LintPlugin {
+    return { meta: { name: 'stack', version: '0.1.0' }, rules: {}, compat } as LintPlugin;
+  }
+  const resolveCompat = (config: LintConfig) => resolveRuleSet(loaded(config)).compat;
+  const latest = { renderer: '1.4.0', populate: '4.7.1', 'template-extract': '1.0.15' };
+
+  function expectInvalid(config: LintConfig, pointer: string, problem: string, help?: string) {
+    expect(() => resolveRuleSet(loaded(config))).toThrow(
+      expect.objectContaining({
+        code: 'CONFIG_INVALID',
+        message: `config ${display} is invalid at ${pointer}: ${problem}`,
+        ...(help === undefined ? {} : { help }),
+      }),
+    );
+  }
+
+  it('is empty without a plugin that declares compat', () => {
+    expect(resolveRuleSet(null).compat).toEqual({});
+    expect(resolveCompat({ plugins: [demoPlugin()] })).toEqual({});
+  });
+
+  it('selects the last verified version of every component when the config has no entry', () => {
+    expect(resolveCompat({ plugins: [stackPlugin()] })).toEqual({ stack: latest });
+  });
+
+  it('selects the last verified version of every component for latest', () => {
+    expect(resolveCompat({ plugins: [stackPlugin()], compat: { stack: 'latest' } })).toEqual({
+      stack: latest,
+    });
+  });
+
+  it('selects exact versions, and leaves out an optional component that is not named', () => {
+    const compat = { stack: { renderer: '1.3.0', populate: '4.7.1' } };
+    expect(resolveCompat({ plugins: [stackPlugin()], compat })).toEqual(compat);
+  });
+
+  it('gives each rule the frozen versions of its own namespace', () => {
+    const rule = { meta: { description: 'd', defaultSeverity: 'warning' }, check: () => undefined };
+    const plugin = { ...stackPlugin(), rules: { 'no-today': rule } } as LintPlugin;
+    const rules = resolveRules(loaded({ plugins: [plugin, demoPlugin()] }));
+    const stackRule = rules.find(({ id }) => id === 'stack/no-today');
+    expect(stackRule?.compat).toEqual(latest);
+    expect(Object.isFrozen(stackRule?.compat)).toBe(true);
+    expect(rules.find(({ id }) => id === 'demo/no-today')?.compat).toEqual({});
+    expect(rules.find(({ id }) => id === 'sdc/parse-error')?.compat).toEqual({});
+  });
+
+  it('reads only own properties, whatever the plugin and component names', () => {
+    const rule = { meta: { description: 'd', defaultSeverity: 'warning' }, check: () => undefined };
+    const named = (name: string, compat?: object) =>
+      ({ meta: { name, version: '0.1.0' }, rules: { 'no-today': rule }, compat }) as LintPlugin;
+    const compat = {
+      verified: { renderer: ['1.4.0'], constructor: ['1.0.0'] },
+      required: ['renderer'],
+    };
+    // No config entry for constructor: it defaults to latest.
+    const ruleSet = resolveRuleSet(
+      loaded({
+        plugins: [named('constructor', compat), named('to-string'), named('stack', compat)],
+        compat: { stack: { renderer: '1.4.0' } },
+      }),
+    );
+    expect(ruleSet.compat).toEqual({
+      constructor: { renderer: '1.4.0', constructor: '1.0.0' },
+      stack: { renderer: '1.4.0' },
+    });
+    expect(ruleSet.rules.find(({ id }) => id === 'to-string/no-today')?.compat).toEqual({});
+    // A plugin without compat named like an Object.prototype member gets {} too.
+    const bare = resolveRuleSet(loaded({ plugins: [named('constructor')] }));
+    expect(bare.compat).toEqual({});
+    expect(bare.rules.find(({ id }) => id === 'constructor/no-today')?.compat).toEqual({});
+  });
+
+  it('fails for a namespace that no listed plugin has', () => {
+    expectInvalid(
+      { compat: { 'smart-forms': 'latest' } },
+      '/compat/smart-forms',
+      'no listed plugin has the namespace smart-forms',
+      'list the plugin providing smart-forms/ rules in plugins in an .mjs config',
+    );
+  });
+
+  it.each(['demo', 'sdc'])('fails for the %s plugin, which declares no compat', (name) => {
+    expectInvalid(
+      { plugins: [demoPlugin()], compat: { [name]: 'latest' } },
+      `/compat/${name}`,
+      `the ${name} plugin does not check against runtime versions`,
+      `remove ${name} from compat`,
+    );
+  });
+
+  it('fails for an unknown component, listing the components', () => {
+    expectInvalid(
+      {
+        plugins: [stackPlugin()],
+        compat: { stack: { renderer: '1.4.0', populate: '4.7.1', sdk: '1' } },
+      },
+      '/compat/stack/sdk',
+      'unknown component sdk',
+      'the stack components are renderer, populate, template-extract',
+    );
+  });
+
+  it('fails for a missing required component', () => {
+    expectInvalid(
+      { plugins: [stackPlugin()], compat: { stack: { renderer: '1.4.0' } } },
+      '/compat/stack',
+      'populate is missing',
+      'set populate to a verified version: 4.7.1',
+    );
+  });
+
+  it('fails for a version that is not verified, without falling back to the nearest one', () => {
+    expectInvalid(
+      { plugins: [stackPlugin()], compat: { stack: { renderer: '1.4.1', populate: '4.7.1' } } },
+      '/compat/stack/renderer',
+      'renderer 1.4.1 is not a verified version',
+      'set renderer to a verified version: 1.3.0, 1.4.0',
+    );
+  });
+
+  const verified = { renderer: ['1.4.0'] };
+  it.each<[string, unknown, string]>([
+    ['compat that is not an object', 'latest', '/plugins/0/compat'],
+    ['no verified object', { required: [] }, '/plugins/0/compat/verified'],
+    ['no components', { verified: {}, required: [] }, '/plugins/0/compat/verified'],
+    [
+      'a component with no versions',
+      { verified: { renderer: [] }, required: [] },
+      '/plugins/0/compat/verified/renderer',
+    ],
+    [
+      'an empty version',
+      { verified: { renderer: ['1.4.0', ''] }, required: [] },
+      '/plugins/0/compat/verified/renderer/1',
+    ],
+    [
+      'latest as a version',
+      { verified: { renderer: ['latest'] }, required: [] },
+      '/plugins/0/compat/verified/renderer/0',
+    ],
+    [
+      'a hole in the versions',
+      { verified: { renderer: new Array(1) }, required: [] },
+      '/plugins/0/compat/verified/renderer/0',
+    ],
+    [
+      'a repeated version',
+      { verified: { renderer: ['1.4.0', '1.4.0'] }, required: [] },
+      '/plugins/0/compat/verified/renderer/1',
+    ],
+    ['no required array', { verified }, '/plugins/0/compat/required'],
+    [
+      'a required component that is not verified',
+      { verified, required: ['populate'] },
+      '/plugins/0/compat/required/0',
+    ],
+    [
+      'a hole in the required components',
+      { verified, required: new Array(1) },
+      '/plugins/0/compat/required/0',
+    ],
+    [
+      'a repeated required component',
+      { verified, required: ['renderer', 'renderer'] },
+      '/plugins/0/compat/required/1',
+    ],
+  ])("rejects a plugin's compat with %s, at its pointer", (_, compat, pointer) => {
+    expect(() => resolveRuleSet(loaded({ plugins: [stackPlugin(compat)] }))).toThrow(
+      expect.objectContaining({
+        code: 'CONFIG_INVALID',
+        message: expect.stringMatching(
+          new RegExp(`^config ${display} is invalid at ${pointer}: \\S`),
+        ) as string,
+      }),
+    );
+  });
+});

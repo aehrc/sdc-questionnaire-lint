@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -119,6 +120,34 @@ describe('runCorpus', () => {
     expect(result.stdout).toContain('sdc/query-syntax: 1 removed');
     expect(result.stdout).toContain(`forms/Gone.json ${gone.pointer}`);
     expect(result.stdout).not.toContain('sdc/parse-error');
+  });
+
+  it('lints with a mode config, printing its Smart Forms versions, against its own snapshot', async () => {
+    const corpus = await tempTree({
+      'forms/A.json': form,
+      'smart-forms.config.mjs': `export default {
+        plugins: [{
+          meta: { name: 'smart-forms', version: '0.0.0' },
+          rules: {},
+          compat: {
+            verified: { renderer: ['1.4.0'], populate: ['4.7.1'], 'template-extract': ['1.0.15'] },
+            required: ['renderer', 'populate'],
+          },
+        }],
+      };`,
+    });
+    const mode = {
+      config: path.join(corpus, 'smart-forms.config.mjs'),
+      snapshot: 'findings.smart-forms.json',
+    };
+    const result = runCorpus(corpus, true, mode);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain(
+      'Smart Forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.',
+    );
+    expect(result.stdout).toContain('sdc/parse-error: 1 added');
+    expect(existsSync(path.join(corpus, 'findings.smart-forms.json'))).toBe(true);
+    expect(existsSync(path.join(corpus, 'findings.json'))).toBe(false);
   });
 
   it('exits with the linter failure when the run does not complete', async () => {

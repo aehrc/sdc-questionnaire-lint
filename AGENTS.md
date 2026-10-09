@@ -19,7 +19,7 @@ Stack: TypeScript, Node 22+, tsup, Vitest; fhirpath.js pinned to 4.10.1.
 - `npm test -- <pattern>`: run matching tests. CLI tests run against the built `packages/core/dist/cli.js`; the test setup rebuilds it.
 - `npm run typecheck`: type-check both packages; it builds core first, because the plugin is type-checked against core's build output.
 - `npm run build`: build both packages, core first.
-- `npm run corpus`: lint the local, gitignored `corpus/` with the built-in rules and print the findings added or removed since its snapshot; `-- --update` saves the snapshot. Not part of `npm run check`. Slice 0 of [docs/core-rules.md](docs/core-rules.md) lists the forms to copy into `corpus/forms/`.
+- `npm run corpus`: lint the local, gitignored `corpus/` with the built-in rules and print the findings added or removed since its snapshot; `-- --update` saves the snapshot; `-- --smart-forms` also lists the Smart Forms plugin and compares with its own snapshot. Not part of `npm run check`. Slice 0 of [docs/core-rules.md](docs/core-rules.md) lists the forms to copy into `corpus/forms/`.
 - `npm run format`: apply Prettier. Markdown, `docs/` and test fixtures are deliberately not formatted.
 - Do not run `npm audit fix --force`: it downgrades `fhirpath` below the 4.10.1 pin.
 - `npm run generate:functions --workspace sdc-questionnaire-lint`: regenerate `packages/core/src/analysis/fhirpath-function-catalog.ts`, the FHIRPath function catalogue, from the installed fhirpath.js. Run it after bumping `fhirpath`; never edit the file by hand.

@@ -84,7 +84,10 @@ _Avoid_: Partial run
 AEHRC's open-source SDC form stack, the runtime whose behaviour the Smart Forms plugin checks forms against.
 
 **Component**:
-One independently versioned part of Smart Forms: renderer, populate or template-extract. A construct can work in one component and fail in another.
+One independently versioned part of Smart Forms: renderer, populate or template-extract. A construct can work in one component and fail in another. A config's explicit compatibility target must name renderer and populate; template-extract is checked only when named.
+
+**Compatibility matrix**:
+What the plugin knows about each component: the versions it has verified, oldest to newest, and the runtime facts its rules rely on, each with its evidence. Each component's versions are verified independently.
 
 **Compatibility target**:
 The component versions a config checks against. The default, `"smart-forms": "latest"`, means the newest versions the installed plugin knows.
