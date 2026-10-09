@@ -1,7 +1,7 @@
-import type { Finding, QuestionnaireFinding, SourceMapResult } from '../report/types.js';
-import type { FindingOrigin, FindingOrigins } from '../run/rules.js';
+import type { Finding } from '../report/types.js';
+import type { FindingOrigins } from '../run/rules.js';
 import { canonical, fshFiles } from './fsh-files.js';
-import { locateExpression, sourceContext, type SourceContext } from './locate.js';
+import { locateExpression, sourceContext, unmapped } from './locate.js';
 import { readSushiIndex } from './sushi-index.js';
 
 export interface SourceMapOptions {
@@ -10,22 +10,6 @@ export interface SourceMapOptions {
   // The SUSHI index's path, whether or not it exists.
   readonly sushiIndex: string;
   readonly cwd: string;
-}
-
-// An exception while mapping one finding leaves it not-found; mapping never fails the run.
-async function sourceLocation(
-  finding: QuestionnaireFinding,
-  origin: FindingOrigin,
-  context: SourceContext,
-): Promise<SourceMapResult> {
-  try {
-    return await locateExpression(
-      { document: origin.document, site: origin.site, expression: finding.expression },
-      context,
-    );
-  } catch {
-    return { status: 'unmapped', reason: 'not-found' };
-  }
 }
 
 // Gives each Questionnaire finding its FSH location, or the reason it has none, by its origin; it
@@ -52,7 +36,14 @@ export async function mapSourceLocations(
     mapped.push(
       finding.kind !== 'questionnaire' || context === undefined || origin === undefined
         ? finding
-        : { ...finding, sourceLocation: await sourceLocation(finding, origin, context) },
+        : {
+            ...finding,
+            // An exception while mapping one finding leaves it not-found; it never fails the run.
+            sourceLocation: await locateExpression(
+              { document: origin.document, site: origin.site, expression: finding.expression },
+              context,
+            ).catch(() => unmapped('not-found')),
+          },
     );
   }
   return mapped;

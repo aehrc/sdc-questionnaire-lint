@@ -26,29 +26,19 @@ export interface FshFiles {
 }
 
 // The canonical path, or undefined when it cannot be resolved.
-export async function canonical(path: string): Promise<string | undefined> {
-  try {
-    return await realpath(path);
-  } catch {
-    return undefined;
-  }
-}
+export const canonical = (path: string): Promise<string | undefined> =>
+  realpath(path).catch(() => undefined);
 
-async function listFsh(directory: string): Promise<string[]> {
-  try {
-    return await glob('**/*.fsh', {
-      cwd: directory,
-      absolute: true,
-      onlyFiles: true,
-      dot: true,
-      ignore: ['**/.git/**', '**/node_modules/**'],
-      followSymbolicLinks: false,
-      expandDirectories: false,
-    });
-  } catch {
-    return [];
-  }
-}
+const listFsh = (directory: string): Promise<string[]> =>
+  glob('**/*.fsh', {
+    cwd: directory,
+    absolute: true,
+    onlyFiles: true,
+    dot: true,
+    ignore: ['**/.git/**', '**/node_modules/**'],
+    followSymbolicLinks: false,
+    expandDirectories: false,
+  }).catch(() => []);
 
 // directories: absolute paths of the existing FSH directories (run/sources.ts).
 export function fshFiles(directories: readonly string[]): FshFiles {

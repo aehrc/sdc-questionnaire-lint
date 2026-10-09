@@ -1,9 +1,8 @@
-import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { getOrSet } from '../cache.js';
 import type { ResourceIdentity } from '../report/types.js';
 import type { FshDefinition } from './fsh-document.js';
-import type { FshFile, FshFiles } from './fsh-files.js';
+import { canonical, type FshFile, type FshFiles } from './fsh-files.js';
 import { resolvePaths } from './fsh-paths.js';
 import { decodeFshString } from './fsh-string.js';
 import type { SushiIndexEntry } from './sushi-index.js';
@@ -37,13 +36,9 @@ async function indexedFiles(fshFile: string, fsh: FshFiles): Promise<FshFile[]> 
   if (path.isAbsolute(fshFile)) return [];
   const files: FshFile[] = [];
   for (const directory of await fsh.directories()) {
-    let file: string;
-    try {
-      file = await realpath(path.resolve(directory, fshFile));
-    } catch {
-      continue;
-    }
-    const read = isInside(file, directory) ? await fsh.file(file) : undefined;
+    const file = await canonical(path.resolve(directory, fshFile));
+    if (file === undefined || !isInside(file, directory)) continue;
+    const read = await fsh.file(file);
     if (read !== undefined) files.push(read);
   }
   return files;

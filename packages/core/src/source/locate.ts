@@ -63,7 +63,7 @@ export function sourceContext(
 
 type UnmappedReason = Extract<SourceMapResult, { status: 'unmapped' }>['reason'];
 
-function unmapped(reason: UnmappedReason): SourceMapResult {
+export function unmapped(reason: UnmappedReason): SourceMapResult {
   return { status: 'unmapped', reason };
 }
 
