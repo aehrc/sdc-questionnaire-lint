@@ -41,6 +41,46 @@
         "language": "text/fhirpath",
         "expression": "%resource.item.where(linkId = 'smoker').answer.first().value"
       }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "packs",
+        "language": "text/fhirpath",
+        "expression": "%resource.item.where(linkId = 'packs').answer.value"
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "yearsSmoked",
+        "language": "text/fhirpath",
+        "expression": "%resource.item.where(linkId = 'years').answer.value"
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "packYears",
+        "language": "text/fhirpath",
+        "expression": "%packs * %smokingYears"
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "smokingYears",
+        "language": "text/fhirpath",
+        "expression": "%yearsSmoked"
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "smokerItem",
+        "language": "text/fhirpath",
+        "expression": "%resource.item.where(linkId = 'smoker')"
+      }
     }
   ],
   "item": [
@@ -62,6 +102,50 @@
       "linkId": "packs",
       "type": "integer",
       "text": "Packs per day"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%smoker = true"
+          }
+        }
+      ],
+      "linkId": "years",
+      "type": "integer",
+      "text": "Years smoked"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%packYears"
+          }
+        }
+      ],
+      "linkId": "pack-years",
+      "type": "decimal",
+      "text": "Pack-years",
+      "readOnly": true
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%smokerItem.exists()"
+          }
+        }
+      ],
+      "linkId": "context-check",
+      "type": "boolean",
+      "text": "Context check",
+      "readOnly": true
     },
     {
       "extension": [
@@ -91,6 +175,72 @@
       "linkId": "recent-records",
       "type": "integer",
       "text": "Observations in the last year",
+      "readOnly": true
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/variable",
+          "valueExpression": {
+            "name": "smokerAnswer",
+            "language": "text/fhirpath",
+            "expression": "%resource.item.where(linkId = 'smoker').answer.value.first()"
+          }
+        },
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%smokerAnswer = false"
+          }
+        }
+      ],
+      "linkId": "cessation",
+      "type": "date",
+      "text": "Date you stopped smoking"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "'Talk to your GP about quitting.'"
+          }
+        }
+      ],
+      "linkId": "advice",
+      "type": "string",
+      "text": "Cessation advice",
+      "readOnly": true
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "'No notes'"
+          }
+        }
+      ],
+      "linkId": "notes",
+      "type": "string",
+      "text": "Notes"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "iif(%smoker, 'Smoker', 'Non-smoker')"
+          }
+        }
+      ],
+      "linkId": "summary",
+      "type": "string",
+      "text": "Summary",
       "readOnly": true
     }
   ],
