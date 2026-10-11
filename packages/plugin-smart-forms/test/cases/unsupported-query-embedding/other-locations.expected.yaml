@@ -1,0 +1,7 @@
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/unsupported-query-embedding-other-locations.fsh:8:46
+  message: Smart Forms ignores this variable on the Questionnaire root because it is written in text/x-fhir-query; it uses only text/fhirpath here, so this variable never sets %r5.
+  help: 'set the language of this variable to application/x-fhir-query: Smart Forms runs a query in a variable only with that code'
+  expression:
+    text: Condition?patient={{ %patient.id }}

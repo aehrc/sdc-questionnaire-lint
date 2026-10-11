@@ -1,0 +1,26 @@
+# A | makes the regular expression match part of the embedding, in this query and in the
+# query of an item variable, which is a related location.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: conditions
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%patient.id|id}}'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: group
+    type: group
+    extensions:
+      - url: variable
+        name: encounters
+        language: application/x-fhir-query
+        expression: 'Encounter?patient={{%patient.id}}'
+    items:
+      - linkId: q
+        type: string

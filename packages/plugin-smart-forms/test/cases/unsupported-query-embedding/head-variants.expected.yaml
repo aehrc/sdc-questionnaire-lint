@@ -1,0 +1,50 @@
+- ruleId: sdc/fragment-parse-error
+  severity: error
+  at: input/fsh/unsupported-query-embedding-head-variants.fsh:24:67
+  message: The expression has an unexpected ..
+  note: "the FHIRPath parser reported: extraneous input '.'"
+  expression:
+    text: Condition?patient={{%.id}}
+    range:
+      startOffset: 21
+      endOffset: 22
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-head-variants.fsh:12:66
+  message: Smart Forms fills {{%…}} only from a launch context, and obs is not one, so the query is sent with "undefined".
+  help: use a launch context declared on the Questionnaire root, such as %patient.id
+  expression:
+    text: Condition?patient={{%obs.id}}
+    range:
+      startOffset: 20
+      endOffset: 27
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-head-variants.fsh:16:66
+  message: Smart Forms fills {{%…}} only from a launch context, and `patient` is not one, so the query is sent with "undefined".
+  help: use a launch context declared on the Questionnaire root, such as %patient.id
+  expression:
+    text: Condition?patient={{%`patient`.id}}
+    range:
+      startOffset: 20
+      endOffset: 33
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-head-variants.fsh:20:66
+  message: Smart Forms fills {{%…}} with the value of a path on a launch context, and this embedding has no path after %patient, so the query is sent with an empty value.
+  help: add the path to the value, such as %patient.id
+  expression:
+    text: Condition?patient={{%patient}}
+    range:
+      startOffset: 20
+      endOffset: 28
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-head-variants.fsh:24:66
+  message: Smart Forms fills {{%…}} with the value of a path on a launch context, and this embedding has no launch context before the first ., so the query is sent with an empty value.
+  help: use a launch context declared on the Questionnaire root, such as %patient.id
+  expression:
+    text: Condition?patient={{%.id}}
+    range:
+      startOffset: 20
+      endOffset: 24

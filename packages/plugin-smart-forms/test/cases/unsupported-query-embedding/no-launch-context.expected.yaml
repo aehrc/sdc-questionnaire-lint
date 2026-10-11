@@ -1,0 +1,40 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/unsupported-query-embedding-no-launch-context.fsh:8:63
+  message: '%patient is not available on the Questionnaire root.'
+  help: declare it on the root, or list it in hostVariables if the application running the form supplies it
+  expression:
+    text: Condition?patient={{%patient.id}}&code={{%patient.id = ')'}}
+    range:
+      startOffset: 20
+      endOffset: 28
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/unsupported-query-embedding-no-launch-context.fsh:8:84
+  message: '%patient is not available on the Questionnaire root.'
+  help: declare it on the root, or list it in hostVariables if the application running the form supplies it
+  expression:
+    text: Condition?patient={{%patient.id}}&code={{%patient.id = ')'}}
+    range:
+      startOffset: 41
+      endOffset: 49
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-no-launch-context.fsh:8:63
+  message: Smart Forms replaces {{…}} only when a launch context is supplied, and this Questionnaire declares none, so the query is sent with its braces.
+  help: declare a launch context named patient on the Questionnaire root
+  expression:
+    text: Condition?patient={{%patient.id}}&code={{%patient.id = ')'}}
+    range:
+      startOffset: 20
+      endOffset: 31
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-no-launch-context.fsh:8:84
+  message: Smart Forms replaces {{…}} only when a launch context is supplied, and this Questionnaire declares none, so the query is sent with its braces.
+  help: declare a launch context named patient on the Questionnaire root
+  expression:
+    text: Condition?patient={{%patient.id}}&code={{%patient.id = ')'}}
+    range:
+      startOffset: 41
+      endOffset: 58

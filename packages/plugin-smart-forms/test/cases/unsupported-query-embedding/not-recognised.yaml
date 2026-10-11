@@ -1,0 +1,22 @@
+# Embeddings population does not recognise: a space after {{, nothing after {{%, and no %.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: a
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{ %patient.id }}'
+  - url: variable
+    name: b
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%}}'
+  - url: variable
+    name: c
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{patient.id}}'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
