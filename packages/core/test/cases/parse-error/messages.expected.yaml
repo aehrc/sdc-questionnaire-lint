@@ -1,0 +1,87 @@
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/parse-error-messages.fsh:9:52
+  message: The expression is empty.
+  note: "the FHIRPath parser reported: mismatched input '<EOF>'"
+  expression:
+    text: ' '
+    range:
+      startOffset: 1
+      endOffset: 1
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/parse-error-messages.fsh:14:60
+  message: A closing ) is missing.
+  help: add ) at the end of the expression
+  note: "the FHIRPath parser reported: missing ')' at '<EOF>'"
+  expression:
+    text: a.where(b
+    range:
+      startOffset: 9
+      endOffset: 9
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/parse-error-messages.fsh:19:67
+  message: A closing ) is missing.
+  note: "the FHIRPath parser reported: missing ')' at '<EOF>'"
+  expression:
+    text: a.where(b // why
+    range:
+      startOffset: 16
+      endOffset: 16
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/parse-error-messages.fsh:24:56
+  message: The expression ends before it is complete.
+  note: "the FHIRPath parser reported: mismatched input '<EOF>'"
+  expression:
+    text: a and
+    range:
+      startOffset: 5
+      endOffset: 5
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/parse-error-messages.fsh:29:53
+  message: The expression has an unexpected b.
+  note: "the FHIRPath parser reported: extraneous input 'b'"
+  expression:
+    text: a b
+    range:
+      startOffset: 2
+      endOffset: 3
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/parse-error-messages.fsh:34:55
+  message: The character " is not valid here.
+  note: 'the FHIRPath parser reported: token recognition error at: ''"'''
+  expression:
+    text: a = "x"
+    range:
+      startOffset: 4
+      endOffset: 5
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/parse-error-messages.fsh:39:51
+  message: A string is missing its closing '.
+  note: "the FHIRPath parser reported: token recognition error at: ''abc'"
+  expression:
+    text: "'abc"
+    range:
+      startOffset: 0
+      endOffset: 1
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/parse-error-messages.fsh:44:64
+  message: This FHIRPath expression has a syntax error.
+  note: "the FHIRPath parser reported: no viable alternative at input '1'"
+  expression:
+    text: a.where(x = 1
+    range:
+      startOffset: 13
+      endOffset: 13
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/parse-error-messages.fsh:49:51
+  message: This FHIRPath expression has a syntax error.
+  expression:
+    text: a.b..c

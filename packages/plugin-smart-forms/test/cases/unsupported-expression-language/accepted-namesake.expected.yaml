@@ -1,0 +1,48 @@
+- ruleId: sdc/duplicate-declaration
+  severity: error
+  at: input/fsh/unsupported-expression-language-accepted-namesake.fsh:14:54
+  message: The name %x is declared more than once on item fhirpath, so it is unclear which value expressions that use it get.
+  help: rename or remove one of the declarations of %x
+  expression:
+    text: '2'
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is also declared here'
+- ruleId: sdc/duplicate-declaration
+  severity: error
+  at: input/fsh/unsupported-expression-language-accepted-namesake.fsh:24:54
+  message: The name %y is declared more than once on item query, so it is unclear which value expressions that use it get.
+  help: rename or remove one of the declarations of %y
+  expression:
+    text: Patient
+  related:
+    - at: /item/1/extension/0/valueExpression/expression (source-unavailable)
+      message: '%y is also declared here'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-accepted-namesake.fsh:10:54
+  message: '%x is declared on item fhirpath, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %x where its value is needed
+  expression:
+    text: '1'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-accepted-namesake.fsh:14:54
+  message: '%x is declared on item fhirpath, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %x where its value is needed
+  expression:
+    text: '2'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-accepted-namesake.fsh:20:54
+  message: '%y is declared on item query, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %y where its value is needed
+  expression:
+    text: '3'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-accepted-namesake.fsh:24:54
+  message: '%y is declared on item query, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %y where its value is needed
+  expression:
+    text: Patient

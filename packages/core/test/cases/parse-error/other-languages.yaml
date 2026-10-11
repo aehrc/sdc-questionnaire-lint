@@ -1,0 +1,14 @@
+# sdc/parse-error never parses another language.
+items:
+  - linkId: query
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: application/x-fhir-query
+        expression: 'a.where('
+  - linkId: cql
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/cql
+        expression: 'b.where('

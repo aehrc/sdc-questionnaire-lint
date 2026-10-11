@@ -1,0 +1,20 @@
+# An expression with text, even with a reference too, and a fragment.
+hostVariables: [id]
+items:
+  - linkId: text
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '1'
+  - linkId: text-and-reference
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '2'
+        reference: '#lib'
+  - linkId: fragment
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: application/x-fhir-query
+        expression: 'Patient/{{%id}}'

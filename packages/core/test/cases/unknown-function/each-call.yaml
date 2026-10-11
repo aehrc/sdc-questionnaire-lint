@@ -1,0 +1,7 @@
+# Each unknown call is reported, in source order.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.fist().firt()'

@@ -1,0 +1,18 @@
+# A text/fhirpath initialExpression after a CQL one: population reads only the first, so only the
+# renderer evaluates it, when the form is repopulated.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: age
+    type: integer
+    text: Age
+    extensions:
+      - url: initialExpression
+        language: text/cql
+        expression: "'x'"
+      - url: initialExpression
+        expression: '%qitem.text'

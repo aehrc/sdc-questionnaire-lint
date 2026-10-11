@@ -1,0 +1,163 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "health-check",
+  "meta": {
+    "profile": [
+      "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire"
+    ]
+  },
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemPopulationContext",
+      "valueExpression": {
+        "name": "observations",
+        "language": "application/x-fhir-query",
+        "expression": "Observation?code=29463-7&date=ge{{(today() - 1 year}}"
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "first",
+        "language": "text/fhirpath",
+        "expression": "%resource.item.count().fist()"
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/variable",
+      "valueExpression": {
+        "name": "second",
+        "language": "text/fhirpath",
+        "expression": "%resource.item.count().fist()"
+      }
+    }
+  ],
+  "item": [
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/variable",
+          "valueExpression": {
+            "name": "w",
+            "language": "text/fhirpath",
+            "expression": "%observations.last().value.fist()"
+          }
+        }
+      ],
+      "linkId": "weight",
+      "type": "decimal",
+      "text": "Weight"
+    },
+    {
+      "linkId": "smoking",
+      "type": "boolean",
+      "text": "Smoking",
+      "_text": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/cqf-expression",
+            "valueExpression": {
+              "language": "text/fhirpath",
+              "expression": "'Hello ' + %patient.name.given.first() + \", do you smoke?\""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%age.fist() > 12"
+          }
+        }
+      ],
+      "linkId": "older",
+      "type": "display",
+      "text": "Older"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%age.fist() > 12"
+          }
+        }
+      ],
+      "linkId": "also-older",
+      "type": "display",
+      "text": "Also older"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%score.fist()"
+          }
+        },
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%score.fist()"
+          }
+        }
+      ],
+      "linkId": "score",
+      "type": "decimal",
+      "text": "Score"
+    },
+    {
+      "linkId": "custom",
+      "type": "choice",
+      "text": "Custom",
+      "_text": {
+        "extension": [
+          {
+            "url": "http://example.org/custom",
+            "valueExpression": {
+              "language": "text/fhirpath",
+              "expression": "%custom.fist()"
+            }
+          }
+        ]
+      },
+      "answerOption": [
+        {
+          "valueString": "x",
+          "extension": [
+            {
+              "url": "http://example.org/custom",
+              "valueExpression": {
+                "language": "text/fhirpath",
+                "expression": "%custom.fist()"
+              }
+            }
+          ]
+        }
+      ],
+      "extension": [
+        {
+          "url": "http://example.org/complex",
+          "extension": [
+            {
+              "url": "expr",
+              "valueExpression": {
+                "language": "text/fhirpath",
+                "expression": "%custom.fist()"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "url": "http://example.org/Questionnaire/health-check",
+  "status": "draft"
+}

@@ -1,0 +1,6 @@
+- ruleId: fixture/declaration
+  severity: info
+  at: input/fsh/declaration-host-variables.fsh:8:43
+  message: '%b is declared.'
+  expression:
+    text: '%host'

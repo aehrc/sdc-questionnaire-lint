@@ -1,0 +1,9 @@
+# A query that is FHIRPath: the help suggests the FHIRPath language.
+hostVariables: [patient]
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: application/x-fhir-query
+        expression: '%patient.id'

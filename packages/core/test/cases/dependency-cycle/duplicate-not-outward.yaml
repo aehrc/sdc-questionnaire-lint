@@ -1,0 +1,15 @@
+# A duplicate on the same element is not the binding outward (D25).
+extensions:
+  - url: variable
+    name: x
+    expression: '1'
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: '%x'
+      - url: variable
+        name: x
+        expression: '%x + 0'

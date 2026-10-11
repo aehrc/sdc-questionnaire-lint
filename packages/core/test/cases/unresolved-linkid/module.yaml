@@ -1,0 +1,20 @@
+# Nothing is reported in a Questionnaire that includes a module, whose assembled form has other
+# items. The form has a group g, its child a, and a's child c.
+items:
+  - linkId: g
+    type: group
+    items:
+      - linkId: a
+        type: boolean
+        text: 'Smoker'
+        extensions:
+          - url: calculatedExpression
+            expression: "%resource.repeat(item).where(linkId = 'typo')"
+        items:
+          - linkId: c
+            type: string
+  - linkId: m
+    type: display
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-subQuestionnaire"'
+      - 'extension[=].valueCanonical = "http://x/Q/m"'

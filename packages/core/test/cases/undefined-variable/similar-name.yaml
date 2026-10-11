@@ -1,0 +1,11 @@
+# A reference that is not available, reported at the reference, suggesting a similar name.
+items:
+  - linkId: bmi
+    type: string
+    text: 'BMI'
+    extensions:
+      - url: variable
+        name: weight
+        expression: '70'
+      - url: calculatedExpression
+        expression: '%weigt / 2'

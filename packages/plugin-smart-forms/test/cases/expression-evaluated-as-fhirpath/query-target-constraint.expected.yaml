@@ -1,0 +1,28 @@
+- ruleId: sdc/query-syntax
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-query-target-constraint.fsh:35:67
+  message: This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills stay empty.
+  help: set the language to text/fhirpath; this expression is FHIRPath
+  expression:
+    text: intersect
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-query-target-constraint.fsh:12:59
+  message: Smart Forms renderer evaluates this targetConstraint on the Questionnaire root as FHIRPath although it is written in application/x-fhir-query, so the constraint never reports a problem.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: Observation?code=x
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-query-target-constraint.fsh:22:59
+  message: Smart Forms renderer evaluates this targetConstraint on the Questionnaire root as FHIRPath although it is written in text/x-fhir-query, so the constraint never reports a problem.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: Observation?code=y
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-query-target-constraint.fsh:35:67
+  message: Smart Forms renderer evaluates this targetConstraint on item "Intersect" (intersect) as FHIRPath although it is written in application/x-fhir-query, so the application/x-fhir-query is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: intersect

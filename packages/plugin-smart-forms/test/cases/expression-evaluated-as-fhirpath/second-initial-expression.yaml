@@ -1,0 +1,10 @@
+# A second initialExpression, which population never reads.
+items:
+  - linkId: bp
+    type: integer
+    extensions:
+      - url: initialExpression
+        expression: '1'
+      - url: initialExpression
+        language: text/cql
+        expression: '2'

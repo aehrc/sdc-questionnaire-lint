@@ -1,0 +1,7 @@
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-replacing-target-constraint.fsh:25:67
+  message: Smart Forms renderer evaluates this targetConstraint on item "Blood pressure" (bp) as FHIRPath although it is written in text/cql, so the text/cql is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: 'true'

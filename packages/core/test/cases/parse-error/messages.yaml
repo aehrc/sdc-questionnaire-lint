@@ -1,0 +1,47 @@
+# Each kind of syntax error gets its own message; the item names the kind.
+items:
+  - linkId: empty
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: ' '
+  - linkId: missing-bracket-at-end
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.where(b'
+  - linkId: missing-bracket-before-comment
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.where(b // why'
+  - linkId: ends-early
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a and'
+  - linkId: unexpected-token
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a b'
+  - linkId: double-quoted-string
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a = "x"'
+  - linkId: unclosed-string
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: "'abc"
+  - linkId: fallback
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.where(x = 1'
+  - linkId: fallback-without-position
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.b..c'

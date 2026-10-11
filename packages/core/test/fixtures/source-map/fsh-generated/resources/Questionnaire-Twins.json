@@ -1,0 +1,42 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "Twins",
+  "item": [
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-candidateExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%twin.fist()"
+          }
+        },
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-candidateExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%twin.fist()"
+          }
+        }
+      ],
+      "linkId": "twins",
+      "type": "string",
+      "text": "Twins"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%w / (%h * %h)).round(1"
+          }
+        }
+      ],
+      "linkId": "bmi",
+      "type": "decimal",
+      "text": "BMI"
+    }
+  ],
+  "status": "draft"
+}

@@ -1,0 +1,14 @@
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-initial-expression.fsh:10:51
+  message: Smart Forms population evaluates this initialExpression on item "Blood pressure" (bp) as FHIRPath although it is written in text/cql, so the text/cql is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: Systolic
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-initial-expression.fsh:15:51
+  message: Smart Forms population evaluates this initialExpression on item bp-query as FHIRPath although it is written in application/x-fhir-query, so the answer is not prefilled.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: Observation?code=x

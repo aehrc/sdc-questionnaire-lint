@@ -1,0 +1,10 @@
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/fragment-parse-error-expression.fsh:9:59
+  message: The expression ends before it is complete.
+  note: "the FHIRPath parser reported: mismatched input '<EOF>'"
+  expression:
+    text: a.where(
+    range:
+      startOffset: 8
+      endOffset: 8

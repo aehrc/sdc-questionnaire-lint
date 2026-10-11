@@ -1,0 +1,22 @@
+# A reference to a foreign response, an alias, descendants (which reach contained resources) or a
+# computed linkId is not reported. The form has a group g, its child a, and a's child c.
+hostVariables: [previousResponse, group, prefix]
+items:
+  - linkId: g
+    type: group
+    items:
+      - linkId: a
+        type: boolean
+        text: 'Smoker'
+        extensions:
+          - url: calculatedExpression
+            expression: "%previousResponse.item.where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "%group.item.where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "%resource.descendants().where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "item.where(linkId = %prefix + 'typo')"
+        items:
+          - linkId: c
+            type: string

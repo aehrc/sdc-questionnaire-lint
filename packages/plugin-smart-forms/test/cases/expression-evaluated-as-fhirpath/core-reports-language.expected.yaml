@@ -1,0 +1,21 @@
+- ruleId: sdc/language-not-allowed
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-core-reports-language.fsh:12:67
+  message: This answerOptionsToggleExpression is written in application/x-fhir-query, but SDC allows only FHIRPath or CQL here, so the form may ignore it.
+  help: rewrite the expression in FHIRPath, with the language text/fhirpath, or in CQL, with text/cql
+  expression:
+    text: Patient?_id=1
+- ruleId: sdc/language-not-allowed
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-core-reports-language.fsh:20:67
+  message: This answerOptionsToggleExpression is written in text/x-fhir-query, but SDC allows only FHIRPath or CQL here, so the form may ignore it.
+  help: rewrite the expression in FHIRPath, with the language text/fhirpath, or in CQL, with text/cql
+  expression:
+    text: Patient?_id=2
+- ruleId: sdc/language-not-in-value-set
+  severity: warning
+  at: input/fsh/expression-evaluated-as-fhirpath-core-reports-language.fsh:30:67
+  message: The language text/fhir-path is not one FHIR defines, so the form may ignore this expression.
+  help: set the language to text/fhirpath
+  expression:
+    text: 'true'

@@ -1,0 +1,8 @@
+# Two variables that reference each other, reported at the first, with the other as related.
+extensions:
+  - url: variable
+    name: a
+    expression: '%b + 1'
+  - url: variable
+    name: b
+    expression: '%a'

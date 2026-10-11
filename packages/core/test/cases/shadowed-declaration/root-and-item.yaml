@@ -1,0 +1,12 @@
+# A variable on an item that the root also declares, with the root one as related.
+extensions:
+  - url: variable
+    name: weight
+    expression: '70'
+items:
+  - linkId: bmi
+    type: string
+    extensions:
+      - url: variable
+        name: weight
+        expression: '80'

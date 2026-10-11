@@ -1,0 +1,11 @@
+- ruleId: sdc/external-expression
+  severity: info
+  at: /item/2/extension/0/valueExpression (not-found)
+  message: 'This expression has no text, only the reference #library, so it was not checked.'
+- ruleId: sdc/query-syntax
+  severity: error
+  at: input/fsh/unknown-function-other-languages.fsh:9:51
+  message: This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills stay empty.
+  help: set the language to text/fhirpath; this expression is FHIRPath
+  expression:
+    text: a.fist()

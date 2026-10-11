@@ -1,0 +1,19 @@
+# Another language, or an expression with only a reference, is never checked.
+items:
+  - linkId: query
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: application/x-fhir-query
+        expression: 'a.fist()'
+  - linkId: cql
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/cql
+        expression: 'b.fist()'
+  - linkId: reference
+    type: string
+    extensions:
+      - url: calculatedExpression
+        reference: '#library'

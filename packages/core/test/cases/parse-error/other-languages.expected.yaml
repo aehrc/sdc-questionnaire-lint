@@ -1,0 +1,7 @@
+- ruleId: sdc/query-syntax
+  severity: error
+  at: input/fsh/parse-error-other-languages.fsh:9:51
+  message: This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills stay empty.
+  help: write a FHIR search such as Observation?subject={{%patient.id}}
+  expression:
+    text: a.where(

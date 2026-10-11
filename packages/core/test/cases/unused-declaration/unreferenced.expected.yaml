@@ -1,0 +1,7 @@
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unused-declaration-unreferenced.fsh:11:51
+  message: '%weight is declared on item "BMI" (bmi), but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %weight where its value is needed
+  expression:
+    text: '70'

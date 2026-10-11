@@ -1,0 +1,14 @@
+- ruleId: sdc/language-not-allowed
+  severity: error
+  at: input/fsh/language-not-allowed-toggle-queries.fsh:12:67
+  message: This answerOptionsToggleExpression is written in application/x-fhir-query, but SDC allows only FHIRPath or CQL here, so the form may ignore it.
+  help: rewrite the expression in FHIRPath, with the language text/fhirpath, or in CQL, with text/cql
+  expression:
+    text: Observation?code=x
+- ruleId: sdc/language-not-allowed
+  severity: error
+  at: input/fsh/language-not-allowed-toggle-queries.fsh:20:67
+  message: This answerOptionsToggleExpression is written in text/x-fhir-query, but SDC allows only FHIRPath or CQL here, so the form may ignore it.
+  help: rewrite the expression in FHIRPath, with the language text/fhirpath, or in CQL, with text/cql
+  expression:
+    text: Observation?code=y

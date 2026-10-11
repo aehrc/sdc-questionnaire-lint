@@ -1,0 +1,117 @@
+# One mistake for each sdc rule, and nothing else. Quote every whole expression (see
+# packages/lint-cases/src/generate-fsh.ts).
+
+extensions:
+  # a and b reference each other; the cycle is reported once, on the first.
+  - url: variable
+    name: a
+    expression: '%b + 1'
+  - url: variable
+    name: b
+    expression: '%a + 1'
+
+  # The second declaration of dup on the same level is the duplicate.
+  - url: variable
+    name: dup
+    expression: '1'
+  - url: variable
+    name: dup
+    expression: '2'
+
+  # SDC defines %qitem, so a form cannot declare it.
+  - url: variable
+    name: qitem
+    expression: '4'
+
+  # Declared again on item shadowed-declaration.
+  - url: variable
+    name: shadowed
+    expression: '5'
+
+  # FHIRPath marked as x-fhir-query.
+  - url: variable
+    name: notASearch
+    language: application/x-fhir-query
+    expression: '%a.id'
+
+  # The {{ }} fragment has no closing ).
+  - url: variable
+    name: badFragment
+    language: application/x-fhir-query
+    expression: 'Observation?date=ge{{(today()}}'
+
+items:
+  - linkId: parse-error
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '1 +'
+
+  # fist() for first(); the variable on the same item is never referenced.
+  - linkId: unknown-function
+    type: string
+    extensions:
+      - url: variable
+        name: unused
+        expression: '3'
+      - url: calculatedExpression
+        expression: '%resource.item.fist()'
+
+  - linkId: undefined-variable
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '%missing'
+
+  - linkId: unresolved-linkid
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: "%resource.item.where(linkId = 'nope').answer.value"
+
+  # Uses the root variables, so none of them is reported as unused.
+  - linkId: uses-root-variables
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '%dup & %qitem & %notASearch & %badFragment'
+
+  - linkId: shadowed-declaration
+    type: string
+    extensions:
+      - url: variable
+        name: shadowed
+        expression: '6'
+      - url: calculatedExpression
+        expression: '%shadowed'
+
+  # SDC allows only FHIRPath or CQL in enableWhenExpression.
+  - linkId: language-not-allowed
+    type: boolean
+    extensions:
+      - url: enableWhenExpression
+        language: text/x-fhir-query
+        expression: 'Observation?code=1234'
+
+  # text/fhir-path for text/fhirpath.
+  - linkId: language-not-in-value-set
+    type: string
+    extensions:
+      - url: initialExpression
+        language: text/fhir-path
+        expression: "'text'"
+
+  # Only a reference, no expression text. It has no FSH line, because there is no text to find.
+  - linkId: external-expression
+    type: string
+    extensions:
+      - url: initialExpression
+        language: text/cql
+        reference: http://example.org/Library/demo
+
+  # calculatedExpresion for calculatedExpression in the extension URL.
+  - linkId: uncatalogued-expression
+    type: string
+    extensions:
+      - url: http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpresion
+        expression: "'typo in the extension URL'"

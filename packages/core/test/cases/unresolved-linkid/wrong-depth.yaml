@@ -1,0 +1,18 @@
+# A known linkId searched at the wrong depth or child path is accepted. The form has a group g, its child a, and a's child c.
+items:
+  - linkId: g
+    type: group
+    items:
+      - linkId: a
+        type: boolean
+        text: 'Smoker'
+        extensions:
+          - url: calculatedExpression
+            expression: "%resource.item.where(linkId = 'c').answer.value"
+          - url: calculatedExpression
+            expression: "%resource.repeat(item).where(linkId = 'c').answer.value"
+          - url: calculatedExpression
+            expression: "%qitem.item.where(linkId = 'g')"
+        items:
+          - linkId: c
+            type: string

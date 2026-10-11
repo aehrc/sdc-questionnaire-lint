@@ -1,0 +1,8 @@
+# A name defineVariable binds, and a reference after a computed defineVariable name, are skipped.
+extensions:
+  - url: variable
+    name: a
+    expression: "defineVariable('y', 1).select(%y)"
+  - url: variable
+    name: b
+    expression: 'defineVariable(%a.first(), 1).select(%z)'

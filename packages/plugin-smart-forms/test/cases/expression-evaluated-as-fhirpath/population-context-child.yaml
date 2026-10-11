@@ -1,0 +1,26 @@
+# Only the CQL initialExpression on a child of a repeating group with an itemPopulationContext is
+# reported.
+items:
+  - linkId: meds
+    type: group
+    text: Medications
+    fsh:
+      - repeats = true
+    extensions:
+      - url: itemPopulationContext
+        name: med
+        expression: '%meds.entry.resource'
+    items:
+      - linkId: name
+        type: string
+        text: Name
+        extensions:
+          - url: initialExpression
+            expression: '%med.code.text'
+      - linkId: dose
+        type: string
+        text: Dose
+        extensions:
+          - url: initialExpression
+            language: text/cql
+            expression: 'Dose'

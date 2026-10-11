@@ -1,0 +1,6 @@
+- ruleId: sdc/language-not-in-value-set
+  severity: warning
+  at: input/fsh/language-not-in-value-set-no-similar-code.fsh:9:51
+  message: The language text/javascript is not one FHIR defines, so the form may ignore this expression.
+  expression:
+    text: x

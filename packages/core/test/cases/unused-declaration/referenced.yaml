@@ -1,0 +1,27 @@
+# A variable referenced on its item, a descendant item or in a query fragment is used.
+extensions:
+  - url: variable
+    name: a
+    expression: '1'
+  - url: variable
+    name: b
+    expression: '2'
+  - url: variable
+    name: c
+    expression: '3'
+  - url: variable
+    name: q
+    language: application/x-fhir-query
+    expression: 'Observation?code={{%c}}'
+items:
+  - linkId: g
+    type: group
+    extensions:
+      - url: calculatedExpression
+        expression: '%a'
+    items:
+      - linkId: x
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%b + %q.count()'

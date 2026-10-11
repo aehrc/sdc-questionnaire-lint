@@ -1,0 +1,14 @@
+# A reference to an overriding declaration is not a use of the one it overrides.
+extensions:
+  - url: variable
+    name: weight
+    expression: '70'
+items:
+  - linkId: bmi
+    type: string
+    extensions:
+      - url: variable
+        name: weight
+        expression: '80'
+      - url: calculatedExpression
+        expression: '%weight'

@@ -1,0 +1,25 @@
+{
+  "resourceType": "Bundle",
+  "id": "Collection",
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "http://example.org/Questionnaire/dup",
+      "resource": {
+        "resourceType": "Questionnaire",
+        "id": "dup",
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/variable",
+            "valueExpression": {
+              "name": "bundled",
+              "language": "text/fhirpath",
+              "expression": "%bundled.fist()"
+            }
+          }
+        ],
+        "status": "draft"
+      }
+    }
+  ]
+}

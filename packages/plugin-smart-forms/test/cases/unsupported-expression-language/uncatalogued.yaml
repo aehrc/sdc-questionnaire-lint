@@ -1,0 +1,9 @@
+# An expression at a location the linter does not recognise is not checked.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        name: x
+        language: text/cql
+        expression: '1'

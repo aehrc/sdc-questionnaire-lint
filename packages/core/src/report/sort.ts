@@ -1,9 +1,5 @@
+import { compareStrings } from '../compare.js';
 import type { Finding } from './types.js';
-
-// Locale-independent: compares UTF-16 code units, so order is the same on every machine.
-function compareStrings(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
 
 function displayedFile(finding: Finding): string {
   if (finding.kind === 'config') return finding.configLocation.file;

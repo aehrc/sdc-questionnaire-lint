@@ -1,0 +1,50 @@
+[
+  {
+    "outputFile": "Bundle-Collection.json",
+    "fshName": "Collection",
+    "fshType": "Instance",
+    "fshFile": "Mapped.fsh",
+    "startLine": 81,
+    "endLine": 86
+  },
+  {
+    "outputFile": "Patient-dup.json",
+    "fshName": "DupPatient",
+    "fshType": "Instance",
+    "fshFile": "Mapped.fsh",
+    "startLine": 98,
+    "endLine": 102
+  },
+  {
+    "outputFile": "Questionnaire-Twins.json",
+    "fshName": "Twins",
+    "fshType": "Instance",
+    "fshFile": "Unmapped.fsh",
+    "startLine": 9,
+    "endLine": 28
+  },
+  {
+    "outputFile": "Questionnaire-WithContained.json",
+    "fshName": "WithContained",
+    "fshType": "Instance",
+    "fshFile": "Mapped.fsh",
+    "startLine": 104,
+    "endLine": 108
+  },
+  {
+    "outputFile": "Questionnaire-WithInsert.json",
+    "fshName": "WithInsert",
+    "fshType": "Instance",
+    "fshFile": "Unmapped.fsh",
+    "startLine": 32,
+    "endLine": 57
+  },
+  {
+    "outputFile": "Questionnaire-health-check.json",
+    "fshName": "HealthCheck",
+    "fshType": "Instance",
+    "fshFile": "Mapped.fsh",
+    "startLine": 6,
+    "endLine": 78
+  }
+]

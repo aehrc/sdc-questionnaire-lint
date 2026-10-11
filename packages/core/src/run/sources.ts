@@ -1,4 +1,5 @@
 import { stat } from 'node:fs/promises';
+import { compareStrings } from '../compare.js';
 import type { RunPaths } from '../config/paths.js';
 import { displayPath } from '../inputs/paths.js';
 
@@ -24,7 +25,7 @@ export async function findFshSources(runPaths: RunPaths, cwd: string): Promise<F
   for (const directory of runPaths.fshDirectories) {
     if (await isDirectory(directory)) byDisplay.set(displayPath(directory, cwd), directory);
   }
-  const fshSources = [...byDisplay.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const fshSources = [...byDisplay.keys()].sort(compareStrings);
   return {
     directories: fshSources.map((display) => byDisplay.get(display) ?? display),
     fshSources,

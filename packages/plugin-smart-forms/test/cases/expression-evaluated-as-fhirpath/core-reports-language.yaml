@@ -1,0 +1,35 @@
+# A language core reports stays core's: a query language SDC does not allow on an
+# answerOptionsToggleExpression (sdc/language-not-allowed), and a code outside the six FHIR defines
+# (sdc/language-not-in-value-set).
+items:
+  - linkId: application-query
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #application/x-fhir-query'
+      - 'extension[=].extension[=].valueExpression.expression = "Patient?_id=1"'
+  - linkId: text-query
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/x-fhir-query'
+      - 'extension[=].extension[=].valueExpression.expression = "Patient?_id=2"'
+  - linkId: misspelt
+    type: integer
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+      - 'extension[=].extension[0].url = "key"'
+      - 'extension[=].extension[=].valueId = "tc-misspelt"'
+      - 'extension[=].extension[+].url = "severity"'
+      - 'extension[=].extension[=].valueCode = #error'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/fhir-path'
+      - 'extension[=].extension[=].valueExpression.expression = "true"'
+      - 'extension[=].extension[+].url = "human"'
+      - 'extension[=].extension[=].valueString = "Check the answer"'

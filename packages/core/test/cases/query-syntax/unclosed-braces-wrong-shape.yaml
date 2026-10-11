@@ -1,0 +1,9 @@
+# Only the unclosed {{ is reported when the shape is wrong too.
+hostVariables: [patient]
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: application/x-fhir-query
+        expression: '%patient.id {{'

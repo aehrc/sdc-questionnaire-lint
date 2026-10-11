@@ -1,0 +1,29 @@
+# text/fhirpath at every location the rule checks.
+extensions:
+  - url: variable
+    name: r
+    expression: 'true'
+items:
+  - linkId: age
+    type: integer
+    text: Age
+    extensions:
+      - url: variable
+        name: v
+        expression: '%r'
+      - url: calculatedExpression
+        expression: '1'
+      - url: enableWhenExpression
+        expression: '%v'
+      - url: answerExpression
+        expression: '2'
+    fsh:
+      - 'text.extension.url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'text.extension.valueExpression.language = #text/fhirpath'
+      - 'text.extension.valueExpression.expression = "''text''"'
+      - 'prefix.extension.url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'prefix.extension.valueExpression.language = #text/fhirpath'
+      - 'prefix.extension.valueExpression.expression = "''prefix''"'
+      - 'answerValueSet.extension.url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'answerValueSet.extension.valueExpression.language = #text/fhirpath'
+      - 'answerValueSet.extension.valueExpression.expression = "''http://example.org/ValueSet/x''"'

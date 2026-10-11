@@ -1,0 +1,14 @@
+# A variable referenced in extraction is reported, but not an extractAllocateId (D19).
+extensions:
+  - url: variable
+    name: x
+    expression: '1'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-extractAllocateId"'
+  - 'extension[=].valueString = "newId"'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemExtractionContext
+        expression: '%newId | %x'

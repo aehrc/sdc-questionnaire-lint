@@ -1,0 +1,7 @@
+# %qitem on the root, where Smart Forms does not supply it either, with sdc/undefined-variable off.
+rules:
+  sdc/undefined-variable: 'off'
+extensions:
+  - url: variable
+    name: t
+    expression: '%qitem.text'

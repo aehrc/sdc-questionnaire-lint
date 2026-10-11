@@ -1,0 +1,26 @@
+# A CQL targetConstraint that a later one with the same key replaces is never evaluated.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+  - 'extension[=].extension[0].url = "key"'
+  - 'extension[=].extension[=].valueId = "tc-1"'
+  - 'extension[=].extension[+].url = "severity"'
+  - 'extension[=].extension[=].valueCode = #error'
+  - 'extension[=].extension[+].url = "expression"'
+  - 'extension[=].extension[=].valueExpression.language = #text/cql'
+  - 'extension[=].extension[=].valueExpression.expression = "true"'
+  - 'extension[=].extension[+].url = "human"'
+  - 'extension[=].extension[=].valueString = "Check the answer"'
+items:
+  - linkId: bp
+    type: integer
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+      - 'extension[=].extension[0].url = "key"'
+      - 'extension[=].extension[=].valueId = "tc-1"'
+      - 'extension[=].extension[+].url = "severity"'
+      - 'extension[=].extension[=].valueCode = #error'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].extension[=].valueExpression.expression = "true"'
+      - 'extension[=].extension[+].url = "human"'
+      - 'extension[=].extension[=].valueString = "Check the answer"'

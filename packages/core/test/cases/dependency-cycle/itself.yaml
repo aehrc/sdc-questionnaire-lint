@@ -1,0 +1,5 @@
+# A declaration that references itself, in the singular.
+extensions:
+  - url: variable
+    name: self
+    expression: '%self * 0'

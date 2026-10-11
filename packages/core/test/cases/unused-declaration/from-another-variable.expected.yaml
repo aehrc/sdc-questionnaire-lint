@@ -1,0 +1,7 @@
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unused-declaration-from-another-variable.fsh:12:46
+  message: '%b is declared on the Questionnaire root, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %b where its value is needed
+  expression:
+    text: '%a'

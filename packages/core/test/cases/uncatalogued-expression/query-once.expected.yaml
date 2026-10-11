@@ -1,0 +1,6 @@
+- ruleId: sdc/uncatalogued-expression
+  severity: info
+  at: input/fsh/uncatalogued-expression-query-once.fsh:9:51
+  message: This expression is in a place the linter does not recognise, so only its query shape and the FHIRPath in its {{…}} fragments can be checked.
+  expression:
+    text: Observation?subject={{%patient.id}}&date=gt{{%today}}

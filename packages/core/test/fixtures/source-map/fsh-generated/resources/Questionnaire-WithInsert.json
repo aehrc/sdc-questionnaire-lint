@@ -1,0 +1,63 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "WithInsert",
+  "item": [
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%inserted.fist()"
+          }
+        }
+      ],
+      "linkId": "inserted",
+      "type": "display",
+      "text": "Inserted"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%twin.fist()"
+          }
+        }
+      ],
+      "linkId": "first-twin",
+      "type": "display",
+      "text": "First twin"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%twin.fist()"
+          }
+        }
+      ],
+      "linkId": "second-twin",
+      "type": "display",
+      "text": "Second twin"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%late.fist()"
+          }
+        }
+      ],
+      "linkId": "late",
+      "type": "display",
+      "text": "Late"
+    }
+  ],
+  "status": "draft"
+}

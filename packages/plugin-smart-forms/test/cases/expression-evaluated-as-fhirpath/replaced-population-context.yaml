@@ -1,0 +1,21 @@
+# A query itemPopulationContext that a later one with the same name replaces is never evaluated.
+items:
+  - linkId: a
+    type: group
+    extensions:
+      - url: itemPopulationContext
+        name: ctx
+        language: application/x-fhir-query
+        expression: 'Patient'
+    items:
+      - linkId: a-child
+        type: string
+  - linkId: b
+    type: group
+    extensions:
+      - url: itemPopulationContext
+        name: ctx
+        expression: 'Patient'
+    items:
+      - linkId: b-child
+        type: string

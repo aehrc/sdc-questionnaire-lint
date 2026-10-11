@@ -1,0 +1,8 @@
+# A variable that declares a name SDC defines is reported at the variable.
+items:
+  - linkId: bmi
+    type: string
+    extensions:
+      - url: variable
+        name: qitem
+        expression: '%resource'

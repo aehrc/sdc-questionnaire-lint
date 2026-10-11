@@ -1,0 +1,8 @@
+# No help when no code is similar.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/javascript
+        expression: 'x'

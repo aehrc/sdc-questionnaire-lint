@@ -1,0 +1,15 @@
+# A variable whose own expression is in another language or does not parse is still reported.
+items:
+  - linkId: cql
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        language: text/cql
+        expression: 'a'
+  - linkId: broken
+    type: string
+    extensions:
+      - url: variable
+        name: b
+        expression: '%('

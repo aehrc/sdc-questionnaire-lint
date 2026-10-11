@@ -1,0 +1,14 @@
+# Only a code the place allows is suggested: enableWhenExpression allows no query.
+items:
+  - linkId: query
+    type: string
+    extensions:
+      - url: enableWhenExpression
+        language: application/x-fhir-qury
+        expression: 'x'
+  - linkId: fhirpath
+    type: string
+    extensions:
+      - url: enableWhenExpression
+        language: Text/FHIRPath
+        expression: '1'

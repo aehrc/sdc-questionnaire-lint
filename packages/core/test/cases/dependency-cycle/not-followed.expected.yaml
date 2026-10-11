@@ -1,0 +1,20 @@
+- ruleId: sdc/uncatalogued-expression
+  severity: info
+  at: input/fsh/dependency-cycle-not-followed.fsh:27:46
+  message: This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.
+  expression:
+    text: '%d'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/dependency-cycle-not-followed.fsh:8:46
+  message: '%a is declared on the Questionnaire root, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %a where its value is needed
+  expression:
+    text: defineVariable('a', 1).select(%a)
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/dependency-cycle-not-followed.fsh:12:46
+  message: '%b is declared on the Questionnaire root, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %b where its value is needed
+  expression:
+    text: defineVariable(%c.first(), 1).select(%b)

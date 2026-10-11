@@ -14,6 +14,8 @@ sushi . && sdc-lint lint
 
 With no paths, `lint` checks the compiled JSON in `fsh-generated/resources`. The linter reads compiled Questionnaires and Bundles, so run SUSHI again after editing FSH.
 
+With FSH sources in `input/fsh`, a finding names the FSH file, line and column of its expression, as `input/fsh/Intake.fsh:42:18: error …`. The linter finds the FSH definition through SUSHI's `fsh-generated/data/fsh-index.json`, or by searching the FSH files, and never guesses a line: a finding whose expression it cannot locate reliably keeps its compiled JSON location and says why. That happens for an expression written by a RuleSet with parameters, one written over several lines, and repeated text that neither the item's linkId, the extension nor the expression's name tells apart.
+
 ```sh
 sdc-lint lint fsh-generated/resources/Questionnaire-intake.json   # one file: a targeted run
 sdc-lint lint "fsh-generated/resources/Questionnaire-*.json"       # quote globs
@@ -29,9 +31,7 @@ sdc-lint lint --show-info                                          # also show i
 
 Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
-**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with fifteen built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration`, `sdc/reserved-name`, `sdc/undefined-variable`, `sdc/shadowed-declaration`, `sdc/dependency-cycle`, `sdc/unused-declaration` and `sdc/unresolved-linkid`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules. Not built yet: the Smart Forms plugin's rules and FSH source mapping. Until then every finding keeps its compiled JSON location.
-
-[examples/health-check](examples/health-check/README.md) is a form with common mistakes and the output the linter gives for it.
+**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with fifteen built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration`, `sdc/reserved-name`, `sdc/undefined-variable`, `sdc/shadowed-declaration`, `sdc/dependency-cycle`, `sdc/unused-declaration` and `sdc/unresolved-linkid`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules. FSH source mapping works. Not built yet: the Smart Forms plugin's rules.
 
 Start with these docs:
 

@@ -1,0 +1,14 @@
+# An uncatalogued place and an expression with only a reference are checked.
+items:
+  - linkId: uncatalogued
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        language: text/python
+        expression: 'x'
+  - linkId: reference
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/python
+        reference: '#lib'

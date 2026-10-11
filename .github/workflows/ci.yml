@@ -23,6 +23,12 @@ jobs:
           cache: npm
       - run: npm install --global "$(node -p 'require("./package.json").packageManager')"
       - run: npm ci
+      # The FHIR packages SUSHI downloads to compile the lint cases (packages/core/test/cases).
+      - uses: actions/cache@v6
+        with:
+          path: ~/.fhir
+          key: fhir-packages-${{ hashFiles('package-lock.json') }}
+          restore-keys: fhir-packages-
       - run: npm run check
       - if: matrix.node == 22
         run: npm pack --workspaces --dry-run

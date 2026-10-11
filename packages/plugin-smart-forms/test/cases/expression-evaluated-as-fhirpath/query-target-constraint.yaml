@@ -1,0 +1,38 @@
+# A targetConstraint in either query language: on the root the constraint never reports a problem;
+# text that contains intersect makes the renderer skip it, so the query is never run.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+  - 'extension[=].extension[0].url = "key"'
+  - 'extension[=].extension[=].valueId = "tc-application"'
+  - 'extension[=].extension[+].url = "severity"'
+  - 'extension[=].extension[=].valueCode = #error'
+  - 'extension[=].extension[+].url = "expression"'
+  - 'extension[=].extension[=].valueExpression.language = #application/x-fhir-query'
+  - 'extension[=].extension[=].valueExpression.expression = "Observation?code=x"'
+  - 'extension[=].extension[+].url = "human"'
+  - 'extension[=].extension[=].valueString = "Check the answer"'
+  - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+  - 'extension[=].extension[0].url = "key"'
+  - 'extension[=].extension[=].valueId = "tc-text"'
+  - 'extension[=].extension[+].url = "severity"'
+  - 'extension[=].extension[=].valueCode = #error'
+  - 'extension[=].extension[+].url = "expression"'
+  - 'extension[=].extension[=].valueExpression.language = #text/x-fhir-query'
+  - 'extension[=].extension[=].valueExpression.expression = "Observation?code=y"'
+  - 'extension[=].extension[+].url = "human"'
+  - 'extension[=].extension[=].valueString = "Check the answer"'
+items:
+  - linkId: intersect
+    type: integer
+    text: Intersect
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+      - 'extension[=].extension[0].url = "key"'
+      - 'extension[=].extension[=].valueId = "tc-intersect"'
+      - 'extension[=].extension[+].url = "severity"'
+      - 'extension[=].extension[=].valueCode = #error'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #application/x-fhir-query'
+      - 'extension[=].extension[=].valueExpression.expression = "intersect"'
+      - 'extension[=].extension[+].url = "human"'
+      - 'extension[=].extension[=].valueString = "Check the answer"'

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ExpressionSite, QuestionnaireDocument } from '../src/analysis/expression-site.js';
 import { findExpressionSites } from '../src/analysis/expression-sites.js';
-import { lint, type QuestionnaireFinding } from '../src/index.js';
+import { lint, type CompletedReport, type QuestionnaireFinding } from '../src/index.js';
 import { expectValidReport } from './support/report.js';
 import { tempTree } from './support/tmp.js';
 
@@ -681,76 +681,122 @@ describe('a plugin rule', () => {
   });
 });
 
-describe('compat', () => {
-  const resources = { 'fsh-generated/resources/Questionnaire-A.json': questionnaire };
-  // A plugin module source whose rule records the ctx.compat it receives under its namespace.
-  const plugin = (name: string, compat?: object) => `{
-    meta: { name: '${name}', version: '0.0.0' },
-    ${compat === undefined ? '' : `compat: ${JSON.stringify(compat)},`}
-    rules: {
-      record: {
-        meta: { description: 'Records ctx.compat.', defaultSeverity: 'info' },
-        check(ctx) { globalThis.sdcLintCompat['${name}'] = ctx.compat; },
-      },
-    },
-  }`;
-
-  it("gives each rule a frozen copy of its own namespace's versions, and run.compat all of them", async () => {
-    const seen: Record<string, Readonly<Record<string, string>>> = {};
-    (globalThis as { sdcLintCompat?: typeof seen }).sdcLintCompat = seen;
-    const cwd = await tempTree({
-      ...resources,
-      'sdc-questionnaire-lint.config.mjs': `export default {
-        plugins: [
-          ${plugin('alpha', { verified: { engine: ['1.0.0', '2.0.0'] }, required: ['engine'] })},
-          ${plugin('beta', { verified: { runtime: ['3.0.0'] }, required: [] })},
-          ${plugin('gamma')},
-        ],
-        compat: { alpha: { engine: '1.0.0' } },
-      };`,
-    });
-    const report = await lint({ cwd });
-    expectValidReport(report);
-    expect(report.run.compat).toEqual({ alpha: { engine: '1.0.0' }, beta: { runtime: '3.0.0' } });
-    expect(seen).toEqual({
-      alpha: { engine: '1.0.0' },
-      beta: { runtime: '3.0.0' },
-      gamma: {},
-    });
-    expect(Object.values(seen).every((compat) => Object.isFrozen(compat))).toBe(true);
-  });
-
-  it('reports Smart Forms versions without template-extract when it is not selected', async () => {
-    const cwd = await tempTree({
-      ...resources,
-      'sdc-questionnaire-lint.config.mjs': `export default {
-        plugins: [{
-          meta: { name: 'smart-forms', version: '0.0.0' },
-          rules: {},
-          compat: {
-            verified: { renderer: ['1.4.0'], populate: ['4.7.1'], 'template-extract': ['1.0.15'] },
-            required: ['renderer', 'populate'],
+describe('FSH source mapping', () => {
+  const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
+  const compiled = JSON.stringify({
+    resourceType: 'Questionnaire',
+    id: 'A',
+    status: 'draft',
+    item: [
+      {
+        linkId: 'a',
+        type: 'decimal',
+        extension: [
+          {
+            url: `${sdc}calculatedExpression`,
+            valueExpression: { language: 'text/fhirpath', expression: '%resource.fist()' },
           },
-        }],
-        compat: { 'smart-forms': { renderer: '1.4.0', populate: '4.7.1' } },
-      };`,
-    });
-    const report = await lint({ cwd });
+        ],
+      },
+    ],
+  });
+  const expressionRule =
+    '* item[=].extension[sdc-questionnaire-calculatedExpression].valueExpression.expression = "%resource.fist()"';
+  const fsh = [
+    'Instance: A',
+    'InstanceOf: Questionnaire',
+    '* status = #draft',
+    '* item[+].linkId = "a"',
+    '* item[=].type = #decimal',
+    expressionRule,
+  ].join('\n');
+  const tree = { 'fsh-generated/resources/Questionnaire-A.json': compiled, 'input/fsh/A.fsh': fsh };
+
+  it('locates a finding in the FSH it was compiled from', async () => {
+    const report = await lint({ cwd: await tempTree(tree) });
     expectValidReport(report);
-    expect(report.run.compat).toEqual({ 'smart-forms': { renderer: '1.4.0', populate: '4.7.1' } });
+    const column = expressionRule.indexOf('fist') + 1;
+    expect(report.findings).toMatchObject([
+      {
+        ruleId: 'sdc/unknown-function',
+        sourceLocation: {
+          status: 'mapped',
+          confidence: 'exact',
+          location: { file: 'input/fsh/A.fsh', line: 6, column, endLine: 6, endColumn: column + 4 },
+        },
+      },
+    ]);
   });
 
-  it('fails before reading inputs when compat names a version that is not verified', async () => {
+  it('changes neither fingerprints nor counts', async () => {
+    const mapped = await lint({ cwd: await tempTree(tree) });
+    const omitted = await lint({
+      cwd: await tempTree({
+        ...tree,
+        'sdc-questionnaire-lint.config.json': JSON.stringify({ source: { fsh: [] } }),
+      }),
+    });
+    expect(omitted.findings).toMatchObject([
+      { sourceLocation: { status: 'unmapped', reason: 'source-unavailable' } },
+    ]);
+    expect(mapped.findings.map(({ fingerprint }) => fingerprint)).toEqual(
+      omitted.findings.map(({ fingerprint }) => fingerprint),
+    );
+    // The config and FSH sources differ by design; everything else must not.
+    const counts = ({ summary }: CompletedReport) => ({
+      ...summary,
+      config: null,
+      fshSources: [],
+      fshSourceLookup: null,
+    });
+    expect(counts(mapped)).toEqual(counts(omitted));
+  });
+
+  it('leaves a finding not-found when its expression is not in the FSH', async () => {
+    const report = await lint({
+      cwd: await tempTree({ ...tree, 'input/fsh/A.fsh': fsh.replace('fist', 'first') }),
+    });
+    expect(report.findings).toMatchObject([
+      { sourceLocation: { status: 'unmapped', reason: 'not-found' } },
+    ]);
+  });
+});
+
+// Fingerprints are left out of the lint cases (test/cases), so their stability is checked here.
+describe('duplicate-declaration fingerprints', () => {
+  const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
+  const launchContext = (name: string) => ({
+    url: `${sdc}launchContext`,
+    extension: [
+      { url: 'name', valueCoding: { code: name } },
+      { url: 'type', valueCode: 'Patient' },
+    ],
+  });
+  const allocateId = (name: string) => ({ url: `${sdc}extractAllocateId`, valueString: name });
+
+  async function fingerprints(extension: unknown[]): Promise<string[]> {
     const cwd = await tempTree({
-      'sdc-questionnaire-lint.config.mjs': `export default {
-        plugins: [${plugin('alpha', { verified: { engine: ['1.0.0'] }, required: ['engine'] })}],
-        compat: { alpha: { engine: '0.9.0' } },
-      };`,
+      'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+        resourceType: 'Questionnaire',
+        id: 'A',
+        status: 'draft',
+        extension,
+      }),
     });
-    await expect(lint({ cwd })).rejects.toMatchObject({
-      code: 'CONFIG_INVALID',
-      message:
-        'config sdc-questionnaire-lint.config.mjs is invalid at /compat/alpha/engine: engine 0.9.0 is not a verified version',
-    });
+    return (await lint({ cwd })).findings
+      .filter(({ ruleId }) => ruleId === 'sdc/duplicate-declaration')
+      .map(({ fingerprint }) => fingerprint);
+  }
+
+  it('keeps the fingerprint at a launchContext when another extension is inserted before it', async () => {
+    const pair = [launchContext('patient'), launchContext('patient')];
+    const before = await fingerprints(pair);
+    expect(before).toHaveLength(1);
+    expect(await fingerprints([allocateId('x'), launchContext('user'), ...pair])).toEqual(before);
+  });
+
+  it('gives each repeat of a name at extensions its own fingerprint', async () => {
+    const repeated = await fingerprints([allocateId('a'), allocateId('a'), allocateId('a')]);
+    expect(new Set(repeated).size).toBe(2);
   });
 });

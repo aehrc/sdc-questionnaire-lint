@@ -78,6 +78,15 @@ A lint run with no paths on the command line, which checks the config's `files` 
 A lint run with paths on the command line, which checks only those files. Suppressions for other files are not assessed.
 _Avoid_: Partial run
 
+### FSH sources
+
+**SUSHI index**:
+`fsh-generated/data/fsh-index.json`, written by SUSHI: for each output file, the FSH file and line range of the definition that produced it. It locates a definition, not an expression, and never lists inline instances.
+_Avoid_: FSH index
+
+**Inline instance**:
+An FSH `Instance:` with `Usage: #inline`. SUSHI embeds it in another resource, as a contained resource or a Bundle entry, instead of writing it to a file of its own.
+
 ### Smart Forms compatibility
 
 **Smart Forms**:

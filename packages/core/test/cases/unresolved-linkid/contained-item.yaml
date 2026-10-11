@@ -1,0 +1,18 @@
+# A linkId that only an item of a contained Questionnaire has is reported. The form has a group g, its child a, and a's child c.
+items:
+  - linkId: g
+    type: group
+    items:
+      - linkId: a
+        type: boolean
+        text: 'Smoker'
+        extensions:
+          - url: calculatedExpression
+            expression: "%resource.repeat(item).where(linkId = 'foreign').answer.value"
+        items:
+          - linkId: c
+            type: string
+contained:
+  - items:
+      - linkId: foreign
+        type: string

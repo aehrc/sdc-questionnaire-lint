@@ -7,3 +7,5 @@ docs/plans/*
 .DS_Store
 lint-report.json
 corpus/
+/demo/
+.cache/

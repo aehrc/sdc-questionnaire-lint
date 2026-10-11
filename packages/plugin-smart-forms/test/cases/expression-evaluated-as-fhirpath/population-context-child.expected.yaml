@@ -1,0 +1,17 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-population-context-child.fsh:11:51
+  message: '%meds is not available on item "Medications" (meds).'
+  help: 'a variable with a similar name is available: %med'
+  expression:
+    text: '%meds.entry.resource'
+    range:
+      startOffset: 0
+      endOffset: 5
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-population-context-child.fsh:24:59
+  message: Smart Forms population evaluates this initialExpression on item "Dose" (dose) as FHIRPath although it is written in text/cql, so the text/cql is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: Dose

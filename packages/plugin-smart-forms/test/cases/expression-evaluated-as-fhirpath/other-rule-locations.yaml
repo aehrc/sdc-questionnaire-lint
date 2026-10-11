@@ -1,0 +1,9 @@
+# A CQL calculatedExpression is smart-forms/unsupported-expression-language's: the renderer ignores
+# it rather than evaluating it as FHIRPath.
+items:
+  - linkId: bp
+    type: integer
+    extensions:
+      - url: calculatedExpression
+        language: text/cql
+        expression: '1'

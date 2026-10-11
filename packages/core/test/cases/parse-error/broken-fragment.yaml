@@ -1,0 +1,8 @@
+# A broken {{ }} fragment is left to sdc/fragment-parse-error.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: application/x-fhir-query
+        expression: 'Observation?subject={{a.where(}}'

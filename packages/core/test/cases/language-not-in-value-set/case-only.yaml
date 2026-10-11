@@ -1,0 +1,8 @@
+# The code that differs only in case is suggested.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: Text/FHIRPath
+        expression: '1'

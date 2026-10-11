@@ -1,0 +1,7 @@
+# The fallback help when no function name is close.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.notAFunction()'

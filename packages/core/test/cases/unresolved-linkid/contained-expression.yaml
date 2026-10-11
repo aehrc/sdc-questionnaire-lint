@@ -1,0 +1,18 @@
+# Expressions in a contained resource are not checked. The form has a group g, its child a, and a's child c.
+items:
+  - linkId: g
+    type: group
+    items:
+      - linkId: a
+        type: boolean
+        text: 'Smoker'
+        items:
+          - linkId: c
+            type: string
+contained:
+  - items:
+      - linkId: foreign
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: "%resource.repeat(item).where(linkId = 'typo').answer.value"

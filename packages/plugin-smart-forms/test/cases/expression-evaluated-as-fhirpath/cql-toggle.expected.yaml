@@ -1,0 +1,14 @@
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-cql-toggle.fsh:13:67
+  message: Smart Forms renderer evaluates this answerOptionsToggleExpression on item "CQL" (cql) as FHIRPath although it is written in text/cql, so the text/cql is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: 'true'
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-cql-toggle.fsh:22:67
+  message: Smart Forms renderer evaluates this answerOptionsToggleExpression on item "CQL expression" (cql-expression) as FHIRPath although it is written in text/cql-expression, so the text/cql-expression is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: 'true'

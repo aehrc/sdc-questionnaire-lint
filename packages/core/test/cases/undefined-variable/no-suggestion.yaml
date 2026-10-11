@@ -1,0 +1,15 @@
+# No name is suggested for a swap of two letters, or for a name available only elsewhere.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: weight
+        expression: '1'
+      - url: calculatedExpression
+        expression: '%weigth'
+  - linkId: b
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '%weight'

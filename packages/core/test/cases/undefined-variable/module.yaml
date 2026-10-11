@@ -1,0 +1,15 @@
+# A module may use the names it lists in assembleContext; any other is reported.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-assembleContext"'
+  - 'extension[=].valueString = "person"'
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-assembleContext"'
+  - 'extension[=].valueString = "linkIdPrefix"'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: linkIdPrefix
+        expression: "%linkIdPrefix + 'a.'"
+      - url: calculatedExpression
+        expression: '%person.name.first() | %persn'

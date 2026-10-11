@@ -1,0 +1,7 @@
+# A variable named questionnaire that uses %questionnaire, with sdc/reserved-name off.
+rules:
+  sdc/reserved-name: 'off'
+extensions:
+  - url: variable
+    name: questionnaire
+    expression: '%questionnaire.title'

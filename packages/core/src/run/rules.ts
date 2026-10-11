@@ -21,7 +21,7 @@ import type {
 } from '../report/types.js';
 import { declarationKeys, questionnaireFingerprint, siteKeys } from './fingerprint.js';
 
-// No source mapper yet.
+// Until the source mapper locates a finding's expression in FSH (source/map-findings.ts).
 const unmapped = { status: 'unmapped', reason: 'source-unavailable' } as const;
 
 function identity(resourceType: string, id: unknown, pointer: string): ResourceIdentity {
@@ -29,7 +29,7 @@ function identity(resourceType: string, id: unknown, pointer: string): ResourceI
 }
 
 // The resource a pointer lies in: a contained resource of the Questionnaire, or the Questionnaire.
-function resourceAt(document: QuestionnaireDocument, pointer: string): ResourceIdentity {
+export function resourceAt(document: QuestionnaireDocument, pointer: string): ResourceIdentity {
   const { resource, resourcePointer } = document;
   const index = /^\/contained\/(\d+)(?:\/|$)/.exec(pointer.slice(resourcePointer.length))?.[1];
   if (index !== undefined && Array.isArray(resource.contained)) {
@@ -45,7 +45,7 @@ function resourceAt(document: QuestionnaireDocument, pointer: string): ResourceI
 // The excerpt a finding at a site shows. A fragment's finding is shown in its query, with the
 // rule's range rebased onto it, or over the whole fragment when the rule gave none
 // (report-format.md § Findings and locations).
-function excerpt(
+export function excerpt(
   site: ExpressionSite | undefined,
   range: OffsetRange | undefined,
 ): ExpressionExcerpt | undefined {
@@ -204,11 +204,24 @@ function ruleCrashFailure({ id, namespace }: ResolvedRule, what: string): LintFa
   });
 }
 
+// Where a finding came from: the document, and the site its rule reported it at, if any. The
+// source mapper needs both, and the report keeps neither.
+export interface FindingOrigin {
+  readonly document: AnalysedDocument;
+  readonly site?: ExpressionSite;
+}
+
+// Each finding's origin, by the finding object itself, from the rules to the source mapper
+// (source/map-findings.ts). Stages in between pass findings on as they are, never as copies.
+export type FindingOrigins = WeakMap<QuestionnaireFinding, FindingOrigin>;
+
 // Calls each rule that is not off once on the document, at its effective severity. Built-in and
-// plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH.
+// plugin rules are treated alike: a throw, a promise or an invalid finding is a RULE_CRASH. Each
+// finding's origin is recorded in origins, when given.
 export function runRules(
   doc: AnalysedDocument,
   rules: readonly ResolvedRule[],
+  origins?: FindingOrigins,
 ): QuestionnaireFinding[] {
   const { input, document, sites, analysis } = doc;
   const keys = siteKeys(document, sites);
@@ -297,7 +310,14 @@ export function runRules(
             checked = 'reading the finding threw an exception';
           }
           if (typeof checked === 'string') problem = checked;
-          else findings.push(toFinding(id, setting, checked));
+          else {
+            const finding = toFinding(id, setting, checked);
+            findings.push(finding);
+            origins?.set(finding, {
+              document: doc,
+              ...(checked.site === undefined ? {} : { site: checked.site }),
+            });
+          }
         },
       };
       // Typed void, but a plugin's check may still return a promise. Only sdc rules, which a

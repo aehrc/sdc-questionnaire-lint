@@ -1,0 +1,21 @@
+# Every kind of declaration is reported, at its Expression or extension.
+hostVariables: [patient]
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#context'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        name: resource
+        expression: '%patient'
+      - url: calculatedExpression
+        name: ucum
+        expression: '1'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-extractAllocateId"'
+      - 'extension[=].valueString = "questionnaire"'

@@ -1,0 +1,13 @@
+# An operator is never suggested, because it cannot be called as name():
+# & is one edit from x, and and is one edit from an.
+items:
+  - linkId: x
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.x()'
+  - linkId: an
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.an()'

@@ -1,0 +1,10 @@
+- ruleId: sdc/unknown-function
+  severity: error
+  at: input/fsh/unknown-function-no-close-name.fsh:9:53
+  message: notAFunction() is not a FHIRPath function, so this expression fails when the form runs.
+  help: check the function name; see the FHIRPath function list
+  expression:
+    text: a.notAFunction()
+    range:
+      startOffset: 2
+      endOffset: 14
