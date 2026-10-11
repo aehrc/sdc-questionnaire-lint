@@ -33,8 +33,9 @@ Findings and the summary go to stdout; failures go to stderr as `error:` and `he
 
 **Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with fifteen built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration`, `sdc/reserved-name`, `sdc/undefined-variable`, `sdc/shadowed-declaration`, `sdc/dependency-cycle`, `sdc/unused-declaration` and `sdc/unresolved-linkid`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules and select the runtime versions a compatibility plugin checks against. FSH source mapping works. The Smart Forms plugin has three rules: `smart-forms/unsupported-expression-language`, `smart-forms/expression-evaluated-as-fhirpath` and `smart-forms/questionnaire-variable-unavailable`. Not built yet: the rest of the Smart Forms rules, slices P3 to P8 of the [Smart Forms rules plan](docs/smart-forms-rules.md).
 
-Start with these docs:
+Start with these docs, which are also a documentation site (see [Development](#development)):
 
+- [Rules library](docs/rules/index.md) — a page per rule: what it checks and why, an example form in FSH with its compiled JSON and findings, the rule's test cases and its source.
 - [Core plan](docs/core-plan.md) and [amendments](docs/plan-amendments.md) — scope and decisions; amendments take precedence.
 - [Core rules plan](docs/core-rules.md) and [Smart Forms rules plan](docs/smart-forms-rules.md) — what each rule checks, its decisions and the runtime facts behind it.
 - [CLI contract](docs/cli.md) — commands, configuration, exit codes and automation recipes.
@@ -68,6 +69,8 @@ Paths in the config are relative to the config's directory, not the current one.
 sdc-lint explain                    # every rule, with its default and effective severity
 sdc-lint explain sdc/parse-error    # what the rule checks, why, an example message and the fix
 ```
+
+`explain` works offline. The [rules library](docs/rules/index.md) has the same documentation, with an example form and the test cases of each rule.
 
 ### Plugins
 
@@ -202,7 +205,7 @@ The repository is an npm workspace with three packages:
 | :- | :- | :- |
 | `sdc-questionnaire-lint` | [packages/core](packages/core) | The CLI, the library and the built-in rules |
 | `@sdc-questionnaire-lint/plugin-smart-forms` | [packages/plugin-smart-forms](packages/plugin-smart-forms) | The Smart Forms plugin, with reproduction tests against the pinned Smart Forms packages |
-| `@sdc-questionnaire-lint/lint-cases` | [packages/lint-cases](packages/lint-cases) | Private test support: lint cases written as YAML, compiled by SUSHI, linted and compared with their expected findings |
+| `@sdc-questionnaire-lint/lint-cases` | [packages/lint-cases](packages/lint-cases) | Private test support: lint cases written as YAML, compiled by SUSHI, linted and compared with their expected findings; the rules library shows them as examples |
 
 A rule's tests are lint cases: `test/cases/<rule>/<case>.yaml` describes a form, and `<case>.expected.yaml` beside it lists the findings the linter must report.
 
@@ -212,6 +215,10 @@ npm run demo                                         # generate a SUSHI project 
 npm run example -- invalid                           # compile and lint an FSH example project
 npm run corpus                                       # lint the local corpus and compare with its snapshot
 npm run corpus -- --smart-forms                      # the same, with the Smart Forms plugin
+npm run docs:dev                                     # serve the documentation site with live reload
+npm run docs:build                                   # build it into docs/.vitepress/dist; fails on a dead link
 ```
+
+The documentation site is built with VitePress from this README, the [glossary](GLOSSARY.md) and `docs/`. Its rules library is generated from the code: a page per rule from the rule's `meta.docs`, an example lint case compiled by SUSHI, and its other lint cases. Both commands build the packages first.
 
 `npm run demo` writes `demo/invalid-demo` from `packages/core/test/cases/demo/invalid-demo.yaml`, or another config given as its argument. `demo`, `example` and the lint cases compile with SUSHI 3.20.1, the `fsh-sushi` dev dependency, which `npm run` puts on the PATH. [AGENTS.md](AGENTS.md) lists the other development commands.
