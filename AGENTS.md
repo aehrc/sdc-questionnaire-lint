@@ -21,7 +21,7 @@ An npm workspace of three packages:
 - [docs/report-format.md](docs/report-format.md) defines the JSON report, with its [schema](docs/schemas/lint-report.schema.json) and [examples](docs/examples/reports/README.md). Read it before changing what a report contains.
 - [docs/architecture.md](docs/architecture.md) maps one lint run through `packages/core/src`, and lists what a plugin can import. Keep it current when the pipeline or the plugin API changes.
 - [docs/linter-design-guidelines.md](docs/linter-design-guidelines.md) holds the design rules. Read it before writing a rule, a message, a reporter or output schema, or an agent integration.
-- [docs/adding-a-rule.md](docs/adding-a-rule.md) is the step-by-step guide to adding a core, Smart Forms or plugin rule: the contract, findings, `meta.docs`, tests, the registration checklists and how to verify. Follow it when adding or changing a rule.
+- [docs/adding-a-rule.md](docs/adding-a-rule.md) is the step-by-step guide to adding a core, Smart Forms or plugin rule: the contract, findings, `meta.docs`, tests, the registration checklists and how to verify. Follow it when adding or changing a rule. The project skill [.claude/skills/add-rule](.claude/skills/add-rule/SKILL.md) works through it in order and says when each step is done.
 
 ## Commands
 
