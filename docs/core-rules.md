@@ -1,13 +1,13 @@
 # Core rules plan: the nine remaining `sdc/` rules
 
-Builds the core rules from [core-plan.md](../core-plan.md) §4.1 that do not exist yet. Reviewed on 2026-10-08. The agreed corrections are part of this plan, and its overrides of core-plan are recorded in [plan-amendments.md](../plan-amendments.md). Decision IDs D1–D25 are stable because other docs cite them.
+Builds the core rules from [core-plan.md](core-plan.md) §4.1 that do not exist yet. Reviewed on 2026-10-08. The agreed corrections are part of this plan, and its overrides of core-plan are recorded in [plan-amendments.md](plan-amendments.md). Decision IDs D1–D25 are stable because other docs cite them.
 
 Already built: `sdc/parse-error`, `sdc/fragment-parse-error`, `sdc/query-syntax`, `sdc/unknown-function`, `sdc/uncatalogued-expression`.
 
 ## How to work on a slice
 
 1. Pick the next slice in the [slice table](#slices-at-a-glance) whose status is `todo` and whose dependencies are done.
-2. Read the slice section, every decision it cites (Dn), and the [GLOSSARY](../../GLOSSARY.md) terms it uses. Use the [Reference](#reference-specification-and-runtime-facts) section only when a case is not covered by a decision.
+2. Read the slice section, every decision it cites (Dn), and the [GLOSSARY](../GLOSSARY.md) terms it uses. Use the [Reference](#reference-specification-and-runtime-facts) section only when a case is not covered by a decision.
 3. If the slice has an [open item](#open-items), ask the user to settle it before the PR merges.
 4. Complete the [checklist for every slice PR](#checklist-for-every-slice-pr), then set the slice's status to `done`.
 

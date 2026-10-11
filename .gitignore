@@ -9,3 +9,5 @@ lint-report.json
 corpus/
 /demo/
 .cache/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
