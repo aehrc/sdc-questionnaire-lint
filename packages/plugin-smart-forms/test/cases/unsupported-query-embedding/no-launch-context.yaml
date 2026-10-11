@@ -1,0 +1,9 @@
+# With no launch context declared, each embedding is reported once, and no other problem is:
+# the invalid regular expression is never built.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: conditions
+    language: application/x-fhir-query
+    expression: "Condition?patient={{%patient.id}}&code={{%patient.id = ')'}}"

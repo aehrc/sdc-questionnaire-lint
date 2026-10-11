@@ -1,0 +1,10 @@
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-not-launch-context.fsh:12:67
+  message: Smart Forms fills {{%…}} only from a launch context, and practitioner is not one, so the query is sent with "undefined".
+  help: use a launch context declared on the Questionnaire root, such as %patient.id
+  expression:
+    text: Condition?asserter={{%practitioner.id}}
+    range:
+      startOffset: 21
+      endOffset: 37

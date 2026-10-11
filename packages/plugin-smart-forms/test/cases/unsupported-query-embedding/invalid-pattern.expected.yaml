@@ -1,0 +1,30 @@
+- ruleId: sdc/fragment-parse-error
+  severity: error
+  at: input/fsh/unsupported-query-embedding-invalid-pattern.fsh:12:78
+  message: The expression ends before it is complete.
+  note: "the FHIRPath parser reported: mismatched input '<EOF>'"
+  expression:
+    text: Condition?patient={{%patient.id(}}
+    range:
+      startOffset: 32
+      endOffset: 32
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-invalid-pattern.fsh:8:66
+  message: Smart Forms builds a regular expression from the text inside {{…}}, and this text is not a valid one, so population of the whole form fails.
+  help: keep the text inside {{…}} to a launch context and a path, such as {{%patient.id}}
+  expression:
+    text: Condition?patient={{%patient.id = ')'}}
+    range:
+      startOffset: 20
+      endOffset: 37
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-invalid-pattern.fsh:12:66
+  message: Smart Forms builds a regular expression from the text inside {{…}}, and this text is not a valid one, so population of the whole form fails.
+  help: keep the text inside {{…}} to a launch context and a path, such as {{%patient.id}}
+  expression:
+    text: Condition?patient={{%patient.id(}}
+    range:
+      startOffset: 20
+      endOffset: 32

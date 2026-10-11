@@ -1,0 +1,36 @@
+# Names the path cannot use: another launch context, the launch context itself, a variable and
+# %resource; the range is the reference.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: obs
+    language: application/x-fhir-query
+    expression: 'Observation?subject={{%patient.id}}'
+  - url: variable
+    name: a
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%patient.id & %encounter.id}}'
+  - url: variable
+    name: b
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%patient.id & %patient.id}}'
+  - url: variable
+    name: c
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%patient.id & %obs}}'
+  - url: variable
+    name: d
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%patient.id & %resource.id}}'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#encounter'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Encounter'

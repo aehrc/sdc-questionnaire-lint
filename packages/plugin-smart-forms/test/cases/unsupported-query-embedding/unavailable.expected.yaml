@@ -1,0 +1,40 @@
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-unavailable.fsh:12:80
+  message: Smart Forms evaluates the text after %patient with only the launch resource, so %encounter is not available and the embedding becomes empty.
+  help: inside {{…}} only %context, %ucum, %terminologyUrl and %async are available, and %fhirServerUrl when a source server is configured
+  expression:
+    text: Condition?patient={{%patient.id & %encounter.id}}
+    range:
+      startOffset: 34
+      endOffset: 44
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-unavailable.fsh:16:80
+  message: Smart Forms evaluates the text after %patient with only the launch resource, so %patient is not available and the embedding becomes empty.
+  help: inside {{…}} only %context, %ucum, %terminologyUrl and %async are available, and %fhirServerUrl when a source server is configured
+  expression:
+    text: Condition?patient={{%patient.id & %patient.id}}
+    range:
+      startOffset: 34
+      endOffset: 42
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-unavailable.fsh:20:80
+  message: Smart Forms evaluates the text after %patient with only the launch resource, so %obs is not available and the embedding becomes empty.
+  help: inside {{…}} only %context, %ucum, %terminologyUrl and %async are available, and %fhirServerUrl when a source server is configured
+  expression:
+    text: Condition?patient={{%patient.id & %obs}}
+    range:
+      startOffset: 34
+      endOffset: 38
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-unavailable.fsh:24:80
+  message: Smart Forms evaluates the text after %patient with only the launch resource, so %resource is not available and the embedding becomes empty.
+  help: inside {{…}} only %context, %ucum, %terminologyUrl and %async are available, and %fhirServerUrl when a source server is configured
+  expression:
+    text: Condition?patient={{%patient.id & %resource.id}}
+    range:
+      startOffset: 34
+      endOffset: 43

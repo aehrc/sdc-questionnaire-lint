@@ -1,0 +1,37 @@
+- ruleId: sdc/fragment-parse-error
+  severity: error
+  at: input/fsh/unsupported-query-embedding-not-recognised.fsh:12:66
+  message: This FHIRPath expression has a syntax error.
+  expression:
+    text: Condition?patient={{%}}
+    range:
+      startOffset: 20
+      endOffset: 21
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-not-recognised.fsh:8:66
+  message: Smart Forms does not replace this embedding, because it does not start with {{%, so the query is sent with its braces.
+  help: write it as {{%patient.id}}
+  expression:
+    text: Condition?patient={{ %patient.id }}
+    range:
+      startOffset: 20
+      endOffset: 33
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-not-recognised.fsh:12:66
+  message: Smart Forms does not replace this embedding, because it has nothing after {{%, so the query is sent with its braces.
+  expression:
+    text: Condition?patient={{%}}
+    range:
+      startOffset: 20
+      endOffset: 21
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-not-recognised.fsh:16:66
+  message: Smart Forms does not replace this embedding, because it does not start with {{%, so the query is sent with its braces.
+  expression:
+    text: Condition?patient={{patient.id}}
+    range:
+      startOffset: 20
+      endOffset: 30

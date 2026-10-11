@@ -1,0 +1,31 @@
+# Other heads: a query variable, a backticked launch context, no path after the head, and
+# nothing before the first dot (which does not parse either).
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: obs
+    language: application/x-fhir-query
+    expression: 'Observation?subject={{%patient.id}}'
+  - url: variable
+    name: a
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%obs.id}}'
+  - url: variable
+    name: b
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%`patient`.id}}'
+  - url: variable
+    name: c
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%patient}}'
+  - url: variable
+    name: d
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%.id}}'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'

@@ -4,7 +4,7 @@ Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §
 
 **Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day; the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
-P0, P1 and P2 are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules and `questionnaire-variable-unavailable`, plugin rules receive core's references and available variables, and population facts are reproduced against `@aehrc/sdc-populate@4.7.1`.
+P0 to P3 are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable` and `unsupported-query-embedding`, plugin rules receive core's references and available variables, and population facts, the embedding facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`.
 
 ## How to work on a slice
 
@@ -24,7 +24,7 @@ One PR per slice, in this order.
 | [P1](#p1-language-rules) | API stage A (language lookups), the site-eligibility helper, `smart-forms/unsupported-expression-language` | error | P0 | done |
 |  | `smart-forms/expression-evaluated-as-fhirpath` | error | P0 | done |
 | [P2](#p2-smart-formsquestionnaire-variable-unavailable) | API stage B (`referencesAt`, `variablesAt`), populate reproduction harness, `smart-forms/questionnaire-variable-unavailable` | error | P1 | done |
-| [P3](#p3-smart-formsunsupported-query-embedding) | `smart-forms/unsupported-query-embedding` | error | P2 | todo |
+| [P3](#p3-smart-formsunsupported-query-embedding) | `smart-forms/unsupported-query-embedding` | error | P2 | done |
 | [P4](#p4-supplied-names-hook) | Supplied-names hook; the plugin supplies sourceQueries result names | – | P0 | todo |
 | [P5](#p5-smart-formsvariable-name-collision-and-smart-formsrepeating-group-variable) | API stage C (`declarations`, `dependenciesOf`, `useOf`, `readsInput`), `smart-forms/variable-name-collision` | error | P2 | todo |
 |  | `smart-forms/repeating-group-variable` | warning | P5 | todo |
@@ -394,6 +394,14 @@ Decisions: S1, S9, S10. Uses the [embedding facts](#x-fhir-query-embeddings).
 
 **Corpus:** GP CCMP 0 (15 embeddings: 14 `%patient.id`, 1 `%gpccmppractitionerrole.id`, a declared launchContext). SDC STU4 1 (rxterms item variable with `{{item.where(linkId=…)…}}`, check 1).
 
+**Settled while building it** (2026-10-11):
+- Facts: `src/facts/embeddings.ts`, one fact per behaviour of populate 4.7.1, reproduced in `test/reproduction/populate-embeddings.test.ts`. The renderer has none: it never replaces `{{…}}`. Each check runs only when its fact holds for the selected populate version.
+- Scope: a query variable `readBy` returns populate for. Population fetches nothing for a variable without a name.
+- Check 1 follows population's pattern, whose `.` excludes line breaks, so an embedding that spans lines is reported. A fragment inside which population still finds an embedding, such as `{{{%patient.id}}`, is not checked.
+- Check 2 is reported once per fragment, as in the open item's default. A launchContext of any shape counts as declared, so the check never fires on a form population might fill.
+- Check 4 searches every query the form fetches, this one included, and the request URLs of the contained Bundles the root's sourceQueries reference. Any match that is not an identical embedding is a corruption; one finding names every corrupted query, and the other queries are related locations. So `{{%patient.id|id}}` names both its own query and `Encounter?b={{%patient.id}}`.
+- Check 5: an empty head (`{{%.id}}`) is not evaluated, so it is sent with an empty value, like a missing `.`. Launch context names are read by URL, as core reads them (S16).
+
 ### P4. Supplied-names hook
 
 Decisions: S6, D1, D16. Settles the core-rules follow-up "a plugin hook for supplied names".
@@ -574,7 +582,7 @@ Apply with the first slice that relies on each fact.
 
 - **core-plan §4.2, rule IDs.** Renamed by S17, and `smart-forms/forward-variable-reference` added (S12).
 - **core-plan §4.2, unchecked-language rule.** Add populate's initialExpression and itemPopulationContext.
-- **core-plan §4.2, x-fhir-query-embedding-shape.** Scope is `application/x-fhir-query` variables, root and item. "Not the supported `%launchContext.path` shape" is replaced by the six checks in P3: operators and literals can be replaced, and the failures come from the unescaped regular expression.
+- **core-plan §4.2, x-fhir-query-embedding-shape.** Applied in P3 ([plan-amendments.md](plan-amendments.md)). Scope is `application/x-fhir-query` variables, root and item. "Not the supported `%launchContext.path` shape" is replaced by the six checks in P3: operators and literals can be replaced, and the failures come from the unescaped regular expression.
 - **core-plan §4.2, "itemPopulationContext on a repeating group is a valid population pattern".** Valid, but bound per repetition only for direct children, as described in [Variable storage and order](#variable-storage-and-order).
 - **core-plan §4.2, template-extract rule.** The failure is not silent: template-extract returns an OperationOutcome warning.
 - **core-rules.md, Smart Forms runtime, "Variables are evaluated in array order, in one flat namespace."** True for root variables only. Item variables are evaluated in post-order of items, with integer-like linkIds first (JavaScript key order), and each repetition overwrites the name.
@@ -582,7 +590,7 @@ Apply with the first slice that relies on each fact.
 - **core-rules.md, x-fhir-query variables.** Populate fetches `application/x-fhir-query` variables on items as well as on the root.
 - **core-rules.md, sourceQueries.** The name of a `#id` reference is chosen before resolution; a value is supplied only for a contained Bundle with an `entry` element.
 - **core-rules.md, Plugin follow-ups, "Smart Forms ignores `text/x-fhir-query` (D11)".** Applied in P1. Only at filtering locations. At targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext it is evaluated as FHIRPath. `application/x-fhir-query` is also ignored everywhere except `variable`. D11's attribution should cover both P1 rules.
-- **core-rules.md, x-fhir-query embeddings, "reproduce one before a plugin check rejects an expression".** Reproduced: populate builds an unescaped regular expression from each embedding and applies it to every query. Replace "`%context` and `%ucum` can still resolve" with the full list in P3 check 6, and note there is no model.
+- **core-rules.md, x-fhir-query embeddings, "reproduce one before a plugin check rejects an expression".** Applied in P3. Reproduced: populate builds an unescaped regular expression from each embedding and applies it to every query. Replace "`%context` and `%ucum` can still resolve" with the full list in P3 check 6, and note there is no model.
 - **report-format.md, "invalid rule options".** Cannot happen (S7); remove or mark as reserved.
 - **report schema, `smartFormsVersions`.** `template-extract` becomes optional. Applied in P0.
 - **plugin `package.json`, `files: ["dist", "compat"]`.** Fixed in P0.

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { embeddingFacts } from '../src/facts/embeddings.js';
 import { type Evidence, sourceBase } from '../src/facts/evidence.js';
 import { languageFacts } from '../src/facts/languages.js';
 import { unsuppliedNames } from '../src/facts/names.js';
@@ -11,6 +12,7 @@ const tables: FactTable<readonly { evidence: readonly Evidence[] }[]>[] = [
   languageFacts,
   prerequisites,
   unsuppliedNames,
+  embeddingFacts,
 ];
 
 function* factsOf(component: Component): Generator<{ evidence: readonly Evidence[] }> {

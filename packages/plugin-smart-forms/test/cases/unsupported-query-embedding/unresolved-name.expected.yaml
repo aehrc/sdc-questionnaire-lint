@@ -1,0 +1,10 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/unsupported-query-embedding-unresolved-name.fsh:8:77
+  message: '%missing is not available on the Questionnaire root.'
+  help: declare it on the root, or list it in hostVariables if the application running the form supplies it
+  expression:
+    text: Condition?patient={{%patient.id & %missing}}
+    range:
+      startOffset: 34
+      endOffset: 42

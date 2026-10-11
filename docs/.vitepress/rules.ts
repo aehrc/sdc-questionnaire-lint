@@ -51,6 +51,9 @@ const examples: Readonly<Record<string, { case: string } | { tests: readonly str
   'smart-forms/questionnaire-variable-unavailable': {
     case: 'questionnaire-variable-unavailable/variables',
   },
+  'smart-forms/unsupported-query-embedding': {
+    case: 'unsupported-query-embedding/not-launch-context',
+  },
 };
 
 interface RuleGroup {

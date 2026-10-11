@@ -5,3 +5,13 @@
   help: remove the variable, or reference %obs where its value is needed
   expression:
     text: Observation?q={{%questionnaire.id}}
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-query-embedding.fsh:8:59
+  message: Smart Forms fills {{%…}} only from a launch context, and questionnaire is not one, so the query is sent with "undefined".
+  help: use a launch context declared on the Questionnaire root, such as %patient.id
+  expression:
+    text: Observation?q={{%questionnaire.id}}
+    range:
+      startOffset: 16
+      endOffset: 33
