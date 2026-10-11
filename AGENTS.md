@@ -27,6 +27,7 @@ Stack: TypeScript, Node 22+, tsup, Vitest; fhirpath.js pinned to 4.10.1.
 - `npm run source-map:coverage --workspace sdc-questionnaire-lint -- <IG directory>`: map every expression of an IG's compiled Questionnaires to its FSH and check each result; run SUSHI in the IG first. It exits 1 below 95% mapped or on any failed check. A development script (`packages/core/scripts/source-map-coverage.ts`), bundled by tsup into `node_modules/.cache`; it is not shipped.
 - Dependency versions are saved exactly (`save-exact` in `.npmrc`).
 - Install scripts of dependencies are blocked unless allowed in `allowScripts` in `package.json`. After adding a dependency, review `npm install-scripts ls`.
+- `fhirclient` is overridden with the empty stub `test/stubs/fhirclient` (root `devDependencies` and `overrides` in `package.json`). `@aehrc/sdc-populate`, a dev dependency of the plugin for reproduction tests, declares it but never imports it at run time, and the real package pulls in about 500 Expo and React Native packages and a `core-js` install script. The override names `@aehrc/sdc-populate@4.7.1`: re-check it when that version changes. Add the override before installing a new populate version, or npm keeps a nested real `fhirclient` in the lockfile.
 
 ## Workflow
 

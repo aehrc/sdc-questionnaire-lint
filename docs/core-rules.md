@@ -57,7 +57,7 @@ This work cuts across slices 3, 4, 6 and 7. Add each piece in the slice that fir
 
 - Its inputs are explicit: the Questionnaire document, its existing expression sites and the configured `hostVariables`. Keep declaration discovery, parsed references and name resolution inside this internal module. Avoid a global cache keyed only by the document: it hides the host configuration and finds sites again with different object identities.
 - `lint.ts` keeps the analysis for each document. `runRules` receives it explicitly and passes it to core checks through an internal argument. External plugin checks keep the current public `RuleContext`.
-- Do not publish `Declaration`, `Variable`, `AvailableVariables` or variable references until a concrete plugin rule needs them. Keep the public `Scope`/`scopeAt` stub, which stays documented as unavailable.
+- Do not publish `Declaration`, `Variable`, `AvailableVariables` or variable references until a concrete plugin rule needs them. Keep the public `Scope`/`scopeAt` stub, which stays documented as unavailable. Lifted by Smart Forms P2 (S5).
 
 **Completion evidence** is recorded for each rule and target, including the reason an applicable check could not run:
 
@@ -335,7 +335,7 @@ Each decision is listed under its topic and keeps its original number.
 - **D10. `sdc/language-not-allowed` enforces only the restrictions in the SDC expressions table, minus those the Validator enforces. contextExpression counts as allowing any language.**
   _Why:_ the table and the contextExpression definition contradict each other, and core reports no error on a contradiction.
 - **D11. `sdc/language-not-in-value-set` accepts the R4 and R5 codes.**
-  _Why:_ a Questionnaire does not state its FHIR version, and an IG can target R4 or R5. Smart Forms ignoring R5's query code belongs to `smart-forms/unsupported-expression-language`.
+  _Why:_ a Questionnaire does not state its FHIR version, and an IG can target R4 or R5. How Smart Forms handles R5's query code belongs to the Smart Forms plugin: it ignores it at filtering locations (`smart-forms/unsupported-expression-language`) and evaluates it as FHIRPath at targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext (`smart-forms/expression-evaluated-as-fhirpath`).
 
 ### Declarations and availability
 
@@ -385,9 +385,9 @@ Each decision is listed under its topic and keeps its original number.
 
 - **D14. The corpus is local.** A corpus of real forms is copied into the gitignored `corpus/` directory and never committed. A local command lints it and compares the findings with a local snapshot. The PR author runs it and reports the changes in findings in the PR, by rule ID, count and JSON Pointer, without expression excerpts from forms whose terms restrict redistribution.
   _Why:_ every rule change is checked against real forms before it merges, and tests need no network. Each source's own terms allow this local use: Smart Forms is Apache-2.0, ATSI 0.4.0 is CC BY-SA 4.0, the SDC IG examples are CC0-1.0, and GP CCMP permits evaluation and local testing only, with no redistribution. Some forms state no terms. Leaving the corpus uncommitted keeps every redistribution term untouched. CI cannot run the corpus.
-- **D15. Declarations, references and the resolution of available variables stay internal until a plugin rule needs them.** New analysis uses the term **available variables**. The public `Scope`/`scopeAt` replacement and the matching glossary rename are deferred.
+- **D15. Declarations, references and the resolution of available variables stay internal until a plugin rule needs them.** New analysis uses the term **available variables**. The public `Scope`/`scopeAt` replacement and the matching glossary rename are deferred. Lifted by Smart Forms P2 (S5).
   _Why:_ one shared internal module gives the core rules consistent facts, without expanding or renaming the plugin interface too early.
-- **D18. Variable references stay internal to core, and `RuleContext` does not expose them yet.**
+- **D18. Variable references stay internal to core, and `RuleContext` does not expose them yet.** Lifted by Smart Forms P2 (S5).
   _Why:_ no plugin rule needs them yet, and adding them to the contract later breaks nothing.
 
 ## Open items
@@ -402,7 +402,7 @@ Each decision is listed under its topic and keeps its original number.
 
 - A plugin hook for supplied names. With it, the Smart Forms plugin supplies its own host variables: the sourceQueries result names it reads from the form (`%<Bundle id>`, `%sourceQuery<index>`), and its `additionalContext` names. Core's resolution then accepts names from `hostVariables` and from plugins alike, still without knowing any host's conventions (D1, D16).
 - An eagerly evaluated reference to a later variable can fail in Smart Forms when there is no earlier binding that was supplied or fetched (D8). Tell this apart from lazy branches, and from x-fhir-query contexts that are fetched first.
-- Smart Forms ignores `text/x-fhir-query` (D11). This belongs in `smart-forms/unsupported-expression-language`.
+- Smart Forms ignores `text/x-fhir-query` (D11) at filtering locations, and `application/x-fhir-query` everywhere except `variable`; it evaluates either as FHIRPath at targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext. Done in the Smart Forms plugin's P1: `smart-forms/unsupported-expression-language` and `smart-forms/expression-evaluated-as-fhirpath`.
 - sdc-populate skips item variables when the Questionnaire root has no extensions.
 - Template-extract evaluates no Questionnaire `variable`s, as SDC $extract specifies (D19). This is not a compatibility gap.
 - The renderer sees itemPopulationContext names only through populate's `additionalContext`. A reference that SDC allows (D13) can therefore be empty when the form is rendered without populate. This belongs in `smart-forms/named-expression-not-referenceable`.

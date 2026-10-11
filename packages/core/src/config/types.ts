@@ -30,6 +30,9 @@ export interface LintConfig {
   source?: { fsh?: string[] };
   // Only in an .mjs config. Installing a plugin does not enable it; listing it here does.
   plugins?: LintPlugin[];
+  // The runtime versions each listed plugin checks against, by namespace: "latest", or exact
+  // versions by component. A plugin that declares compat and has no entry gets "latest".
+  compat?: Record<string, 'latest' | Record<string, string>>;
   rules?: Record<string, RuleSetting>;
   suppress?: SuppressionEntry[];
 }

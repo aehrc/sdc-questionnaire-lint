@@ -87,10 +87,3 @@ export interface ExpressionSite {
   // Set only when carrier is fragment: where the site's text sits in its query.
   readonly fragment?: QueryFragment;
 }
-
-// The names in scope at a site for a use case. A stub until the scope model exists: available
-// is false and names is empty (core-plan §3.1).
-export interface Scope {
-  readonly available: boolean;
-  readonly names: readonly string[];
-}

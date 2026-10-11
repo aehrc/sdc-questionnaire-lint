@@ -74,7 +74,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     run: {
       tool: { name: 'sdc-questionnaire-lint', version: pkg.version },
       plugins: ruleSet.pluginVersions,
-      compat: {},
+      compat: ruleSet.compat,
       selection: runKind,
     },
     findings,

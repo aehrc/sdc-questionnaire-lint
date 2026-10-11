@@ -8,7 +8,7 @@ type Path = readonly (string | number)[];
 export type ConfigFormat = 'json' | 'mjs';
 
 // Only keys that do something: one accepted and ignored would let an author believe it is in effect.
-const knownKeys = ['files', 'hostVariables', 'plugins', 'rules', 'source', 'suppress'];
+const knownKeys = ['compat', 'files', 'hostVariables', 'plugins', 'rules', 'source', 'suppress'];
 const ruleSettings = ['error', 'warning', 'info', 'off'];
 const requiredSuppressionKeys = ['rule', 'reason', 'file'];
 const selectorKeys = ['linkId', 'extensionUrl', 'name', 'resource', 'pointer'];
@@ -153,6 +153,35 @@ export function validateConfig(
         `expected an array, got ${describeValue(config.plugins)}`,
         'list the imported plugins as an array: plugins: [myPlugin]',
       );
+    }
+  }
+
+  if (config.compat !== undefined) {
+    const compat = expectObject(config.compat, ['compat'], "{ 'smart-forms': 'latest' }");
+    for (const [namespace, target] of Object.entries(compat)) {
+      if (target === 'latest') continue;
+      const at = ['compat', namespace];
+      if (!isObject(target)) {
+        fail(
+          at,
+          `expected "latest" or an object of versions, got ${typeof target === 'string' ? JSON.stringify(target) : describeValue(target)}`,
+          `set ${namespace} to "latest", or to exact versions by component, such as { renderer: '1.4.0' }`,
+        );
+        continue;
+      }
+      for (const [component, version] of Object.entries(target)) {
+        if (typeof version !== 'string' || version === '' || version === 'latest') {
+          fail(
+            [...at, component],
+            typeof version !== 'string'
+              ? `expected a version string, got ${describeValue(version)}`
+              : version === ''
+                ? `${component} is empty`
+                : `${component} cannot be "latest"; only a whole namespace can`,
+            `set ${component} to an exact version such as '1.4.0', or set ${namespace} to "latest"`,
+          );
+        }
+      }
     }
   }
 

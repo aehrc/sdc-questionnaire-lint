@@ -1,8 +1,9 @@
 import type { Declaration } from './declarations.js';
 import type { ExpressionSite, ExpressionUseCase, SiteItem } from './expression-site.js';
 
-// Available variables stay internal to core until a plugin rule needs them (core-rules.md D15):
-// do not export them from index.ts or add them to RuleContext.
+// AvailableVariables and Variable are public: plugin rules receive them from RuleContext's
+// variablesAt (API stage B). builtinNames and the functions here stay internal; a plugin reads a
+// variable's origin instead.
 
 // The specification that defines a built-in name.
 export type BuiltinDefiner = 'FHIR' | 'FHIRPath' | 'SDC';

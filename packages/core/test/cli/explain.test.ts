@@ -116,6 +116,20 @@ describe('sdc-lint explain', () => {
     expect(result.stderr).toMatch(/^error: config \S+ is invalid at \/rules\/sdc~1parse-eror: /);
   });
 
+  it('exits 2 for compat naming a plugin that is not listed, as lint does', async () => {
+    const cwd = await tempTree({
+      [config]: JSON.stringify({ compat: { 'smart-forms': 'latest' } }),
+    });
+    const result = await runInProcess(['explain'], { cwd });
+    expect(result).toEqual({
+      code: 2,
+      stdout: '',
+      stderr:
+        `error: config ${config} is invalid at /compat/smart-forms: no listed plugin has the namespace smart-forms\n` +
+        'help: list the plugin providing smart-forms/ rules in plugins in an .mjs config\n',
+    });
+  });
+
   // The directories are empty, so these also show that the suppressions are checked before any
   // input is read.
   it('exits 2 for a suppression of an unknown rule', async () => {
