@@ -31,11 +31,12 @@ sdc-lint lint --show-info                                          # also show i
 
 Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
-**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with fifteen built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration`, `sdc/reserved-name`, `sdc/undefined-variable`, `sdc/shadowed-declaration`, `sdc/dependency-cycle`, `sdc/unused-declaration` and `sdc/unresolved-linkid`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules. FSH source mapping works. Not built yet: the Smart Forms plugin's rules.
+**Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with fifteen built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration`, `sdc/reserved-name`, `sdc/undefined-variable`, `sdc/shadowed-declaration`, `sdc/dependency-cycle`, `sdc/unused-declaration` and `sdc/unresolved-linkid`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules and select the runtime versions a compatibility plugin checks against. FSH source mapping works. The Smart Forms plugin has three rules: `smart-forms/unsupported-expression-language`, `smart-forms/expression-evaluated-as-fhirpath` and `smart-forms/questionnaire-variable-unavailable`. Not built yet: the rest of the Smart Forms rules, slices P3 to P8 of the [Smart Forms rules plan](docs/smart-forms-rules.md).
 
 Start with these docs:
 
 - [Core plan](docs/core-plan.md) and [amendments](docs/plan-amendments.md) — scope and decisions; amendments take precedence.
+- [Core rules plan](docs/core-rules.md) and [Smart Forms rules plan](docs/smart-forms-rules.md) — what each rule checks, its decisions and the runtime facts behind it.
 - [CLI contract](docs/cli.md) — commands, configuration, exit codes and automation recipes.
 - [Report format](docs/report-format.md), [JSON Schema](docs/schemas/lint-report.schema.json) and [examples](docs/examples/reports/README.md) — machine integration.
 - [How the linter works](docs/architecture.md) — the pipeline of one lint run through the source, for contributors.
@@ -58,6 +59,7 @@ Start with these docs:
 - `rules`: a rule ID set to `error`, `warning`, `info` or `off`. A rule that is `off` does not run. `lint/stale-suppression` accepts only `warning` or `off`.
 - `suppress`: suppressions; see below.
 - `plugins`: plugins whose rules run; only in an `.mjs` config. See below.
+- `compat`: the runtime versions a compatibility plugin checks forms against, by plugin namespace; see [the Smart Forms plugin](#the-smart-forms-plugin).
 
 Paths in the config are relative to the config's directory, not the current one. From the parent of an IG, `sdc-lint lint --config ig/sdc-questionnaire-lint.config.json` checks `ig/fsh-generated/resources`.
 
@@ -81,6 +83,31 @@ export default defineConfig({
 });
 ```
 
+#### The Smart Forms plugin
+
+`@sdc-questionnaire-lint/plugin-smart-forms` reports where [Smart Forms](https://github.com/aehrc/smart-forms) behaves differently from SDC, in the versions you select: an expression it ignores, evaluates in the wrong language, or that references a variable it never supplies. Its rules assume the form is populated with sdc-populate, then rendered.
+
+```js
+// sdc-questionnaire-lint.config.mjs
+import { defineConfig } from 'sdc-questionnaire-lint';
+import smartForms from '@sdc-questionnaire-lint/plugin-smart-forms';
+
+export default defineConfig({
+  plugins: [smartForms],
+  compat: { 'smart-forms': { renderer: '1.4.0', populate: '4.7.1' } },
+});
+```
+
+| Rule | Default | Reports |
+| :- | :- | :- |
+| `smart-forms/unsupported-expression-language` | error | An expression Smart Forms ignores because of its language |
+| `smart-forms/expression-evaluated-as-fhirpath` | error | An expression Smart Forms evaluates as FHIRPath whatever its language |
+| `smart-forms/questionnaire-variable-unavailable` | error | A reference to `%questionnaire` or `%qitem`, which Smart Forms does not supply |
+
+`compat` is optional. Without it, the plugin checks against `"latest"`: the newest versions the installed plugin has verified, not the newest on npm. This version of the plugin verifies renderer 1.4.0, populate 4.7.1 and template-extract 1.0.15. An explicit object names `renderer` and `populate`, and `template-extract` only when template extraction should be checked. An unverified version, an unknown or missing component, or a `compat` entry for a plugin that is not listed fails with `CONFIG_INVALID`. The report names the selected versions in `run.compat`.
+
+#### Writing a plugin
+
 A plugin is an object with `meta: { name, version }` and `rules`. A rule's ID is `<meta.name>/<key>`: the rule `no-today` of the plugin `my-plugin` is `my-plugin/no-today`. Names and keys use lowercase letters, digits and hyphens; `sdc` and `lint` are reserved. Each rule has `meta: { description, defaultSeverity }`, optionally `docsUrl` and `docs`, and a `check(ctx)` that reports findings with `ctx.report({ site, message })` for each of `ctx.sites` it flags:
 
 ```js
@@ -99,7 +126,9 @@ const myPlugin = {
 };
 ```
 
-`check` must be synchronous; it runs once per Questionnaire. A rule that throws, returns a promise or reports an invalid finding, such as one with an empty message, stops the run with exit 2 and `RULE_CRASH` naming the rule. A finding can also give `relatedLocations`, each a `site` or a `pointer` with an optional `message`, such as the other declaration of a duplicated name. The types `LintPlugin`, `LintRule`, `RuleContext`, `RuleFinding` and `RuleRelatedLocation` are exported from the package. Logging from a config or a rule goes to stderr, so it never mixes with the report.
+`check` must be synchronous; it runs once per Questionnaire. A rule that throws, returns a promise or reports an invalid finding, such as one with an empty message, stops the run with exit 2 and `RULE_CRASH` naming the rule. A finding can also give `relatedLocations`, each a `site` or a `pointer` with an optional `message`, such as the other declaration of a duplicated name.
+
+Besides `sites` and `report`, the context gives a rule core's name analysis: `ctx.referencesAt(site)` returns the `%name` references in a site's FHIRPath, and `ctx.variablesAt(site)` the names available there and what each resolves to. Both return `undefined` when core cannot analyse the site, which a rule treats as "cannot check". A compatibility plugin declares its verified versions in `compat: { verified, required }`, and its rules read the versions the run selected from `ctx.compat`. The package exports the plugin types (`LintPlugin`, `LintRule`, `RuleContext`, `RuleFinding`, `RuleRelatedLocation`, `PluginCompat`), the site and analysis types, and the language lookups `definedLanguages`, `languagesAllowedAt` and `isQueryLanguage`; [How the linter works](docs/architecture.md#what-a-plugin-can-import) lists what a plugin can import. Logging from a config or a rule goes to stderr, so it never mixes with the report.
 
 ### Suppressing a finding
 
@@ -162,4 +191,24 @@ npm ci
 npm run check
 ```
 
-`npm run check` type-checks, lints, checks formatting, builds, tests and validates both packages. CI runs it on Node 22 and 24; run it before every commit.
+`npm run check` type-checks, lints, checks formatting, builds, tests and validates the published packages. CI runs it on Node 22 and 24; run it before every commit.
+
+The repository is an npm workspace with three packages:
+
+| Package | Path | Contents |
+| :- | :- | :- |
+| `sdc-questionnaire-lint` | [packages/core](packages/core) | The CLI, the library and the built-in rules |
+| `@sdc-questionnaire-lint/plugin-smart-forms` | [packages/plugin-smart-forms](packages/plugin-smart-forms) | The Smart Forms plugin, with reproduction tests against the pinned Smart Forms packages |
+| `@sdc-questionnaire-lint/lint-cases` | [packages/lint-cases](packages/lint-cases) | Private test support: lint cases written as YAML, compiled by SUSHI, linted and compared with their expected findings |
+
+A rule's tests are lint cases: `test/cases/<rule>/<case>.yaml` describes a form, and `<case>.expected.yaml` beside it lists the findings the linter must report.
+
+```sh
+npm test -- unused-declaration                       # run matching tests
+npm run demo                                         # generate a SUSHI project from a lint case, compile and lint it
+npm run example -- invalid                           # compile and lint an FSH example project
+npm run corpus                                       # lint the local corpus and compare with its snapshot
+npm run corpus -- --smart-forms                      # the same, with the Smart Forms plugin
+```
+
+`npm run demo` writes `demo/invalid-demo` from `packages/core/test/cases/demo/invalid-demo.yaml`, or another config given as its argument. `demo`, `example` and the lint cases compile with SUSHI 3.20.1, the `fsh-sushi` dev dependency, which `npm run` puts on the PATH. [AGENTS.md](AGENTS.md) lists the other development commands.
