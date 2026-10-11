@@ -1,0 +1,17 @@
+- ruleId: sdc/shadowed-declaration
+  severity: info
+  at: input/fsh/unused-declaration-own-name-outward.fsh:14:51
+  message: The name %prefix on item x is also declared on the Questionnaire root, so other expressions on item x and its descendant items get this declaration's value.
+  help: rename one of the declarations of %prefix, unless this item should override it
+  expression:
+    text: "%prefix + 'b.'"
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%prefix is also declared here'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unused-declaration-own-name-outward.fsh:14:51
+  message: '%prefix is declared on item x, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %prefix where its value is needed
+  expression:
+    text: "%prefix + 'b.'"

@@ -1,0 +1,7 @@
+- ruleId: sdc/language-not-in-value-set
+  severity: warning
+  at: input/fsh/language-not-in-value-set-case-only.fsh:9:51
+  message: The language Text/FHIRPath is not one FHIR defines, so the form may ignore this expression.
+  help: set the language to text/fhirpath
+  expression:
+    text: '1'

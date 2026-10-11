@@ -1,0 +1,17 @@
+- ruleId: sdc/unresolved-linkid
+  severity: warning
+  at: input/fsh/unresolved-linkid-fragment.fsh:13:98
+  message: No item in this Questionnaire has linkId 'typo'.
+  help: correct the linkId, or add an item with linkId 'typo'
+  expression:
+    text: Observation?code={{item.where(linkId = 'typo').answer.value.code}}
+    range:
+      startOffset: 39
+      endOffset: 45
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unresolved-linkid-fragment.fsh:13:59
+  message: '%obs is declared on item "Smoker" (a), but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %obs where its value is needed
+  expression:
+    text: Observation?code={{item.where(linkId = 'typo').answer.value.code}}

@@ -1,0 +1,126 @@
+- ruleId: sdc/dependency-cycle
+  severity: warning
+  at: input/fsh/demo-invalid-demo.fsh:8:46
+  message: Declarations %a and %b reference each other; updates may not reach a stable value.
+  help: Break the dependency cycle or verify that these expressions reach stable values in the form filler.
+  expression:
+    text: '%b + 1'
+  related:
+    - at: /extension/1/valueExpression/expression (source-unavailable)
+      message: '%b is declared here'
+- ruleId: sdc/duplicate-declaration
+  severity: error
+  at: input/fsh/demo-invalid-demo.fsh:20:46
+  message: The name %dup is declared more than once on the Questionnaire root, so it is unclear which value expressions that use it get.
+  help: rename or remove one of the declarations of %dup
+  expression:
+    text: '2'
+  related:
+    - at: /extension/2/valueExpression/expression (source-unavailable)
+      message: '%dup is also declared here'
+- ruleId: sdc/external-expression
+  severity: info
+  at: /item/8/extension/0/valueExpression (not-found)
+  message: This expression has no text, only the reference http://example.org/Library/demo, so it was not checked.
+- ruleId: sdc/fragment-parse-error
+  severity: error
+  at: input/fsh/demo-invalid-demo.fsh:36:75
+  message: A closing ) is missing.
+  help: add ) at the end of the expression
+  note: "the FHIRPath parser reported: missing ')' at '<EOF>'"
+  expression:
+    text: Observation?date=ge{{(today()}}
+    range:
+      startOffset: 29
+      endOffset: 29
+- ruleId: sdc/language-not-allowed
+  severity: error
+  at: input/fsh/demo-invalid-demo.fsh:79:51
+  message: This enableWhenExpression is written in text/x-fhir-query, but SDC allows only FHIRPath or CQL here, so the form may ignore it.
+  help: rewrite the expression in FHIRPath, with the language text/fhirpath, or in CQL, with text/cql
+  expression:
+    text: Observation?code=1234
+- ruleId: sdc/language-not-in-value-set
+  severity: warning
+  at: input/fsh/demo-invalid-demo.fsh:84:51
+  message: The language text/fhir-path is not one FHIR defines, so the form may ignore this expression.
+  help: set the language to text/fhirpath
+  expression:
+    text: "'text'"
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/demo-invalid-demo.fsh:41:54
+  message: The expression ends before it is complete.
+  note: "the FHIRPath parser reported: mismatched input '<EOF>'"
+  expression:
+    text: 1 +
+    range:
+      startOffset: 3
+      endOffset: 3
+- ruleId: sdc/query-syntax
+  severity: error
+  at: input/fsh/demo-invalid-demo.fsh:32:46
+  message: This x-fhir-query is not a FHIR search, so the form's request fails and the fields it fills stay empty.
+  help: set the language to text/fhirpath; this expression is FHIRPath
+  expression:
+    text: '%a.id'
+- ruleId: sdc/reserved-name
+  severity: error
+  at: input/fsh/demo-invalid-demo.fsh:24:46
+  message: The name %qitem is defined by SDC, so a form cannot declare it; it is unclear which value expressions that use it get.
+  help: rename the declaration, and the expressions that should use it
+  expression:
+    text: '4'
+- ruleId: sdc/shadowed-declaration
+  severity: info
+  at: input/fsh/demo-invalid-demo.fsh:71:54
+  message: The name %shadowed on item shadowed-declaration is also declared on the Questionnaire root, so other expressions on item shadowed-declaration and its descendant items get this declaration's value.
+  help: rename one of the declarations of %shadowed, unless this item should override it
+  expression:
+    text: '6'
+  related:
+    - at: /extension/5/valueExpression/expression (source-unavailable)
+      message: '%shadowed is also declared here'
+- ruleId: sdc/uncatalogued-expression
+  severity: info
+  at: input/fsh/demo-invalid-demo.fsh:94:51
+  message: This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.
+  expression:
+    text: "'typo in the extension URL'"
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/demo-invalid-demo.fsh:55:51
+  message: '%missing is not available on item undefined-variable.'
+  help: declare it on this item, an ancestor item or the root, or list it in hostVariables if the application running the form supplies it
+  expression:
+    text: '%missing'
+    range:
+      startOffset: 0
+      endOffset: 8
+- ruleId: sdc/unknown-function
+  severity: error
+  at: input/fsh/demo-invalid-demo.fsh:50:69
+  message: fist() is not a FHIRPath function, so this expression fails when the form runs.
+  help: 'a function with a similar name exists: first()'
+  expression:
+    text: '%resource.item.fist()'
+    range:
+      startOffset: 15
+      endOffset: 19
+- ruleId: sdc/unresolved-linkid
+  severity: warning
+  at: input/fsh/demo-invalid-demo.fsh:60:81
+  message: No item in this Questionnaire has linkId 'nope'.
+  help: correct the linkId, or add an item with linkId 'nope'
+  expression:
+    text: "%resource.item.where(linkId = 'nope').answer.value"
+    range:
+      startOffset: 30
+      endOffset: 36
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/demo-invalid-demo.fsh:47:54
+  message: '%unused is declared on item unknown-function, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %unused where its value is needed
+  expression:
+    text: '3'

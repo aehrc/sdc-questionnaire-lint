@@ -1,0 +1,10 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/undefined-variable-item-text.fsh:10:51
+  message: '%nope is not available on item "Weight" (weight).'
+  help: declare it on this item, an ancestor item or the root, or list it in hostVariables if the application running the form supplies it
+  expression:
+    text: '%nope'
+    range:
+      startOffset: 0
+      endOffset: 5

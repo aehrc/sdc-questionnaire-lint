@@ -1,0 +1,24 @@
+- ruleId: sdc/duplicate-declaration
+  severity: error
+  at: input/fsh/duplicate-declaration-variables-on-item.fsh:14:54
+  message: The name %weight is declared more than once on item bmi, so it is unclear which value expressions that use it get.
+  help: rename or remove one of the declarations of %weight
+  expression:
+    text: '80'
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%weight is also declared here'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/duplicate-declaration-variables-on-item.fsh:10:54
+  message: '%weight is declared on item bmi, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %weight where its value is needed
+  expression:
+    text: '70'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/duplicate-declaration-variables-on-item.fsh:14:54
+  message: '%weight is declared on item bmi, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %weight where its value is needed
+  expression:
+    text: '80'

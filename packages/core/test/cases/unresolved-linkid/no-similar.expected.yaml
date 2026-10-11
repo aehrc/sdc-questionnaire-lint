@@ -1,0 +1,10 @@
+- ruleId: sdc/unresolved-linkid
+  severity: warning
+  at: input/fsh/unresolved-linkid-no-similar.fsh:12:97
+  message: No item in this Questionnaire has linkId 'zzz'.
+  help: correct the linkId, or add an item with linkId 'zzz'
+  expression:
+    text: "%resource.repeat(item).where(linkId = 'zzz')"
+    range:
+      startOffset: 38
+      endOffset: 43

@@ -1,0 +1,17 @@
+- ruleId: sdc/shadowed-declaration
+  severity: info
+  at: input/fsh/shadowed-declaration-seen-together.fsh:20:51
+  message: The name %id on item r is also declared on the Questionnaire root, so other expressions on item r and its descendant items get this declaration's value.
+  help: rename one of the declarations of %id, unless this item should override it
+  expression:
+    text: '2'
+  related:
+    - at: /extension/1 (source-unavailable)
+      message: '%id is also declared here'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/shadowed-declaration-seen-together.fsh:8:43
+  message: '%v is declared on the Questionnaire root, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %v where its value is needed
+  expression:
+    text: '1'

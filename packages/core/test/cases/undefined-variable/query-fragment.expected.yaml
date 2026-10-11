@@ -1,0 +1,17 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/undefined-variable-query-fragment.fsh:8:65
+  message: '%patiant is not available on the Questionnaire root.'
+  help: 'a variable with a similar name is available: %patient'
+  expression:
+    text: Observation?subject={{%patiant.id}}
+    range:
+      startOffset: 22
+      endOffset: 30
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/undefined-variable-query-fragment.fsh:8:43
+  message: '%obs is declared on the Questionnaire root, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %obs where its value is needed
+  expression:
+    text: Observation?subject={{%patiant.id}}

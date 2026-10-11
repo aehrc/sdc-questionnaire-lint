@@ -1,0 +1,4 @@
+- ruleId: sdc/external-expression
+  severity: info
+  at: /item/1/extension/0/valueExpression (not-found)
+  message: 'This expression has no text, only the reference #q, so it was not checked.'

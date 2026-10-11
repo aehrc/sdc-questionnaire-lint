@@ -1,8 +1,0 @@
-[
-  {
-    "ruleId": "sdc/external-expression",
-    "severity": "info",
-    "at": "/item/0/extension/0/valueExpression (not-found)",
-    "message": "This expression has no text, only the reference #lib, so it was not checked."
-  }
-]

@@ -1,0 +1,10 @@
+- ruleId: sdc/dependency-cycle
+  severity: warning
+  at: input/fsh/dependency-cycle-named-expressions.fsh:10:54
+  message: Declarations %init and %calc reference each other; updates may not reach a stable value.
+  help: Break the dependency cycle or verify that these expressions reach stable values in the form filler.
+  expression:
+    text: '%calc'
+  related:
+    - at: /item/0/extension/1/valueExpression/expression (source-unavailable)
+      message: '%calc is declared here'

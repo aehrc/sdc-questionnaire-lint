@@ -13,6 +13,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect } from 'vitest';
+import { stringify } from 'yaml';
 import {
   generateProject,
   lintConfigFile,
@@ -29,7 +30,7 @@ import {
 } from '../../src/index.js';
 
 // A lint case is a YAML config, test/cases/<group>/<case>.yaml, beside the findings the linter
-// must report for it, <case>.expected.json. Every case is compiled into one SUSHI project, so
+// must report for it, <case>.expected.yaml. Every case is compiled into one SUSHI project, so
 // SUSHI runs once per change to the cases, not once per case.
 export const casesDirectory = fileURLToPath(new URL('../cases/', import.meta.url));
 const generator = fileURLToPath(new URL('../../scripts/generate-fsh.ts', import.meta.url));
@@ -52,14 +53,14 @@ function lintCaseOf(configPath: string): LintCase {
   return {
     name: segments.join('/'),
     configPath,
-    expectedPath: configPath.replace(/\.yaml$/, '.expected.json'),
+    expectedPath: configPath.replace(/\.yaml$/, '.expected.yaml'),
     config: readFshConfig(configPath, segments.join('-')),
   };
 }
 
 export function lintCases(): LintCase[] {
   return readdirSync(casesDirectory, { recursive: true, encoding: 'utf8' })
-    .filter((file) => file.endsWith('.yaml'))
+    .filter((file) => file.endsWith('.yaml') && !file.endsWith('.expected.yaml'))
     .sort()
     .map((file) => lintCaseOf(path.join(casesDirectory, file)));
 }
@@ -166,8 +167,14 @@ export function caseFinding(finding: Finding): CaseFinding {
   };
 }
 
+// The findings as an expected file holds them: lines are never folded, so each message stays on one
+// line, and quotes are single, as Prettier writes them.
+export function formatFindings(findings: CaseFinding[]): string {
+  return stringify(findings, { lineWidth: 0, singleQuote: true });
+}
+
 // Lints the compiled Questionnaire of the case at configPath and compares the findings with the
-// JSON at expectedPath; npx vitest run -u writes that file. Returns the findings.
+// YAML at expectedPath; npx vitest run -u writes that file. Returns the findings.
 export async function lintCase(configPath: string, expectedPath: string): Promise<CaseFinding[]> {
   const { config } = lintCaseOf(configPath);
   const lintConfig = lintConfigFile(config);
@@ -177,7 +184,7 @@ export async function lintCase(configPath: string, expectedPath: string): Promis
     ...(lintConfig === undefined ? {} : { configPath: lintConfig }),
   });
   const findings = report.findings.map(caseFinding);
-  await expect(`${JSON.stringify(findings, null, 2)}\n`).toMatchFileSnapshot(expectedPath);
+  await expect(formatFindings(findings)).toMatchFileSnapshot(expectedPath);
   return findings;
 }
 

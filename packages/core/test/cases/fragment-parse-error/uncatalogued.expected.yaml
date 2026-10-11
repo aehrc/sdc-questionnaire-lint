@@ -1,0 +1,16 @@
+- ruleId: sdc/fragment-parse-error
+  severity: error
+  at: input/fsh/fragment-parse-error-uncatalogued.fsh:9:85
+  message: The expression ends before it is complete.
+  note: "the FHIRPath parser reported: mismatched input '<EOF>'"
+  expression:
+    text: Observation?subject={{%patient.id.}}
+    range:
+      startOffset: 34
+      endOffset: 34
+- ruleId: sdc/uncatalogued-expression
+  severity: info
+  at: input/fsh/fragment-parse-error-uncatalogued.fsh:9:51
+  message: This expression is in a place the linter does not recognise, so only its query shape and the FHIRPath in its {{…}} fragments can be checked.
+  expression:
+    text: Observation?subject={{%patient.id.}}
