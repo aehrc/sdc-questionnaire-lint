@@ -1,0 +1,9 @@
+# A reference in a {{…}} fragment of a query is followed.
+extensions:
+  - url: variable
+    name: obs
+    language: application/x-fhir-query
+    expression: 'Observation?code={{%code}}'
+  - url: variable
+    name: code
+    expression: '%obs.code'

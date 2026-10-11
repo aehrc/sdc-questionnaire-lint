@@ -1,0 +1,149 @@
+# A variable is not reported when a consumer that could see it was not analysed; each group
+# declares %a, and its child holds one kind of consumer. It is still reported when the consumer
+# names something else, and not when it is used.
+items:
+  - linkId: cql
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '1'
+    items:
+      - linkId: cql-consumer
+        type: string
+        extensions:
+          - url: calculatedExpression
+            language: text/cql
+            expression: '%a'
+  - linkId: reference-only
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '2'
+    items:
+      - linkId: reference-only-consumer
+        type: string
+        extensions:
+          - url: calculatedExpression
+            language: text/cql
+            reference: 'Library/l'
+  - linkId: uncatalogued-reference-only
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '3'
+    items:
+      - linkId: uncatalogued-reference-only-consumer
+        type: string
+        extensions:
+          - url: http://example.org/StructureDefinition/uncatalogued
+            reference: 'Library/consumer'
+  - linkId: parse-error
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '4'
+    items:
+      - linkId: parse-error-consumer
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%a.where('
+  - linkId: unclosed-fragment
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '5'
+    items:
+      - linkId: unclosed-fragment-consumer
+        type: string
+        extensions:
+          - url: candidateExpression
+            language: application/x-fhir-query
+            expression: 'Patient?id={{%a'
+  - linkId: computed-local-name
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '6'
+    items:
+      - linkId: computed-local-name-consumer
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: 'defineVariable(%resource.id).select(%a)'
+  - linkId: uncatalogued-names-it
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '7'
+    items:
+      - linkId: uncatalogued-names-it-consumer
+        type: string
+        extensions:
+          - url: http://example.org/StructureDefinition/uncatalogued
+            expression: '%a'
+  - linkId: constraint
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '8'
+    items:
+      - linkId: constraint-consumer
+        type: string
+        fsh:
+          - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/questionnaire-constraint"'
+          - 'extension[=].extension[0].url = "key"'
+          - 'extension[=].extension[=].valueId = "k1"'
+          - 'extension[=].extension[+].url = "severity"'
+          - 'extension[=].extension[=].valueCode = #error'
+          - 'extension[=].extension[+].url = "expression"'
+          - 'extension[=].extension[=].valueString = "%a > 0"'
+          - 'extension[=].extension[+].url = "human"'
+          - 'extension[=].extension[=].valueString = "Positive"'
+  - linkId: sub-questionnaire
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '9'
+    items:
+      - linkId: sub-questionnaire-consumer
+        type: string
+        fsh:
+          - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-subQuestionnaire"'
+          - 'extension[=].valueCanonical = "http://example.org/Questionnaire/m"'
+  - linkId: uncatalogued-names-other
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '10'
+    items:
+      - linkId: uncatalogued-names-other-consumer
+        type: string
+        extensions:
+          - url: http://example.org/StructureDefinition/uncatalogued
+            expression: '%b'
+  - linkId: used
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '11'
+    items:
+      - linkId: used-consumer
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%a + 0'
+          - url: calculatedExpression
+            language: text/cql
+            expression: 'x'

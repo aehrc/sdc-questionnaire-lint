@@ -1,0 +1,14 @@
+# FHIRPath, and a query with only a reference, are never checked.
+hostVariables: [patient]
+items:
+  - linkId: fhirpath
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        expression: '%patient.id'
+  - linkId: reference
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: application/x-fhir-query
+        reference: '#q'

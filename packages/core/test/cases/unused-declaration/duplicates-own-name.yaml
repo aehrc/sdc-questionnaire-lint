@@ -1,0 +1,59 @@
+# A self-reference, a query fragment or a computed local name in either duplicate is not a use
+# of their shared name.
+items:
+  - linkId: self-reference-first
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        expression: '%a'
+      - url: variable
+        name: a
+        expression: '0'
+  - linkId: self-reference-second
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        expression: '0'
+      - url: variable
+        name: a
+        expression: '%a'
+  - linkId: query-fragment-first
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        language: application/x-fhir-query
+        expression: 'Patient?id={{%a}}'
+      - url: variable
+        name: a
+        expression: '1'
+  - linkId: query-fragment-second
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        expression: '1'
+      - url: variable
+        name: a
+        language: application/x-fhir-query
+        expression: 'Patient?id={{%a}}'
+  - linkId: computed-local-name-first
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        expression: 'defineVariable(%resource.id).select(%a)'
+      - url: variable
+        name: a
+        expression: '2'
+  - linkId: computed-local-name-second
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        expression: '2'
+      - url: variable
+        name: a
+        expression: 'defineVariable(%resource.id).select(%a)'

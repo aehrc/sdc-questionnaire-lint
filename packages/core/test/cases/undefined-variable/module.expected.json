@@ -1,0 +1,26 @@
+[
+  {
+    "ruleId": "sdc/undefined-variable",
+    "severity": "error",
+    "at": "input/fsh/undefined-variable-module.fsh:17:77",
+    "message": "%persn is not available on item a.",
+    "help": "a variable with a similar name is available: %person",
+    "expression": {
+      "text": "%person.name.first() | %persn",
+      "range": {
+        "startOffset": 23,
+        "endOffset": 29
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/undefined-variable-module.fsh:14:54",
+    "message": "%linkIdPrefix is declared on item a, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %linkIdPrefix where its value is needed",
+    "expression": {
+      "text": "%linkIdPrefix + 'a.'"
+    }
+  }
+]

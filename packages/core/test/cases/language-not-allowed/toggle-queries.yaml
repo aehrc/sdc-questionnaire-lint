@@ -1,0 +1,20 @@
+# Both query languages are reported on answerOptionsToggleExpression.
+items:
+  - linkId: application
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #application/x-fhir-query'
+      - 'extension[=].extension[=].valueExpression.expression = "Observation?code=x"'
+  - linkId: text
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/x-fhir-query'
+      - 'extension[=].extension[=].valueExpression.expression = "Observation?code=y"'

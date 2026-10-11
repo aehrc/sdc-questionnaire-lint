@@ -1,0 +1,34 @@
+[
+  {
+    "ruleId": "sdc/parse-error",
+    "severity": "error",
+    "at": "input/fsh/undefined-variable-not-checked.fsh:8:58",
+    "message": "The expression ends before it is complete.",
+    "note": "the FHIRPath parser reported: mismatched input '<EOF>'",
+    "expression": {
+      "text": "%nope.where(",
+      "range": {
+        "startOffset": 12,
+        "endOffset": 12
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/uncatalogued-expression",
+    "severity": "info",
+    "at": "input/fsh/undefined-variable-not-checked.fsh:15:46",
+    "message": "This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.",
+    "expression": {
+      "text": "%nope + 1"
+    }
+  },
+  {
+    "ruleId": "sdc/uncatalogued-expression",
+    "severity": "info",
+    "at": "input/fsh/undefined-variable-not-checked.fsh:25:43",
+    "message": "This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.",
+    "expression": {
+      "text": "%nope + 2"
+    }
+  }
+]

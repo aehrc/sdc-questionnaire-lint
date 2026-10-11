@@ -1,0 +1,9 @@
+# A fragment is not checked on its own.
+hostVariables: [id]
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: application/x-fhir-query
+        expression: 'Patient/{{%id}}'

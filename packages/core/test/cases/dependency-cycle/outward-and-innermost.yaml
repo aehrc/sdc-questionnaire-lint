@@ -1,0 +1,15 @@
+# A declaration's own name is followed outward, and other names to the innermost declaration (D25).
+extensions:
+  - url: variable
+    name: x
+    expression: '1'
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: '%x + %y'
+      - url: variable
+        name: y
+        expression: '%x'

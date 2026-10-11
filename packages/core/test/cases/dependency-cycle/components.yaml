@@ -1,0 +1,14 @@
+# One component that holds several cycles is reported once, and each separate component.
+extensions:
+  - url: variable
+    name: a
+    expression: '%b | %c'
+  - url: variable
+    name: b
+    expression: '%a'
+  - url: variable
+    name: c
+    expression: '%a'
+  - url: variable
+    name: d
+    expression: '%d'

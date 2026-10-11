@@ -1,0 +1,26 @@
+[
+  {
+    "ruleId": "sdc/undefined-variable",
+    "severity": "error",
+    "at": "input/fsh/undefined-variable-extraction.fsh:15:60",
+    "message": "%x is not available on item a.",
+    "help": "declare it on this item, an ancestor item or the root, or list it in hostVariables if the application running the form supplies it",
+    "expression": {
+      "text": "%newId | %x",
+      "range": {
+        "startOffset": 9,
+        "endOffset": 11
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/undefined-variable-extraction.fsh:8:43",
+    "message": "%x is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %x where its value is needed",
+    "expression": {
+      "text": "1"
+    }
+  }
+]

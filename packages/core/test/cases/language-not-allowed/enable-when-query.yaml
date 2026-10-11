@@ -1,0 +1,8 @@
+# text/x-fhir-query on enableWhenExpression is reported, as written.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: enableWhenExpression
+        language: text/x-fhir-query
+        expression: 'Observation?code=x'

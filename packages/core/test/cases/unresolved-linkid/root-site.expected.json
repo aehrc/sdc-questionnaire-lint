@@ -1,0 +1,122 @@
+[
+  {
+    "ruleId": "sdc/unresolved-linkid",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:8:81",
+    "message": "No item in this Questionnaire has linkId 'typo'.",
+    "help": "correct the linkId, or add an item with linkId 'typo'",
+    "expression": {
+      "text": "%questionnaire.item.where(linkId = 'typo')",
+      "range": {
+        "startOffset": 35,
+        "endOffset": 41
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unresolved-linkid",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:12:76",
+    "message": "No item in this Questionnaire has linkId 'typo'.",
+    "help": "correct the linkId, or add an item with linkId 'typo'",
+    "expression": {
+      "text": "%resource.item.where(linkId = 'typo')",
+      "range": {
+        "startOffset": 30,
+        "endOffset": 36
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unresolved-linkid",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:16:75",
+    "message": "No item in this Questionnaire has linkId 'typo'.",
+    "help": "correct the linkId, or add an item with linkId 'typo'",
+    "expression": {
+      "text": "%context.item.where(linkId = 'typo')",
+      "range": {
+        "startOffset": 29,
+        "endOffset": 35
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unresolved-linkid",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:20:66",
+    "message": "No item in this Questionnaire has linkId 'typo'.",
+    "help": "correct the linkId, or add an item with linkId 'typo'",
+    "expression": {
+      "text": "item.where(linkId = 'typo').answer.value",
+      "range": {
+        "startOffset": 20,
+        "endOffset": 26
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unresolved-linkid",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:24:74",
+    "message": "No item in this Questionnaire has linkId 'typo'.",
+    "help": "correct the linkId, or add an item with linkId 'typo'",
+    "expression": {
+      "text": "repeat(item).where(linkId = 'typo').answer.value",
+      "range": {
+        "startOffset": 28,
+        "endOffset": 34
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:8:46",
+    "message": "%v0 is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %v0 where its value is needed",
+    "expression": {
+      "text": "%questionnaire.item.where(linkId = 'typo')"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:12:46",
+    "message": "%v1 is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %v1 where its value is needed",
+    "expression": {
+      "text": "%resource.item.where(linkId = 'typo')"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:16:46",
+    "message": "%v2 is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %v2 where its value is needed",
+    "expression": {
+      "text": "%context.item.where(linkId = 'typo')"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:20:46",
+    "message": "%v3 is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %v3 where its value is needed",
+    "expression": {
+      "text": "item.where(linkId = 'typo').answer.value"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-root-site.fsh:24:46",
+    "message": "%v4 is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %v4 where its value is needed",
+    "expression": {
+      "text": "repeat(item).where(linkId = 'typo').answer.value"
+    }
+  }
+]

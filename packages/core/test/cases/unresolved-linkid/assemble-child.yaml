@@ -1,0 +1,18 @@
+# Nothing is reported in a Questionnaire that can be assembled as a child, whose assembled form
+# has other items. The form has a group g, its child a, and a's child c.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-assemble-expectation"'
+  - 'extension[=].valueCode = #assemble-child'
+items:
+  - linkId: g
+    type: group
+    items:
+      - linkId: a
+        type: boolean
+        text: 'Smoker'
+        extensions:
+          - url: calculatedExpression
+            expression: "%resource.repeat(item).where(linkId = 'typo')"
+        items:
+          - linkId: c
+            type: string

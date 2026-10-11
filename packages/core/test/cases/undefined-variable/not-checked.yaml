@@ -1,0 +1,16 @@
+# An expression that does not parse, another language, an uncatalogued place and a contained resource.
+extensions:
+  - url: variable
+    name: a
+    expression: '%nope.where('
+  - url: variable
+    name: b
+    language: text/cql
+    expression: '%nope'
+  - url: http://example.org/StructureDefinition/uncatalogued
+    expression: '%nope + 1'
+contained:
+  - extensions:
+      - url: variable
+        name: c
+        expression: '%nope + 2'

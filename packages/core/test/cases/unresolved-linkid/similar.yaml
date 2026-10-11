@@ -1,0 +1,9 @@
+# A linkId that no item has, reported at its string literal, with a similar linkId as help.
+items:
+  - linkId: smoker
+    type: boolean
+  - linkId: q
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: "%resource.repeat(item).where(linkId = 'smokr').answer.value"

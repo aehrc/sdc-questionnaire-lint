@@ -1,0 +1,11 @@
+# A cycle among other named expressions on an item.
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: initialExpression
+        name: init
+        expression: '%calc'
+      - url: calculatedExpression
+        name: calc
+        expression: '%init + 1'

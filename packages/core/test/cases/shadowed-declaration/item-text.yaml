@@ -1,0 +1,13 @@
+# An item is named by its text and linkId.
+extensions:
+  - url: variable
+    name: a
+    expression: '1'
+items:
+  - linkId: bmi
+    type: string
+    text: 'BMI'
+    extensions:
+      - url: variable
+        name: a
+        expression: '2'

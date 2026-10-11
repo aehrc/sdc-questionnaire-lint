@@ -1,0 +1,9 @@
+# A broken fragment of a query in an uncatalogued place.
+hostVariables: [patient]
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        language: application/x-fhir-query
+        expression: 'Observation?subject={{%patient.id.}}'

@@ -1,0 +1,19 @@
+# A reference from its own expression, a name defineVariable binds, and an extraction site are not uses.
+extensions:
+  - url: variable
+    name: a
+    expression: '%a + 1'
+  - url: variable
+    name: b
+    expression: '2'
+  - url: variable
+    name: c
+    expression: '3'
+  - url: http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemExtractionContext
+    expression: '%c'
+items:
+  - linkId: x
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: "defineVariable('b', 2).select(%b)"

@@ -1,0 +1,16 @@
+[
+  {
+    "ruleId": "sdc/unresolved-linkid",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-contained-item.fsh:12:97",
+    "message": "No item in this Questionnaire has linkId 'foreign'.",
+    "help": "correct the linkId, or add an item with linkId 'foreign'",
+    "expression": {
+      "text": "%resource.repeat(item).where(linkId = 'foreign').answer.value",
+      "range": {
+        "startOffset": 38,
+        "endOffset": 47
+      }
+    }
+  }
+]

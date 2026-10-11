@@ -1,0 +1,12 @@
+# Its own name in its own expression is a use of the declaration it overrides.
+extensions:
+  - url: variable
+    name: prefix
+    expression: "'a.'"
+items:
+  - linkId: x
+    type: string
+    extensions:
+      - url: variable
+        name: prefix
+        expression: "%prefix + 'b.'"

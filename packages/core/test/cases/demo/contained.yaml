@@ -1,0 +1,12 @@
+# A variable in a contained Questionnaire that references a name nothing declares.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '%missing'
+contained:
+  - extensions:
+      - url: variable
+        name: c
+        expression: '%nope'

@@ -1,0 +1,8 @@
+# A reference to a declaration that is not available at the site is not followed (D19).
+extensions:
+  - url: variable
+    name: x
+    expression: '%ctx'
+  - url: http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemExtractionContext
+    name: ctx
+    expression: '%x'

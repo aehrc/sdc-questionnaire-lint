@@ -1,0 +1,5 @@
+# At a root site, the help says to declare the name on the root.
+extensions:
+  - url: variable
+    name: x
+    expression: '%nope'

@@ -1,0 +1,8 @@
+# An uncatalogued place is skipped.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        language: text/x-fhir-query
+        expression: 'Patient?_id=1'

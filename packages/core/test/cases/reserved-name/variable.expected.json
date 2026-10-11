@@ -1,0 +1,22 @@
+[
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-variable.fsh:10:51",
+    "message": "The name %qitem is defined by SDC, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "%resource"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-variable.fsh:10:51",
+    "message": "%qitem is declared on item bmi, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %qitem where its value is needed",
+    "expression": {
+      "text": "%resource"
+    }
+  }
+]

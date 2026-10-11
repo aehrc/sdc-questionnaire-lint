@@ -1,0 +1,26 @@
+[
+  {
+    "ruleId": "sdc/undefined-variable",
+    "severity": "error",
+    "at": "input/fsh/unresolved-linkid-qitem-at-root.fsh:8:43",
+    "message": "%qitem is not available on the Questionnaire root.",
+    "help": "declare it on the root, or list it in hostVariables if the application running the form supplies it",
+    "expression": {
+      "text": "%qitem.item.where(linkId = 'typo')",
+      "range": {
+        "startOffset": 0,
+        "endOffset": 6
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-qitem-at-root.fsh:8:43",
+    "message": "%v is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %v where its value is needed",
+    "expression": {
+      "text": "%qitem.item.where(linkId = 'typo')"
+    }
+  }
+]

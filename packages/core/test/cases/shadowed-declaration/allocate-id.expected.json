@@ -1,0 +1,15 @@
+[
+  {
+    "ruleId": "sdc/shadowed-declaration",
+    "severity": "info",
+    "at": "/item/0/extension/0 (not-found)",
+    "message": "The name %id on item q is also declared on the Questionnaire root, so other expressions on item q and its descendant items get this declaration's value.",
+    "help": "rename one of the declarations of %id, unless this item should override it",
+    "related": [
+      {
+        "at": "/extension/0 (source-unavailable)",
+        "message": "%id is also declared here"
+      }
+    ]
+  }
+]

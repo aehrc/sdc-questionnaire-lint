@@ -1,0 +1,41 @@
+[
+  {
+    "ruleId": "sdc/language-not-allowed",
+    "severity": "error",
+    "at": "input/fsh/language-not-in-value-set-location-codes.fsh:9:51",
+    "message": "This enableWhenExpression is written in application/x-fhir-qury, but SDC allows only FHIRPath or CQL here, so the form may ignore it.",
+    "help": "rewrite the expression in FHIRPath, with the language text/fhirpath, or in CQL, with text/cql",
+    "expression": {
+      "text": "x"
+    }
+  },
+  {
+    "ruleId": "sdc/language-not-allowed",
+    "severity": "error",
+    "at": "input/fsh/language-not-in-value-set-location-codes.fsh:14:51",
+    "message": "This enableWhenExpression is written in Text/FHIRPath, but SDC allows only FHIRPath or CQL here, so the form may ignore it.",
+    "help": "rewrite the expression in FHIRPath, with the language text/fhirpath, or in CQL, with text/cql",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/language-not-in-value-set",
+    "severity": "warning",
+    "at": "input/fsh/language-not-in-value-set-location-codes.fsh:9:51",
+    "message": "The language application/x-fhir-qury is not one FHIR defines, so the form may ignore this expression.",
+    "expression": {
+      "text": "x"
+    }
+  },
+  {
+    "ruleId": "sdc/language-not-in-value-set",
+    "severity": "warning",
+    "at": "input/fsh/language-not-in-value-set-location-codes.fsh:14:51",
+    "message": "The language Text/FHIRPath is not one FHIR defines, so the form may ignore this expression.",
+    "help": "set the language to text/fhirpath",
+    "expression": {
+      "text": "1"
+    }
+  }
+]

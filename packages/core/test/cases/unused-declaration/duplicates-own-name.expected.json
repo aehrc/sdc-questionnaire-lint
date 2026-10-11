@@ -1,0 +1,238 @@
+[
+  {
+    "ruleId": "sdc/dependency-cycle",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:10:54",
+    "message": "Declaration %a references itself; updates may not reach a stable value.",
+    "help": "Break the dependency cycle or verify that these expressions reach stable values in the form filler.",
+    "expression": {
+      "text": "%a"
+    }
+  },
+  {
+    "ruleId": "sdc/dependency-cycle",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:30:54",
+    "message": "Declaration %a references itself; updates may not reach a stable value.",
+    "help": "Break the dependency cycle or verify that these expressions reach stable values in the form filler.",
+    "expression": {
+      "text": "Patient?id={{%a}}"
+    }
+  },
+  {
+    "ruleId": "sdc/duplicate-declaration",
+    "severity": "error",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:14:54",
+    "message": "The name %a is declared more than once on item self-reference-first, so it is unclear which value expressions that use it get.",
+    "help": "rename or remove one of the declarations of %a",
+    "expression": {
+      "text": "0"
+    },
+    "related": [
+      {
+        "at": "/item/0/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/duplicate-declaration",
+    "severity": "error",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:24:54",
+    "message": "The name %a is declared more than once on item self-reference-second, so it is unclear which value expressions that use it get.",
+    "help": "rename or remove one of the declarations of %a",
+    "expression": {
+      "text": "%a"
+    },
+    "related": [
+      {
+        "at": "/item/1/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/duplicate-declaration",
+    "severity": "error",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:34:54",
+    "message": "The name %a is declared more than once on item query-fragment-first, so it is unclear which value expressions that use it get.",
+    "help": "rename or remove one of the declarations of %a",
+    "expression": {
+      "text": "1"
+    },
+    "related": [
+      {
+        "at": "/item/2/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/duplicate-declaration",
+    "severity": "error",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:44:54",
+    "message": "The name %a is declared more than once on item query-fragment-second, so it is unclear which value expressions that use it get.",
+    "help": "rename or remove one of the declarations of %a",
+    "expression": {
+      "text": "Patient?id={{%a}}"
+    },
+    "related": [
+      {
+        "at": "/item/3/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/duplicate-declaration",
+    "severity": "error",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:54:54",
+    "message": "The name %a is declared more than once on item computed-local-name-first, so it is unclear which value expressions that use it get.",
+    "help": "rename or remove one of the declarations of %a",
+    "expression": {
+      "text": "2"
+    },
+    "related": [
+      {
+        "at": "/item/4/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/duplicate-declaration",
+    "severity": "error",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:64:54",
+    "message": "The name %a is declared more than once on item computed-local-name-second, so it is unclear which value expressions that use it get.",
+    "help": "rename or remove one of the declarations of %a",
+    "expression": {
+      "text": "defineVariable(%resource.id).select(%a)"
+    },
+    "related": [
+      {
+        "at": "/item/5/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:10:54",
+    "message": "%a is declared on item self-reference-first, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "%a"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:14:54",
+    "message": "%a is declared on item self-reference-first, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "0"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:20:54",
+    "message": "%a is declared on item self-reference-second, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "0"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:24:54",
+    "message": "%a is declared on item self-reference-second, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "%a"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:30:54",
+    "message": "%a is declared on item query-fragment-first, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "Patient?id={{%a}}"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:34:54",
+    "message": "%a is declared on item query-fragment-first, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:40:54",
+    "message": "%a is declared on item query-fragment-second, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:44:54",
+    "message": "%a is declared on item query-fragment-second, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "Patient?id={{%a}}"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:50:54",
+    "message": "%a is declared on item computed-local-name-first, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "defineVariable(%resource.id).select(%a)"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:54:54",
+    "message": "%a is declared on item computed-local-name-first, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "2"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:60:54",
+    "message": "%a is declared on item computed-local-name-second, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "2"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-duplicates-own-name.fsh:64:54",
+    "message": "%a is declared on item computed-local-name-second, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "defineVariable(%resource.id).select(%a)"
+    }
+  }
+]

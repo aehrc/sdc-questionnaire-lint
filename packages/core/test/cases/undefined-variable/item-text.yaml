@@ -1,0 +1,8 @@
+# An item is named by its text and linkId.
+items:
+  - linkId: weight
+    type: string
+    text: 'Weight'
+    extensions:
+      - url: calculatedExpression
+        expression: '%nope'

@@ -1,0 +1,7 @@
+# Broken FHIRPath is reported in an uncatalogued place too.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        expression: 'a.where('

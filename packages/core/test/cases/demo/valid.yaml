@@ -1,0 +1,96 @@
+# A form that uses each kind of expression correctly, so the linter reports nothing.
+extensions:
+  - url: variable
+    name: observations
+    language: application/x-fhir-query
+    expression: 'Observation?patient={{%patient.id}}&code=72166-2'
+  - url: variable
+    name: recent
+    language: application/x-fhir-query
+    expression: 'Observation?patient={{%patient.id}}&date=ge{{today() - 1 year}}'
+  - url: variable
+    name: smoker
+    expression: "%resource.item.where(linkId = 'smoker').answer.first().value"
+  - url: variable
+    name: packs
+    expression: "%resource.item.where(linkId = 'packs').answer.value"
+  - url: variable
+    name: yearsSmoked
+    expression: "%resource.item.where(linkId = 'years').answer.value"
+  - url: variable
+    name: packYears
+    expression: '%packs * %smokingYears'
+  - url: variable
+    name: smokingYears
+    expression: '%yearsSmoked'
+  - url: variable
+    name: smokerItem
+    expression: "%resource.item.where(linkId = 'smoker')"
+fsh:
+  # launchContext %patient
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: smoker
+    type: boolean
+    text: Do you smoke?
+  - linkId: packs
+    type: integer
+    text: Packs per day
+    extensions:
+      - url: enableWhenExpression
+        expression: '%smoker = true'
+  - linkId: years
+    type: integer
+    text: Years smoked
+    extensions:
+      - url: enableWhenExpression
+        expression: '%smoker = true'
+  - linkId: pack-years
+    type: decimal
+    text: Pack-years
+    extensions:
+      - url: calculatedExpression
+        expression: '%packYears'
+  - linkId: context-check
+    type: boolean
+    text: Context check
+    extensions:
+      - url: calculatedExpression
+        expression: '%smokerItem.exists()'
+  - linkId: smoking-records
+    type: integer
+    text: Smoking status records
+    extensions:
+      - url: initialExpression
+        expression: '%observations.total'
+  - linkId: recent-records
+    type: integer
+    text: Observations in the last year
+    extensions:
+      - url: initialExpression
+        expression: '%recent.total'
+  - linkId: cessation
+    type: date
+    text: Date you stopped smoking
+    extensions:
+      - url: variable
+        name: smokerAnswer
+        expression: "%resource.item.where(linkId = 'smoker').answer.value.first()"
+      - url: enableWhenExpression
+        expression: '%smokerAnswer = false'
+  - linkId: advice
+    type: string
+    text: Cessation advice
+    extensions:
+      - url: initialExpression
+        expression: "'Talk to your GP about quitting.'"
+  - linkId: summary
+    type: string
+    text: Summary
+    extensions:
+      - url: calculatedExpression
+        expression: "iif(%smoker, 'Smoker', 'Non-smoker')"

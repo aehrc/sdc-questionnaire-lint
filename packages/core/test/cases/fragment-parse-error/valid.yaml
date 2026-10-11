@@ -1,0 +1,9 @@
+# A valid fragment.
+hostVariables: [patient]
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: application/x-fhir-query
+        expression: 'Observation?subject={{%patient.id}}'

@@ -1,0 +1,24 @@
+# Duplicates on one element are alike: a use of one, or an expression of one, is shared.
+items:
+  - linkId: use
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        expression: '1'
+      - url: variable
+        name: a
+        expression: '2'
+      - url: variable
+        name: b
+        expression: '%a'
+  - linkId: expression
+    type: string
+    extensions:
+      - url: variable
+        name: c
+        language: text/cql
+        expression: 'x'
+      - url: variable
+        name: c
+        expression: '3'

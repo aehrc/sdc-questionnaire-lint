@@ -1,0 +1,9 @@
+# An uncatalogued query is reported once, not once per fragment.
+hostVariables: [patient, today]
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        language: application/x-fhir-query
+        expression: 'Observation?subject={{%patient.id}}&date=gt{{%today}}'

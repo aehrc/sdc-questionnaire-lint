@@ -1,0 +1,14 @@
+# A component of three declarations is reported once, in document order, without what leads into it.
+extensions:
+  - url: variable
+    name: into
+    expression: '%c'
+  - url: variable
+    name: c
+    expression: '%a'
+  - url: variable
+    name: a
+    expression: '%b'
+  - url: variable
+    name: b
+    expression: '%c'

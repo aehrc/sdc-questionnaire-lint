@@ -1,0 +1,7 @@
+# An unknown function in an uncatalogued place.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        expression: 'a.fist()'

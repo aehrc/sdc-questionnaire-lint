@@ -1,0 +1,15 @@
+# An ancestor item that does not declare the name is skipped.
+extensions:
+  - url: variable
+    name: a
+    expression: '1'
+items:
+  - linkId: g
+    type: group
+    items:
+      - linkId: q
+        type: string
+        extensions:
+          - url: variable
+            name: a
+            expression: '2'
