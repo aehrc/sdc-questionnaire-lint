@@ -1,0 +1,28 @@
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-accepted-namesake-core-off.fsh:10:54
+  message: '%x is declared on item fhirpath, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %x where its value is needed
+  expression:
+    text: '1'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-accepted-namesake-core-off.fsh:14:54
+  message: '%x is declared on item fhirpath, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %x where its value is needed
+  expression:
+    text: '2'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-accepted-namesake-core-off.fsh:20:54
+  message: '%y is declared on item query, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %y where its value is needed
+  expression:
+    text: '3'
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-accepted-namesake-core-off.fsh:24:54
+  message: '%y is declared on item query, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %y where its value is needed
+  expression:
+    text: Patient

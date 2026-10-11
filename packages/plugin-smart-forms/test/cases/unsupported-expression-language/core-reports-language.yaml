@@ -1,0 +1,22 @@
+# A language core reports stays core's: a query language SDC does not allow on an
+# enableWhenExpression (sdc/language-not-allowed, or the Validator's sdc-inv1 for
+# application/x-fhir-query), and a code outside the six FHIR defines (sdc/language-not-in-value-set).
+items:
+  - linkId: application-query
+    type: boolean
+    extensions:
+      - url: enableWhenExpression
+        language: application/x-fhir-query
+        expression: 'Patient?_id=1'
+  - linkId: text-query
+    type: boolean
+    extensions:
+      - url: enableWhenExpression
+        language: text/x-fhir-query
+        expression: 'Patient?_id=2'
+  - linkId: misspelt
+    type: integer
+    extensions:
+      - url: calculatedExpression
+        language: text/fhir-path
+        expression: '1'

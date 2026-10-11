@@ -1,0 +1,24 @@
+# A variable in another language than text/fhirpath or application/x-fhir-query, on the root and on
+# items; text/x-fhir-query gets the help to change the code, any other language the help to rewrite.
+extensions:
+  - url: variable
+    name: conds
+    language: text/x-fhir-query
+    expression: 'Condition?patient=1'
+items:
+  - linkId: meds
+    type: string
+    text: Medications
+    extensions:
+      - url: variable
+        name: meds
+        language: text/x-fhir-query
+        expression: 'MedicationStatement?patient=1'
+  - linkId: age
+    type: integer
+    text: Age
+    extensions:
+      - url: variable
+        name: years
+        language: text/cql
+        expression: 'AgeInYears()'

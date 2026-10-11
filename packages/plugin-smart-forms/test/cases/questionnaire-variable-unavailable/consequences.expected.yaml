@@ -1,0 +1,44 @@
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-consequences.fsh:15:51
+  message: Smart Forms does not supply %questionnaire, so this calculatedExpression on item "Calculated" (calculated) fails when the reference is evaluated, and the answer is not calculated from it.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %questionnaire, suppress this finding with a reason that names the application
+  expression:
+    text: '%questionnaire.title'
+    range:
+      startOffset: 0
+      endOffset: 14
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-consequences.fsh:21:51
+  message: Smart Forms does not supply %questionnaire, so this enableWhenExpression on item "Enable when" (enable-when) fails when the reference is evaluated, and it does not change whether the item is enabled; the item starts disabled.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %questionnaire, suppress this finding with a reason that names the application
+  expression:
+    text: '%questionnaire.title.exists()'
+    range:
+      startOffset: 0
+      endOffset: 14
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-consequences.fsh:32:67
+  message: Smart Forms does not supply %questionnaire, so this targetConstraint on item "Target constraint" (target-constraint) fails when the reference is evaluated, and the constraint result is not updated from this evaluation.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %questionnaire, suppress this finding with a reason that names the application
+  expression:
+    text: '%questionnaire.title.empty()'
+    range:
+      startOffset: 0
+      endOffset: 14
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-consequences.fsh:43:67
+  message: Smart Forms does not supply %questionnaire, so this answerOptionsToggleExpression on item "Toggle" (toggle) fails when the reference is evaluated, and its options are not toggled; they start disabled.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %questionnaire, suppress this finding with a reason that names the application
+  expression:
+    text: '%questionnaire.title.count() > 0'
+    range:
+      startOffset: 0
+      endOffset: 14

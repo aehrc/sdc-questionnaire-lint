@@ -1,0 +1,22 @@
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-qitem-link-id.fsh:15:51
+  message: Smart Forms does not supply %qitem, so this initialExpression on item "Age" (age) fails when the reference is evaluated, and the answer is not prefilled.
+  help: use the literal value instead, such as 'age'
+  note: if the application running the form supplies %qitem, suppress this finding with a reason that names the application
+  expression:
+    text: '%qitem . linkId'
+    range:
+      startOffset: 0
+      endOffset: 6
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-qitem-link-id.fsh:20:51
+  message: Smart Forms does not supply %qitem, so this initialExpression on item O'Brien\1 fails when the reference is evaluated, and the answer is not prefilled.
+  help: use the literal value instead, such as 'O\'Brien\\1'
+  note: if the application running the form supplies %qitem, suppress this finding with a reason that names the application
+  expression:
+    text: '%qitem.linkId'
+    range:
+      startOffset: 0
+      endOffset: 6

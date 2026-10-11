@@ -1,0 +1,44 @@
+# A targetConstraint in each CQL code, which the renderer runs as FHIRPath, so the CQL never runs.
+items:
+  - linkId: cql
+    type: integer
+    text: CQL
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+      - 'extension[=].extension[0].url = "key"'
+      - 'extension[=].extension[=].valueId = "tc-cql"'
+      - 'extension[=].extension[+].url = "severity"'
+      - 'extension[=].extension[=].valueCode = #error'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/cql'
+      - 'extension[=].extension[=].valueExpression.expression = "intersectCheck"'
+      - 'extension[=].extension[+].url = "human"'
+      - 'extension[=].extension[=].valueString = "Check the answer"'
+  - linkId: cql-identifier
+    type: integer
+    text: CQL identifier
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+      - 'extension[=].extension[0].url = "key"'
+      - 'extension[=].extension[=].valueId = "tc-cql-identifier"'
+      - 'extension[=].extension[+].url = "severity"'
+      - 'extension[=].extension[=].valueCode = #error'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/cql-identifier'
+      - 'extension[=].extension[=].valueExpression.expression = "intersectCheck"'
+      - 'extension[=].extension[+].url = "human"'
+      - 'extension[=].extension[=].valueString = "Check the answer"'
+  - linkId: cql-expression
+    type: integer
+    text: CQL expression
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+      - 'extension[=].extension[0].url = "key"'
+      - 'extension[=].extension[=].valueId = "tc-cql-expression"'
+      - 'extension[=].extension[+].url = "severity"'
+      - 'extension[=].extension[=].valueCode = #error'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/cql-expression'
+      - 'extension[=].extension[=].valueExpression.expression = "intersectCheck"'
+      - 'extension[=].extension[+].url = "human"'
+      - 'extension[=].extension[=].valueString = "Check the answer"'

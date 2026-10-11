@@ -1,0 +1,8 @@
+# A variable without a name sets nothing, so ignoring it loses nothing.
+items:
+  - linkId: age
+    type: integer
+    extensions:
+      - url: variable
+        language: text/cql
+        expression: '1'

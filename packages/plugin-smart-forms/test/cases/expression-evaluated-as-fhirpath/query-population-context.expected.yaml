@@ -1,0 +1,14 @@
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-query-population-context.fsh:11:51
+  message: Smart Forms population evaluates this itemPopulationContext on item "Medications" (meds) as FHIRPath although it is written in application/x-fhir-query, so the group is not prefilled.
+  help: fetch the resources in an application/x-fhir-query variable on the Questionnaire root, and set itemPopulationContext to FHIRPath over it, such as %name.entry.resource
+  expression:
+    text: MedicationStatement?patient=1
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-query-population-context.fsh:22:51
+  message: Smart Forms population evaluates this itemPopulationContext on item "Conditions" (conditions) as FHIRPath although it is written in text/x-fhir-query, so the group is not prefilled.
+  help: fetch the resources in an application/x-fhir-query variable on the Questionnaire root, and set itemPopulationContext to FHIRPath over it, such as %name.entry.resource
+  expression:
+    text: Condition?patient=1

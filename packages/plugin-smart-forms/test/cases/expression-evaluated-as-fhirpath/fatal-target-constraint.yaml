@@ -1,0 +1,15 @@
+# A targetConstraint with severity fatal, which the renderer does not evaluate.
+items:
+  - linkId: bp
+    type: integer
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+      - 'extension[=].extension[0].url = "key"'
+      - 'extension[=].extension[=].valueId = "tc-1"'
+      - 'extension[=].extension[+].url = "severity"'
+      - 'extension[=].extension[=].valueCode = #fatal'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/cql'
+      - 'extension[=].extension[=].valueExpression.expression = "true"'
+      - 'extension[=].extension[+].url = "human"'
+      - 'extension[=].extension[=].valueString = "Check the answer"'

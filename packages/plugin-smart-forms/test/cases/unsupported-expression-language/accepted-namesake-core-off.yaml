@@ -1,0 +1,26 @@
+# accepted-namesake with sdc/duplicate-declaration off: the plugin decides by the namesake, not by
+# whether core reported the duplicate.
+rules:
+  sdc/duplicate-declaration: 'off'
+items:
+  - linkId: fhirpath
+    type: integer
+    extensions:
+      - url: variable
+        name: x
+        language: text/cql
+        expression: '1'
+      - url: variable
+        name: x
+        expression: '2'
+  - linkId: query
+    type: string
+    extensions:
+      - url: variable
+        name: y
+        language: text/cql
+        expression: '3'
+      - url: variable
+        name: y
+        language: application/x-fhir-query
+        expression: 'Patient'

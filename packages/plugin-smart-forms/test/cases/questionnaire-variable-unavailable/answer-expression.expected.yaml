@@ -1,0 +1,20 @@
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-answer-expression.fsh:15:51
+  message: Smart Forms does not supply %questionnaire to an answerExpression, so its answers on item "Head" (head) are never computed from this expression.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  expression:
+    text: '%questionnaire.item.answerOption'
+    range:
+      startOffset: 0
+      endOffset: 14
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-answer-expression.fsh:21:78
+  message: Smart Forms does not supply %qitem to an answerExpression, so its answers on item "After" (after) are not computed from this expression when the reference is evaluated.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  expression:
+    text: '%patient.name.where(text = %qitem.text)'
+    range:
+      startOffset: 27
+      endOffset: 33

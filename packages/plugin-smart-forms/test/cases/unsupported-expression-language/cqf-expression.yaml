@@ -1,0 +1,23 @@
+# A cqf-expression on an item's text, prefix or answerValueSet, named with its element.
+items:
+  - linkId: text
+    type: string
+    text: Text
+    fsh:
+      - 'text.extension.url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'text.extension.valueExpression.language = #text/cql'
+      - 'text.extension.valueExpression.expression = "''text''"'
+  - linkId: prefix
+    type: string
+    text: Prefix
+    fsh:
+      - 'prefix.extension.url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'prefix.extension.valueExpression.language = #text/cql'
+      - 'prefix.extension.valueExpression.expression = "''prefix''"'
+  - linkId: answer-value-set
+    type: choice
+    text: Answer value set
+    fsh:
+      - 'answerValueSet.extension.url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'answerValueSet.extension.valueExpression.language = #text/cql'
+      - 'answerValueSet.extension.valueExpression.expression = "''http://example.org/ValueSet/x''"'

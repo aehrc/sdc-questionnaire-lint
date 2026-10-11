@@ -1,0 +1,31 @@
+# An itemPopulationContext in either query language on a group with child items, so the group is not
+# prefilled; the help says how to fetch the resources instead.
+items:
+  - linkId: meds
+    type: group
+    text: Medications
+    fsh:
+      - repeats = true
+    extensions:
+      - url: itemPopulationContext
+        name: med
+        language: application/x-fhir-query
+        expression: 'MedicationStatement?patient=1'
+    items:
+      - linkId: med-name
+        type: string
+        text: Medication
+  - linkId: conditions
+    type: group
+    text: Conditions
+    fsh:
+      - repeats = true
+    extensions:
+      - url: itemPopulationContext
+        name: condition
+        language: text/x-fhir-query
+        expression: 'Condition?patient=1'
+    items:
+      - linkId: condition-name
+        type: string
+        text: Condition

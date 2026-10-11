@@ -1,0 +1,18 @@
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-initial-after-cql.fsh:15:54
+  message: Smart Forms population evaluates this initialExpression on item "Age" (age) as FHIRPath although it is written in text/cql, so the text/cql is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: "'x'"
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-initial-after-cql.fsh:18:54
+  message: Smart Forms does not supply %qitem, so this initialExpression on item "Age" (age) fails when the reference is evaluated, and the answer is not refilled from it when the form is repopulated.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %qitem, suppress this finding with a reason that names the application
+  expression:
+    text: '%qitem.text'
+    range:
+      startOffset: 0
+      endOffset: 6

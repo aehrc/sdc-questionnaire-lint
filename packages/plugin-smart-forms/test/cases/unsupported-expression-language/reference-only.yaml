@@ -1,0 +1,8 @@
+# A reference-only Expression has no expression text to ignore; sdc/external-expression reports it.
+items:
+  - linkId: age
+    type: integer
+    extensions:
+      - url: calculatedExpression
+        language: text/cql
+        reference: 'Library/x'

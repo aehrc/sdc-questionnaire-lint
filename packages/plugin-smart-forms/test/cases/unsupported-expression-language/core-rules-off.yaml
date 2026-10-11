@@ -1,0 +1,24 @@
+# core-reports-language with those core rules off: the plugin decides by the language, not by
+# whether core reported it.
+rules:
+  sdc/language-not-allowed: 'off'
+  sdc/language-not-in-value-set: 'off'
+items:
+  - linkId: application-query
+    type: boolean
+    extensions:
+      - url: enableWhenExpression
+        language: application/x-fhir-query
+        expression: 'Patient?_id=1'
+  - linkId: text-query
+    type: boolean
+    extensions:
+      - url: enableWhenExpression
+        language: text/x-fhir-query
+        expression: 'Patient?_id=2'
+  - linkId: misspelt
+    type: integer
+    extensions:
+      - url: calculatedExpression
+        language: text/fhir-path
+        expression: '1'

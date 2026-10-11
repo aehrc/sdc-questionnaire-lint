@@ -1,0 +1,9 @@
+# A cqf-expression on an item's text, which the renderer evaluates without population.
+items:
+  - linkId: age
+    type: integer
+    text: Age
+    fsh:
+      - 'text.extension.url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'text.extension.valueExpression.language = #text/fhirpath'
+      - 'text.extension.valueExpression.expression = "%questionnaire.title"'

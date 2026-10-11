@@ -1,0 +1,35 @@
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-variables.fsh:15:51
+  message: '%meds is declared on item "Medications" (meds), but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %meds where its value is needed
+  expression:
+    text: MedicationStatement?patient=1
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-variables.fsh:22:51
+  message: '%years is declared on item "Age" (age), but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %years where its value is needed
+  expression:
+    text: AgeInYears()
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/unsupported-expression-language-variables.fsh:8:43
+  message: Smart Forms ignores this variable on the Questionnaire root because it is written in text/x-fhir-query; it uses only text/fhirpath here, so this variable never sets %conds.
+  help: 'set the language of this variable to application/x-fhir-query: Smart Forms runs a query in a variable only with that code'
+  expression:
+    text: Condition?patient=1
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/unsupported-expression-language-variables.fsh:15:51
+  message: Smart Forms ignores this variable on item "Medications" (meds) because it is written in text/x-fhir-query; it uses only text/fhirpath here, so this variable never sets %meds.
+  help: 'set the language of this variable to application/x-fhir-query: Smart Forms runs a query in a variable only with that code'
+  expression:
+    text: MedicationStatement?patient=1
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/unsupported-expression-language-variables.fsh:22:51
+  message: Smart Forms ignores this variable on item "Age" (age) because it is written in text/cql; it uses only text/fhirpath here, so this variable never sets %years.
+  help: rewrite it in FHIRPath with the language text/fhirpath; to use server data, fetch it in an application/x-fhir-query variable on this item or an ancestor and reference that variable
+  expression:
+    text: AgeInYears()

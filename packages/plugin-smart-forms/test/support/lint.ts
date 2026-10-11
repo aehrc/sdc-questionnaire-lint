@@ -27,22 +27,6 @@ export async function lintWithPlugin(
   return lint({ cwd });
 }
 
-// The findings one rule reports for one Questionnaire, as pointer, message and help.
-export async function findingsOf(
-  ruleId: string,
-  resource: Record<string, unknown>,
-  config = '',
-): Promise<{ pointer: string; message: string; help?: string }[]> {
-  const report = await lintWithPlugin({ 'Questionnaire-Q.json': JSON.stringify(resource) }, config);
-  return report.findings
-    .filter((finding) => finding.ruleId === ruleId && finding.kind === 'questionnaire')
-    .map((finding) => ({
-      pointer: finding.kind === 'questionnaire' ? finding.jsonLocation.pointer : '',
-      message: finding.message,
-      ...(finding.help === undefined ? {} : { help: finding.help }),
-    }));
-}
-
 const cli = path.resolve(import.meta.dirname, '../../../core/dist/cli.js');
 
 // Runs the built sdc-lint executable on the given files, with the built plugin listed in a

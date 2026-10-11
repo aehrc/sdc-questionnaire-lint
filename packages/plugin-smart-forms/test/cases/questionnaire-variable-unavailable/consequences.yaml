@@ -1,0 +1,44 @@
+# What is lost at each location the renderer evaluates.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: calculated
+    type: string
+    text: Calculated
+    extensions:
+      - url: calculatedExpression
+        expression: '%questionnaire.title'
+  - linkId: enable-when
+    type: string
+    text: Enable when
+    extensions:
+      - url: enableWhenExpression
+        expression: '%questionnaire.title.exists()'
+  - linkId: target-constraint
+    type: string
+    text: Target constraint
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+      - 'extension[=].extension[0].url = "key"'
+      - 'extension[=].extension[=].valueId = "tc-1"'
+      - 'extension[=].extension[+].url = "severity"'
+      - 'extension[=].extension[=].valueCode = #error'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].extension[=].valueExpression.expression = "%questionnaire.title.empty()"'
+      - 'extension[=].extension[+].url = "human"'
+      - 'extension[=].extension[=].valueString = "Check the answer"'
+  - linkId: toggle
+    type: string
+    text: Toggle
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].extension[=].valueExpression.expression = "%questionnaire.title.count() > 0"'

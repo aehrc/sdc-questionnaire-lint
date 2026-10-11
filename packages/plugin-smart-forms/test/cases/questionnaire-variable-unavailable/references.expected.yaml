@@ -1,0 +1,44 @@
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-references.fsh:14:62
+  message: Smart Forms does not supply %qitem, so this calculatedExpression on item iif fails when the reference is evaluated, and the answer is not calculated from it.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %qitem, suppress this finding with a reason that names the application
+  expression:
+    text: iif(false, %qitem.text, 'x')
+    range:
+      startOffset: 11
+      endOffset: 17
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-references.fsh:19:51
+  message: Smart Forms does not supply %questionnaire, so this calculatedExpression on item two fails when the reference is evaluated, and the answer is not calculated from it.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %questionnaire, suppress this finding with a reason that names the application
+  expression:
+    text: '%questionnaire.title & %qitem.text'
+    range:
+      startOffset: 0
+      endOffset: 14
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-references.fsh:19:74
+  message: Smart Forms does not supply %qitem, so this calculatedExpression on item two fails when the reference is evaluated, and the answer is not calculated from it.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %qitem, suppress this finding with a reason that names the application
+  expression:
+    text: '%questionnaire.title & %qitem.text'
+    range:
+      startOffset: 23
+      endOffset: 29
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-references.fsh:24:51
+  message: Smart Forms does not supply %questionnaire, so this calculatedExpression on item backticked fails when the reference is evaluated, and the answer is not calculated from it.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %questionnaire, suppress this finding with a reason that names the application
+  expression:
+    text: '%`questionnaire`.title'
+    range:
+      startOffset: 0
+      endOffset: 16

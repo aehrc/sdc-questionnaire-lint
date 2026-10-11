@@ -1,0 +1,7 @@
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/unsupported-expression-language-not-checked.fsh:13:51
+  message: Smart Forms population evaluates this initialExpression on item "Initial" (initial) as FHIRPath although it is written in text/cql, so the text/cql is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: '1'

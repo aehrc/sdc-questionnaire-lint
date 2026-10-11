@@ -1,0 +1,6 @@
+- ruleId: sdc/uncatalogued-expression
+  severity: info
+  at: input/fsh/unsupported-expression-language-uncatalogued.fsh:10:51
+  message: This expression is in a place the linter does not recognise, so it was not checked.
+  expression:
+    text: '1'

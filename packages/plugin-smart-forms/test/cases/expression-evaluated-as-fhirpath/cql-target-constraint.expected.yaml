@@ -1,0 +1,21 @@
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-cql-target-constraint.fsh:15:67
+  message: Smart Forms renderer evaluates this targetConstraint on item "CQL" (cql) as FHIRPath although it is written in text/cql, so the text/cql is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: intersectCheck
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-cql-target-constraint.fsh:28:67
+  message: Smart Forms renderer evaluates this targetConstraint on item "CQL identifier" (cql-identifier) as FHIRPath although it is written in text/cql-identifier, so the text/cql-identifier is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: intersectCheck
+- ruleId: smart-forms/expression-evaluated-as-fhirpath
+  severity: error
+  at: input/fsh/expression-evaluated-as-fhirpath-cql-target-constraint.fsh:41:67
+  message: Smart Forms renderer evaluates this targetConstraint on item "CQL expression" (cql-expression) as FHIRPath although it is written in text/cql-expression, so the text/cql-expression is never run.
+  help: rewrite it in FHIRPath with the language text/fhirpath
+  expression:
+    text: intersectCheck

@@ -1,0 +1,16 @@
+# An initialExpression, which population evaluates as FHIRPath: in CQL the CQL never runs, and a
+# query does not prefill the answer. An item without text is named by its linkId.
+items:
+  - linkId: bp
+    type: integer
+    text: Blood pressure
+    extensions:
+      - url: initialExpression
+        language: text/cql
+        expression: 'Systolic'
+  - linkId: bp-query
+    type: integer
+    extensions:
+      - url: initialExpression
+        language: application/x-fhir-query
+        expression: 'Observation?code=x'

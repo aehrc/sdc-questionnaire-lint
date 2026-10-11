@@ -1,0 +1,14 @@
+# application/x-fhir-query variables, which Smart Forms runs, on the root and on an item.
+extensions:
+  - url: variable
+    name: p
+    language: application/x-fhir-query
+    expression: 'Patient?_id=1'
+items:
+  - linkId: age
+    type: integer
+    extensions:
+      - url: variable
+        name: q
+        language: application/x-fhir-query
+        expression: 'Patient?_id=2'

@@ -1,0 +1,31 @@
+# The message says what is lost at each location: a calculatedExpression, a lone
+# enableWhenExpression and a lone answerExpression in either query language.
+items:
+  - linkId: calculated
+    type: integer
+    text: Calculated
+    extensions:
+      - url: calculatedExpression
+        language: application/x-fhir-query
+        expression: 'Observation?code=x'
+  - linkId: enable-when
+    type: integer
+    text: Enable when
+    extensions:
+      - url: enableWhenExpression
+        language: text/cql
+        expression: 'true'
+  - linkId: answer-application-query
+    type: string
+    text: Application query answers
+    extensions:
+      - url: answerExpression
+        language: application/x-fhir-query
+        expression: 'ValueSet?url=x'
+  - linkId: answer-text-query
+    type: string
+    text: Text query answers
+    extensions:
+      - url: answerExpression
+        language: text/x-fhir-query
+        expression: 'ValueSet?url=y'

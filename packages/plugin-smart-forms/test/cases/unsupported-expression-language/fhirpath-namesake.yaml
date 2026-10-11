@@ -1,0 +1,15 @@
+# A CQL variable on an item is reported though a text/fhirpath variable on the root declares its
+# name: only a namesake on the same element sets the name.
+extensions:
+  - url: variable
+    name: x
+    expression: '1'
+items:
+  - linkId: age
+    type: integer
+    text: Age
+    extensions:
+      - url: variable
+        name: x
+        language: text/cql
+        expression: '2'

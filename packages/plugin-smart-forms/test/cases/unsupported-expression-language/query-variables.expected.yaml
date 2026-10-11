@@ -1,0 +1,14 @@
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-query-variables.fsh:8:43
+  message: '%p is declared on the Questionnaire root, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %p where its value is needed
+  expression:
+    text: Patient?_id=1
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/unsupported-expression-language-query-variables.fsh:14:51
+  message: '%q is declared on item age, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %q where its value is needed
+  expression:
+    text: Patient?_id=2
