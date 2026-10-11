@@ -1,0 +1,7 @@
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/questionnaire-variable-unavailable-other-branch-declares.fsh:10:51
+  message: '%questionnaire is declared on item other, but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %questionnaire where its value is needed
+  expression:
+    text: "'x'"

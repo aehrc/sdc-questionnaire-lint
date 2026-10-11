@@ -1,0 +1,24 @@
+# A query itemPopulationContext population does not evaluate: on an item without child items, on a
+# group without a name, and on the root.
+extensions:
+  - url: itemPopulationContext
+    name: r
+    language: application/x-fhir-query
+    expression: 'Patient?_id=1'
+items:
+  - linkId: leaf
+    type: integer
+    extensions:
+      - url: itemPopulationContext
+        name: p
+        language: application/x-fhir-query
+        expression: 'Patient?_id=2'
+  - linkId: unnamed
+    type: group
+    extensions:
+      - url: itemPopulationContext
+        language: application/x-fhir-query
+        expression: 'Patient?_id=3'
+    items:
+      - linkId: child
+        type: string

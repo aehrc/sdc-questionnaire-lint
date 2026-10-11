@@ -327,4 +327,12 @@ describe('formatTextSummary', () => {
       'Smart Forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.',
     );
   });
+
+  it('leaves template-extract out of the Smart Forms line when it was not selected', () => {
+    const report = specReport();
+    report.run.compat['smart-forms'] = { renderer: '1.4.0', populate: '4.7.1' };
+    expect(formatTextSummary(report, plain).trimEnd().split('\n').at(-1)).toBe(
+      'Smart Forms: renderer 1.4.0, populate 4.7.1.',
+    );
+  });
 });

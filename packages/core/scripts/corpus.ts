@@ -3,7 +3,10 @@
 // committed (D14). Run from the repository root:
 //   npm run corpus                 compare with corpus/findings.json
 //   npm run corpus -- --update     also save the current findings as the snapshot
-import { spawnSync } from 'node:child_process';
+//   npm run corpus -- --smart-forms
+//                                  also list the Smart Forms plugin, and compare with
+//                                  corpus/findings.smart-forms.json (docs/smart-forms-rules.md, P0)
+import { execSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +23,18 @@ export interface CorpusFinding {
 
 const cli = fileURLToPath(new URL('../dist/cli.js', import.meta.url));
 const corpusDirectory = fileURLToPath(new URL('../../../corpus/', import.meta.url));
+const smartFormsConfig = fileURLToPath(
+  new URL('../../plugin-smart-forms/scripts/corpus.config.mjs', import.meta.url),
+);
+
+// How a run lints the corpus: with a config, such as one that lists a plugin, and against the
+// snapshot of that mode. Without a config, the built-in rules run at their defaults.
+export interface CorpusMode {
+  config?: string;
+  snapshot: string;
+}
+
+const coreMode: CorpusMode = { snapshot: 'findings.json' };
 
 const key = (finding: CorpusFinding): string =>
   [finding.ruleId, finding.severity, finding.file, finding.pointer].join('\u0000');
@@ -58,6 +73,7 @@ function listChanges(findings: readonly CorpusFinding[], change: string): string
 export function runCorpus(
   corpus: string,
   update: boolean,
+  mode: CorpusMode = coreMode,
 ): { code: number; stdout: string; stderr: string } {
   const forms = path.join(corpus, 'forms');
   if (!existsSync(forms)) {
@@ -70,7 +86,8 @@ export function runCorpus(
     };
   }
 
-  const run = spawnSync(process.execPath, [cli, 'lint', 'forms', '--format', 'json'], {
+  const config = mode.config === undefined ? [] : ['--config', mode.config];
+  const run = spawnSync(process.execPath, [cli, 'lint', 'forms', '--format', 'json', ...config], {
     cwd: corpus,
     encoding: 'utf8',
     // The report must arrive complete; spawnSync's default 1 MB buffer would cut it off.
@@ -94,7 +111,7 @@ export function runCorpus(
       file,
       pointer,
     }));
-  const snapshotFile = path.join(corpus, 'findings.json');
+  const snapshotFile = path.join(corpus, mode.snapshot);
   const hasSnapshot = existsSync(snapshotFile);
   const snapshot = hasSnapshot
     ? (JSON.parse(readFileSync(snapshotFile, 'utf8')) as CorpusFinding[])
@@ -106,6 +123,13 @@ export function runCorpus(
     `${String(current.length)} findings in ${String(questionnaires)} questionnaires. ` +
       `Expressions: ${String(expressions.analysed)} analysed, ${String(expressions.unchecked)} unchecked.`,
   ];
+  const smartForms = report.run.compat['smart-forms'];
+  if (smartForms !== undefined) {
+    const versions = Object.entries(smartForms).map(
+      ([component, version]) => `${component} ${version}`,
+    );
+    lines.push(`Smart Forms: ${versions.join(', ')}.`);
+  }
   if (!hasSnapshot) lines.push('No snapshot yet, so every finding is listed as added.');
   if (added.length === 0 && removed.length === 0) lines.push('No findings were added or removed.');
   lines.push(...listChanges(added, 'added'), ...listChanges(removed, 'removed'));
@@ -119,7 +143,19 @@ export function runCorpus(
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const result = runCorpus(corpusDirectory, process.argv.includes('--update'));
+  const smartFormsMode = process.argv.includes('--smart-forms');
+  if (smartFormsMode) {
+    // npm run corpus builds core only; the config imports the plugin's build. Through a shell,
+    // because npm is npm.cmd on Windows.
+    execSync('npm run build --workspace @sdc-questionnaire-lint/plugin-smart-forms', {
+      stdio: ['ignore', 'ignore', 'inherit'],
+    });
+  }
+  const result = runCorpus(
+    corpusDirectory,
+    process.argv.includes('--update'),
+    smartFormsMode ? { config: smartFormsConfig, snapshot: 'findings.smart-forms.json' } : coreMode,
+  );
   process.stdout.write(result.stdout);
   process.stderr.write(result.stderr);
   process.exitCode = result.code;

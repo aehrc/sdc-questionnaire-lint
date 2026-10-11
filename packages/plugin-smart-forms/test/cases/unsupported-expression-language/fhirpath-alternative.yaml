@@ -1,0 +1,37 @@
+# An expression next to a text/fhirpath one with the same URL on the same element, which Smart Forms
+# uses instead.
+items:
+  - linkId: enable-when
+    type: boolean
+    extensions:
+      - url: enableWhenExpression
+        language: text/cql
+        expression: 'true'
+      - url: enableWhenExpression
+        expression: 'true'
+  - linkId: answer
+    type: string
+    extensions:
+      - url: answerExpression
+        language: text/cql
+        expression: "'a'"
+      - url: answerExpression
+        expression: "'a'"
+  - linkId: calculated
+    type: integer
+    extensions:
+      - url: calculatedExpression
+        language: text/cql
+        expression: '1'
+      - url: calculatedExpression
+        expression: '1'
+  - linkId: text
+    type: string
+    text: Text
+    fsh:
+      - 'text.extension[0].url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'text.extension[=].valueExpression.language = #text/cql'
+      - 'text.extension[=].valueExpression.expression = "''x''"'
+      - 'text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'text.extension[=].valueExpression.language = #text/fhirpath'
+      - 'text.extension[=].valueExpression.expression = "''y''"'

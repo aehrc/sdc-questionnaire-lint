@@ -10,7 +10,7 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "compat"],
+  "files": ["dist"],
   "engines": {
     "node": ">=22.12"
   },
@@ -21,6 +21,8 @@
     "sdc-questionnaire-lint": "^0.1.0"
   },
   "devDependencies": {
+    "@aehrc/sdc-populate": "4.7.1",
+    "@sdc-questionnaire-lint/lint-cases": "*",
     "sdc-questionnaire-lint": "*"
   }
 }

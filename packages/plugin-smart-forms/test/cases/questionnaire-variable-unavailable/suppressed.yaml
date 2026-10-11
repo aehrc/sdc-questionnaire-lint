@@ -1,0 +1,19 @@
+# A suppressed finding is not reported.
+suppress:
+  - rule: smart-forms/questionnaire-variable-unavailable
+    file: fsh-generated/resources/Questionnaire-questionnaire-variable-unavailable-suppressed.json
+    linkId: age
+    extensionUrl: http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression
+    reason: The host supplies %questionnaire.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: age
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '%questionnaire.title'

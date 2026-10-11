@@ -1,10 +1,7 @@
 // The plugin contract (core-plan §5.2). Exported from the package, so changes are public API changes.
-import type {
-  ExpressionSite,
-  ExpressionUseCase,
-  QuestionnaireDocument,
-  Scope,
-} from '../analysis/expression-site.js';
+import type { AvailableVariables } from '../analysis/available-variables.js';
+import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
+import type { VariableReference } from '../analysis/fhirpath.js';
 import type { OffsetRange, Severity } from '../report/types.js';
 
 export type { Severity };
@@ -41,7 +38,20 @@ export interface RuleFinding {
 export interface RuleContext {
   readonly document: QuestionnaireDocument;
   readonly sites: readonly ExpressionSite[];
-  scopeAt(site: ExpressionSite, useCase: ExpressionUseCase): Scope;
+  // The %name references in a site's FHIRPath text, in source order, fragments included; [] when
+  // the text parses and references nothing. undefined when the site has no FHIRPath analysis: its
+  // language is not text/fhirpath, it has no text, or the text does not parse. A rule treats
+  // undefined as "cannot check", never as "no references". The array and its references are
+  // frozen.
+  referencesAt(site: ExpressionSite): readonly VariableReference[] | undefined;
+  // The names an expression can reference at a site, and the variable each name resolves to;
+  // undefined at an uncatalogued site, where name analysis cannot run.
+  variablesAt(site: ExpressionSite): AvailableVariables | undefined;
+  // Both return undefined for an object that is not one of sites: they compare by identity, so a
+  // copy of a site is not one.
+  // The component versions the run checks against for this rule's namespace, such as
+  // { renderer: '1.4.0', populate: '4.7.1' }; {} when the plugin declares no compat.
+  readonly compat: Readonly<Record<string, string>>;
   // Always undefined: the config cannot pass rule options yet.
   readonly options: unknown;
   report(finding: RuleFinding): void;
@@ -71,10 +81,22 @@ export interface LintRule {
   check(ctx: RuleContext): void;
 }
 
+// The runtime versions a plugin's rules can check against (core-plan §2.3). Each component's
+// versions are verified independently, so any combination of listed versions can be selected.
+export interface PluginCompat {
+  // The verified versions of each component, oldest to newest: "latest" selects the last one.
+  // Core treats versions as opaque strings and never compares them.
+  verified: Readonly<Record<string, readonly string[]>>;
+  // The components a config's explicit compat object must name; the others may be omitted.
+  required: readonly string[];
+}
+
 // A plugin: listed in plugins in an .mjs config, it registers its rules under its namespace.
 export interface LintPlugin {
   // name is the rule namespace: smart-forms plus flat-variable-context gives
   // smart-forms/flat-variable-context.
   meta: { name: string; version: string };
   rules: Readonly<Record<string, LintRule>>;
+  // Declared by a plugin that checks forms against runtime versions selected in config compat.
+  compat?: PluginCompat;
 }

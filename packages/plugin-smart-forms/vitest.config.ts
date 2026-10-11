@@ -5,5 +5,6 @@ export default defineProject({
     name: 'plugin-smart-forms',
     environment: 'node',
     include: ['test/**/*.test.ts'],
+    globalSetup: ['test/global-setup.ts'],
   },
 });

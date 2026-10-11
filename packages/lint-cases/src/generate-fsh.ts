@@ -5,12 +5,15 @@
 // Quote every whole expression: "%a", "1", "'text'". Unquoted, %a is invalid YAML and 1 is a
 // number, and 'text' alone is YAML quoting, so the FHIRPath string literal becomes a path.
 //
-// Config:    { instance?, status?, hostVariables?, extensions?, fsh?, items?, contained? }
+// Config:    { instance?, status?, hostVariables?, rules?, suppress?, extensions?, fsh?, items?,
+//              contained? }
 // Item:      { linkId, type, text?, extensions?, fsh?, items? }
 // Extension: { url, name?, language?, expression?, reference? } (at least one of the last two)
 // Contained: { extensions?, fsh?, items? }
 // - instance defaults to the file name; a case's is <group>-<case>.
-// - hostVariables, with the plugins of the project, become the linter config of this Questionnaire.
+// - hostVariables, rules and suppress, with the plugins of the project, become the linter config of
+//   this Questionnaire, as the config file gives them. A suppression's file is
+//   fsh-generated/resources/Questionnaire-<instance>.json.
 // - url is an alias (see extensionUrls) or a full URL, written as is. An extension that holds its
 //   Expression in a sub-extension, such as contextExpression, is written as raw fsh lines.
 // - language defaults to text/fhirpath.
@@ -50,6 +53,10 @@ export interface FshConfig extends FshContained {
   instance: string;
   status?: string;
   hostVariables?: string[];
+  // Rule ID to severity or off, as in a linter config.
+  rules?: Record<string, string>;
+  // Suppression entries, as in a linter config; the linter checks them.
+  suppress?: Record<string, unknown>[];
   contained?: FshContained[];
 }
 
@@ -147,6 +154,10 @@ function object(value: unknown, at: string, keys: readonly string[]): JsonObject
   return value as JsonObject;
 }
 
+// An object with any keys.
+const anyObject = (value: unknown, at: string): JsonObject =>
+  object(value, at, typeof value === 'object' && value !== null ? Object.keys(value) : []);
+
 function checkStrings(json: JsonObject, at: string, required: string[], optional: string[]): void {
   for (const key of required) {
     if (json[key] === undefined) throw new Error(`${label(at)}: ${key} is required`);
@@ -213,6 +224,8 @@ export function parseFshConfig(value: unknown, instance?: string): FshConfig {
     'instance',
     'status',
     'hostVariables',
+    'rules',
+    'suppress',
     'extensions',
     'fsh',
     'items',
@@ -229,6 +242,16 @@ export function parseFshConfig(value: unknown, instance?: string): FshConfig {
     throw new Error('config: instance must be letters, digits and hyphens');
   }
   checkLines(config, '', 'hostVariables');
+  // Their keys and values are the linter's to check.
+  if (config.rules !== undefined) {
+    const rules = anyObject(config.rules, 'rules');
+    if (Object.values(rules).some((severity) => typeof severity !== 'string')) {
+      throw new Error('rules: each severity must be a string');
+    }
+  }
+  list(config, '', 'suppress').forEach((entry, index) => {
+    anyObject(entry, `suppress[${String(index)}]`);
+  });
   checkBody(config, '');
   list(config, '', 'contained').forEach((body, entry) => {
     const where = `contained[${String(entry)}]`;
@@ -266,14 +289,17 @@ export const sushiConfig = [
   '',
 ].join('\n');
 
-// The linter config of a config with hostVariables, or of every config when plugins are listed, at
-// the project root, because the linter resolves the FSH directories and the SUSHI index against the
-// config's directory. An .mjs config, because only one can list plugins.
+// The linter config of a config with hostVariables, rules or suppress, or of every config when
+// plugins are listed, at the project root, because the linter resolves the FSH directories and the
+// SUSHI index against the config's directory. An .mjs config, because only one can list plugins.
 export const lintConfigFile = (
   config: FshConfig,
   plugins: readonly string[] = [],
 ): string | undefined =>
-  config.hostVariables === undefined && plugins.length === 0
+  config.hostVariables === undefined &&
+  config.rules === undefined &&
+  config.suppress === undefined &&
+  plugins.length === 0
     ? undefined
     : `lint-config-${config.instance}.mjs`;
 
@@ -288,6 +314,8 @@ function lintConfigModule(config: FshConfig, plugins: readonly string[]): string
     ...(config.hostVariables === undefined
       ? []
       : [`  hostVariables: ${JSON.stringify(config.hostVariables)},`]),
+    ...(config.rules === undefined ? [] : [`  rules: ${JSON.stringify(config.rules)},`]),
+    ...(config.suppress === undefined ? [] : [`  suppress: ${JSON.stringify(config.suppress)},`]),
     ...(plugins.length === 0 ? [] : [`  plugins: [${names.join(', ')}],`]),
     '};',
     '',

@@ -1,0 +1,25 @@
+# A CQL variable with a variable of its name on the same element that Smart Forms accepts, in
+# text/fhirpath or application/x-fhir-query, which sets the name; sdc/duplicate-declaration reports
+# the duplicate.
+items:
+  - linkId: fhirpath
+    type: integer
+    extensions:
+      - url: variable
+        name: x
+        language: text/cql
+        expression: '1'
+      - url: variable
+        name: x
+        expression: '2'
+  - linkId: query
+    type: string
+    extensions:
+      - url: variable
+        name: y
+        language: text/cql
+        expression: '3'
+      - url: variable
+        name: y
+        language: application/x-fhir-query
+        expression: 'Patient'

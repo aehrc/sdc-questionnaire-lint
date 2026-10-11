@@ -1,0 +1,14 @@
+- ruleId: sdc/language-not-allowed
+  severity: error
+  at: input/fsh/unsupported-expression-language-core-reports-language.fsh:14:51
+  message: This enableWhenExpression is written in text/x-fhir-query, but SDC allows only FHIRPath or CQL here, so the form may ignore it.
+  help: rewrite the expression in FHIRPath, with the language text/fhirpath, or in CQL, with text/cql
+  expression:
+    text: Patient?_id=2
+- ruleId: sdc/language-not-in-value-set
+  severity: warning
+  at: input/fsh/unsupported-expression-language-core-reports-language.fsh:19:51
+  message: The language text/fhir-path is not one FHIR defines, so the form may ignore this expression.
+  help: set the language to text/fhirpath
+  expression:
+    text: '1'

@@ -30,7 +30,14 @@ _Avoid_: Variable (one kind of declaration)
 
 **Available variables**:
 The names an expression can reference at its site; the site alone determines them. They are the declarations on its element, its ancestor items and the root, the innermost of a name winning (in a declaration's own expression, its own name means the next binding outward), plus the names FHIRPath, FHIR and SDC define, the names a module lists in assembleContext, and the host variables. An extraction site sees only extractAllocateId names, named extraction contexts, the built-in names, the assembleContext names and the host variables. Messages say a name "is not available on this item".
-_Avoid_: Visibility, context (FHIRPath's `%context` is something else); scope, except for the public `Scope`/`scopeAt` plugin stub, which stays until a plugin needs available variables
+_Avoid_: Visibility, context (FHIRPath's `%context` is something else), scope
+
+**Reference**:
+One `%name` in an expression's FHIRPath, fragments included; it resolves to the available variable of that name at its site. A reference is complete unless an earlier step of its chain is a `defineVariable` with a computed name, which may bind it.
+_Avoid_: Usage, variable use
+
+**Built-in name**:
+A name FHIRPath, FHIR or SDC defines, such as `%resource`, `%questionnaire`, `%qitem` or a name with the `vs-` or `ext-` prefix. Available at every site, except `%qitem`, which needs an item. A form must not declare one.
 
 **Host variable**:
 A name an expression can reference that the form does not declare and that FHIRPath, FHIR and SDC do not define, but that the application running the form supplies at runtime by its own convention, such as an entry in Smart Forms' additionalContext or `%PrePopQuery` for a sourceQueries Bundle. Listed by exact name in the config's `hostVariables`, and available at every site.
@@ -92,14 +99,39 @@ An FSH `Instance:` with `Usage: #inline`. SUSHI embeds it in another resource, a
 **Smart Forms**:
 AEHRC's open-source SDC form stack, the runtime whose behaviour the Smart Forms plugin checks forms against.
 
+**Supported integration**:
+The way of running Smart Forms that the plugin's rules assume: population, which succeeds, then rendering; template extraction only when the compatibility target selects it. A renderer used without population, or a run where population failed, is outside it.
+
 **Component**:
-One independently versioned part of Smart Forms: renderer, populate or template-extract. A construct can work in one component and fail in another.
+One independently versioned part of Smart Forms: renderer, populate or template-extract. A construct can work in one component and fail in another. A config's explicit compatibility target must name renderer and populate; template-extract is checked only when named.
+
+**Compatibility matrix**:
+What the plugin knows about each component: the versions it has verified, oldest to newest (`compat.verified` of the plugin), and the runtime facts its rules rely on. Each component's versions are verified independently, and any combination of verified versions is accepted.
 
 **Compatibility target**:
-The component versions a config checks against. The default, `"smart-forms": "latest"`, means the newest versions the installed plugin knows.
+The component versions a config checks against, set by `compat` and reported in `run.compat`. The default, `"smart-forms": "latest"`, means the newest versions the installed plugin has verified, not the newest on npm. An explicit target names exact verified versions; there is no fallback to a nearby one.
+_Avoid_: Preset, supported versions
+
+**Runtime fact**:
+One thing a component does, for a version, that a plugin rule relies on, such as the languages it evaluates at a location or the names it supplies. Each fact carries its evidence: a reproduction test, or `source-only` with a permalink into the Smart Forms source, in which case a message claims only what the source shows. A fact does not name a rule.
+
+**Reproduction test**:
+A test that runs a pinned Smart Forms npm package on a minimal form to show a runtime fact, such as the queries sdc-populate sends.
+
+**Reader**:
+A selected component that reads an expression site, with how it handles the site's language there: the location must be one it reads and its prerequisites must hold, such as an itemPopulationContext on an item with child items. A plugin rule reports only at a site that has a reader.
 
 **Compatibility finding**:
-A finding about a form that is valid SDC but fails or misbehaves on the selected components, reported by a `smart-forms/*` rule.
+A finding about a form that is valid SDC but fails or misbehaves on the selected components, reported by a `smart-forms/*` rule. It states a runtime consequence the evidence shows, and is not reported where a core rule reports the same root cause.
 
 **Flat variable context**:
 How Smart Forms holds declarations: in one shared set of names, so names that SDC keeps in separate scopes can collide.
+
+### Development
+
+**Lint case**:
+A rule test: a YAML config describing a minimal form, `test/cases/<rule>/<case>.yaml`, beside the findings the linter must report for it, `<case>.expected.yaml`. SUSHI compiles the form, so a case also exercises FSH source mapping.
+_Avoid_: Fixture (a committed file used as it is)
+
+**Corpus**:
+The local, never-committed collection of real forms in `corpus/forms/`, linted to see which findings a change adds or removes against a saved snapshot.

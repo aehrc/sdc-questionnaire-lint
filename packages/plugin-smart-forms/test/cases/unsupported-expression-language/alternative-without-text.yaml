@@ -1,0 +1,30 @@
+# A text/fhirpath alternative without expression text runs nothing, so the expression next to it is
+# reported; for an enableWhenExpression Smart Forms uses only the first text/fhirpath one, here the
+# empty one.
+items:
+  - linkId: calculated
+    type: integer
+    extensions:
+      - url: calculatedExpression
+        language: text/cql
+        expression: '1'
+      - url: calculatedExpression
+        reference: 'Library/x'
+  - linkId: enable-when-reference
+    type: boolean
+    extensions:
+      - url: enableWhenExpression
+        language: text/cql
+        expression: 'true'
+      - url: enableWhenExpression
+        reference: 'Library/x'
+  - linkId: enable-when-empty
+    type: boolean
+    extensions:
+      - url: enableWhenExpression
+        language: text/cql
+        expression: 'false'
+      - url: enableWhenExpression
+        expression: ''
+      - url: enableWhenExpression
+        expression: 'true'

@@ -1,0 +1,16 @@
+# An ancestor declares questionnaire, with sdc/reserved-name off.
+rules:
+  sdc/reserved-name: 'off'
+items:
+  - linkId: g
+    type: group
+    extensions:
+      - url: variable
+        name: questionnaire
+        expression: "'x'"
+    items:
+      - linkId: age
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%questionnaire'

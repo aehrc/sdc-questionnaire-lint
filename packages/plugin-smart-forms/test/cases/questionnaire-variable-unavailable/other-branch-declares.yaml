@@ -1,0 +1,15 @@
+# A leaf item on another branch declares questionnaire, with sdc/reserved-name off.
+rules:
+  sdc/reserved-name: 'off'
+items:
+  - linkId: other
+    type: string
+    extensions:
+      - url: variable
+        name: questionnaire
+        expression: "'x'"
+  - linkId: age
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '%questionnaire.title'

@@ -1,0 +1,11 @@
+- ruleId: smart-forms/questionnaire-variable-unavailable
+  severity: error
+  at: input/fsh/questionnaire-variable-unavailable-population-context.fsh:16:51
+  message: Smart Forms does not supply %questionnaire, so this itemPopulationContext on item "Items" (g) fails when the reference is evaluated, and the group is not prefilled.
+  help: copy the value the expression needs from the Questionnaire into the expression
+  note: if the application running the form supplies %questionnaire, suppress this finding with a reason that names the application
+  expression:
+    text: '%questionnaire.item'
+    range:
+      startOffset: 0
+      endOffset: 14

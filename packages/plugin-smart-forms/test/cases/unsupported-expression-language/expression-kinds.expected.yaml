@@ -1,0 +1,28 @@
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/unsupported-expression-language-expression-kinds.fsh:10:51
+  message: Smart Forms ignores this calculatedExpression on item "Calculated" (calculated) because it is written in application/x-fhir-query; it uses only text/fhirpath here, so the answer is never calculated from it.
+  help: rewrite it in FHIRPath with the language text/fhirpath; to use server data, fetch it in an application/x-fhir-query variable on this item or an ancestor and reference that variable
+  expression:
+    text: Observation?code=x
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/unsupported-expression-language-expression-kinds.fsh:16:51
+  message: Smart Forms ignores this enableWhenExpression on item "Enable when" (enable-when) because it is written in text/cql; it uses only text/fhirpath here, so this expression never disables the item.
+  help: rewrite it in FHIRPath with the language text/fhirpath; to use server data, fetch it in an application/x-fhir-query variable on this item or an ancestor and reference that variable
+  expression:
+    text: 'true'
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/unsupported-expression-language-expression-kinds.fsh:22:51
+  message: Smart Forms ignores this answerExpression on item "Application query answers" (answer-application-query) because it is written in application/x-fhir-query; it uses only text/fhirpath here, so its answers are not computed from it.
+  help: rewrite it in FHIRPath with the language text/fhirpath; to use server data, fetch it in an application/x-fhir-query variable on this item or an ancestor and reference that variable
+  expression:
+    text: ValueSet?url=x
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/unsupported-expression-language-expression-kinds.fsh:28:51
+  message: Smart Forms ignores this answerExpression on item "Text query answers" (answer-text-query) because it is written in text/x-fhir-query; it uses only text/fhirpath here, so its answers are not computed from it.
+  help: rewrite it in FHIRPath with the language text/fhirpath; to use server data, fetch it in an application/x-fhir-query variable on this item or an ancestor and reference that variable
+  expression:
+    text: ValueSet?url=y

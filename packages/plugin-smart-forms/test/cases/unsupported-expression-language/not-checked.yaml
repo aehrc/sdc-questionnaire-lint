@@ -1,0 +1,22 @@
+# Locations this rule does not check: an initialExpression, which population evaluates as FHIRPath
+# (smart-forms/expression-evaluated-as-fhirpath reports it), and the root title's cqf-expression and
+# a candidateExpression, which Smart Forms never reads.
+fsh:
+  - 'title.extension.url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+  - 'title.extension.valueExpression.language = #text/cql'
+  - 'title.extension.valueExpression.expression = "''title''"'
+items:
+  - linkId: initial
+    type: integer
+    text: Initial
+    extensions:
+      - url: initialExpression
+        language: text/cql
+        expression: '1'
+  - linkId: candidate
+    type: integer
+    text: Candidate
+    extensions:
+      - url: candidateExpression
+        language: text/cql
+        expression: '2'
