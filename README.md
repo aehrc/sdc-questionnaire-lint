@@ -212,13 +212,12 @@ A rule's tests are lint cases: `test/cases/<rule>/<case>.yaml` describes a form,
 ```sh
 npm test -- unused-declaration                       # run matching tests
 npm run demo                                         # generate a SUSHI project from a lint case, compile and lint it
+npm run demo -- <case.yaml> --smart-forms            # the same, with the Smart Forms plugin
 npm run example -- demo/invalid-demo                 # compile and lint a SUSHI project, here the one demo wrote
-npm run corpus                                       # lint the local corpus/ and compare with its snapshot
-npm run corpus -- --smart-forms                      # the same, with the Smart Forms plugin
 npm run docs:dev                                     # serve the documentation site with live reload
 npm run docs:build                                   # build it into docs/.vitepress/dist; fails on a dead link
 ```
 
 The documentation site is built with VitePress from this README, the [glossary](GLOSSARY.md) and `docs/`. Its rules library is generated from the code: a page per rule from the rule's `meta.docs`, an example lint case compiled by SUSHI, and its other lint cases. Both commands build the packages first.
 
-`npm run demo` writes `demo/invalid-demo` from `packages/core/test/cases/demo/invalid-demo.yaml`, or another config given as its argument. `npm run example` takes any directory with a `sushi-config.yaml`, followed by `lint` flags. `npm run corpus` needs a local `corpus/`, which is gitignored and not in the repository: copy the forms listed in slice 0 of the [core rules plan](docs/core-rules.md) into `corpus/forms/` first; without them it exits with that hint. `demo`, `example` and the lint cases compile with SUSHI 3.20.1, the `fsh-sushi` dev dependency, which `npm run` puts on the PATH. [AGENTS.md](AGENTS.md) lists the other development commands.
+`npm run demo` writes `demo/invalid-demo` from `packages/core/test/cases/demo/invalid-demo.yaml`, or another config given as its argument; `--smart-forms` also lints it with the Smart Forms plugin. `npm run example` takes any directory with a `sushi-config.yaml`, followed by `lint` flags. `npm run corpus` needs a local `corpus/`, which is gitignored and not in the repository: copy the forms listed in slice 0 of the [core rules plan](docs/core-rules.md) into `corpus/forms/` first; without them it exits with that hint. `demo`, `example` and the lint cases compile with SUSHI 3.20.1, the `fsh-sushi` dev dependency, which `npm run` puts on the PATH. [AGENTS.md](AGENTS.md) lists the other development commands.
