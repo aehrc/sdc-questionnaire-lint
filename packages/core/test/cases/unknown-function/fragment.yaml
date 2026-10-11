@@ -1,0 +1,9 @@
+# An unknown function in a fragment, with the range in the fragment.
+hostVariables: [patient]
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: application/x-fhir-query
+        expression: 'Observation?subject={{%patient.fist()}}'

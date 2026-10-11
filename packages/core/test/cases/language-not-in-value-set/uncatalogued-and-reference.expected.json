@@ -1,0 +1,32 @@
+[
+  {
+    "ruleId": "sdc/external-expression",
+    "severity": "info",
+    "at": "/item/1/extension/0/valueExpression (not-found)",
+    "message": "This expression has no text, only the reference #lib, so it was not checked."
+  },
+  {
+    "ruleId": "sdc/language-not-in-value-set",
+    "severity": "warning",
+    "at": "input/fsh/language-not-in-value-set-uncatalogued-and-reference.fsh:9:51",
+    "message": "The language text/python is not one FHIR defines, so the form may ignore this expression.",
+    "expression": {
+      "text": "x"
+    }
+  },
+  {
+    "ruleId": "sdc/language-not-in-value-set",
+    "severity": "warning",
+    "at": "/item/1/extension/0/valueExpression (not-found)",
+    "message": "The language text/python is not one FHIR defines, so the form may ignore this expression."
+  },
+  {
+    "ruleId": "sdc/uncatalogued-expression",
+    "severity": "info",
+    "at": "input/fsh/language-not-in-value-set-uncatalogued-and-reference.fsh:9:51",
+    "message": "This expression is in a place the linter does not recognise, so it was not checked.",
+    "expression": {
+      "text": "x"
+    }
+  }
+]

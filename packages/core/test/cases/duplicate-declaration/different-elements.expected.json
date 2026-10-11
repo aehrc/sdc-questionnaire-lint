@@ -1,0 +1,90 @@
+[
+  {
+    "ruleId": "sdc/shadowed-declaration",
+    "severity": "info",
+    "at": "input/fsh/duplicate-declaration-different-elements.fsh:19:51",
+    "message": "The name %a on item g is also declared on the Questionnaire root, so other expressions on item g and its descendant items get this declaration's value.",
+    "help": "rename one of the declarations of %a, unless this item should override it",
+    "expression": {
+      "text": "2"
+    },
+    "related": [
+      {
+        "at": "/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/shadowed-declaration",
+    "severity": "info",
+    "at": "input/fsh/duplicate-declaration-different-elements.fsh:25:59",
+    "message": "The name %a on item q is also declared on item g, so other expressions on item q and its descendant items get this declaration's value.",
+    "help": "rename one of the declarations of %a, unless this item should override it",
+    "expression": {
+      "text": "3"
+    },
+    "related": [
+      {
+        "at": "/item/0/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/shadowed-declaration",
+    "severity": "info",
+    "at": "input/fsh/duplicate-declaration-different-elements.fsh:31:51",
+    "message": "The name %patient on item h is also declared on the Questionnaire root, so other expressions on item h and its descendant items get this declaration's value.",
+    "help": "rename one of the declarations of %patient, unless this item should override it",
+    "expression": {
+      "text": "4"
+    },
+    "related": [
+      {
+        "at": "/extension/1 (source-unavailable)",
+        "message": "%patient is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/duplicate-declaration-different-elements.fsh:8:43",
+    "message": "%a is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/duplicate-declaration-different-elements.fsh:19:51",
+    "message": "%a is declared on item g, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "2"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/duplicate-declaration-different-elements.fsh:25:59",
+    "message": "%a is declared on item q, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "3"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/duplicate-declaration-different-elements.fsh:31:51",
+    "message": "%patient is declared on item h, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %patient where its value is needed",
+    "expression": {
+      "text": "4"
+    }
+  }
+]

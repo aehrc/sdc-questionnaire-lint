@@ -1,0 +1,62 @@
+# FHIRPath and the CQL codes are allowed on enableWhenExpression and answerOptionsToggleExpression.
+items:
+  - linkId: enable-when-0
+    type: string
+    extensions:
+      - url: enableWhenExpression
+        language: text/fhirpath
+        expression: '0 = 1'
+  - linkId: toggle-0
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].extension[=].valueExpression.expression = "0 = 2"'
+  - linkId: enable-when-1
+    type: string
+    extensions:
+      - url: enableWhenExpression
+        language: text/cql
+        expression: '1 = 1'
+  - linkId: toggle-1
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/cql'
+      - 'extension[=].extension[=].valueExpression.expression = "1 = 2"'
+  - linkId: enable-when-2
+    type: string
+    extensions:
+      - url: enableWhenExpression
+        language: text/cql-identifier
+        expression: '2 = 1'
+  - linkId: toggle-2
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/cql-identifier'
+      - 'extension[=].extension[=].valueExpression.expression = "2 = 2"'
+  - linkId: enable-when-3
+    type: string
+    extensions:
+      - url: enableWhenExpression
+        language: text/cql-expression
+        expression: '3 = 1'
+  - linkId: toggle-3
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.language = #text/cql-expression'
+      - 'extension[=].extension[=].valueExpression.expression = "3 = 2"'

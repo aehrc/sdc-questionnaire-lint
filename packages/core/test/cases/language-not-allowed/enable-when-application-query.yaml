@@ -1,0 +1,8 @@
+# application/x-fhir-query on enableWhenExpression is left to the FHIR Validator.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: enableWhenExpression
+        language: application/x-fhir-query
+        expression: 'x'

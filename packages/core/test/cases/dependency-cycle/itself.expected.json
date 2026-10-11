@@ -1,0 +1,22 @@
+[
+  {
+    "ruleId": "sdc/dependency-cycle",
+    "severity": "warning",
+    "at": "input/fsh/dependency-cycle-itself.fsh:8:43",
+    "message": "Declaration %self references itself; updates may not reach a stable value.",
+    "help": "Break the dependency cycle or verify that these expressions reach stable values in the form filler.",
+    "expression": {
+      "text": "%self * 0"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/dependency-cycle-itself.fsh:8:43",
+    "message": "%self is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %self where its value is needed",
+    "expression": {
+      "text": "%self * 0"
+    }
+  }
+]

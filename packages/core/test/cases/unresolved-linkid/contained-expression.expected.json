@@ -1,0 +1,11 @@
+[
+  {
+    "ruleId": "sdc/uncatalogued-expression",
+    "severity": "info",
+    "at": "input/fsh/unresolved-linkid-contained-expression.fsh:22:51",
+    "message": "This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.",
+    "expression": {
+      "text": "%resource.repeat(item).where(linkId = 'typo').answer.value"
+    }
+  }
+]

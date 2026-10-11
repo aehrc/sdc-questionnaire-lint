@@ -1,7 +1,0 @@
-canonical: http://example.org/fsh-valid
-status: draft
-version: 0.1.0
-fhirVersion: 4.0.1
-FSHOnly: true
-dependencies:
-  hl7.fhir.uv.sdc: 4.0.0

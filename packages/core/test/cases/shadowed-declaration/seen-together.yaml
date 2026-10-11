@@ -1,0 +1,20 @@
+# Only declarations that one expression could see together are reported (D19).
+extensions:
+  - url: variable
+    name: v
+    expression: '1'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-extractAllocateId"'
+  - 'extension[=].valueString = "id"'
+items:
+  - linkId: q
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-extractAllocateId"'
+      - 'extension[=].valueString = "v"'
+  - linkId: r
+    type: string
+    extensions:
+      - url: http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemExtractionContext
+        name: id
+        expression: '2'

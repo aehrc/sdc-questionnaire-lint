@@ -1,0 +1,30 @@
+# A missing linkId is reported at an item site, in each kind of selection. The form has a group g, its child a, and a's child c.
+items:
+  - linkId: g
+    type: group
+    items:
+      - linkId: a
+        type: boolean
+        text: 'Smoker'
+        extensions:
+          - url: calculatedExpression
+            expression: "%questionnaire.item.where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "%questionnaire.repeat(item).where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "%qitem.item.where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "%qitem.repeat(item).where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "%resource.item.where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "%resource.repeat(item | answer.item).where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "%context.item.where(linkId = 'typo')"
+          - url: calculatedExpression
+            expression: "item.where(linkId = 'typo').answer.value"
+          - url: calculatedExpression
+            expression: "iif(item.where(linkId = 'typo').answer.value = true, 1, 0)"
+        items:
+          - linkId: c
+            type: string

@@ -1,0 +1,30 @@
+[
+  {
+    "ruleId": "sdc/unresolved-linkid",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-chain.fsh:12:79",
+    "message": "No item in this Questionnaire has linkId 'x'.",
+    "help": "an item with a similar linkId exists: 'a'",
+    "expression": {
+      "text": "item.where(linkId = 'x').item.where(linkId = 'y').answer.value",
+      "range": {
+        "startOffset": 20,
+        "endOffset": 23
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unresolved-linkid",
+    "severity": "warning",
+    "at": "input/fsh/unresolved-linkid-chain.fsh:12:104",
+    "message": "No item in this Questionnaire has linkId 'y'.",
+    "help": "an item with a similar linkId exists: 'a'",
+    "expression": {
+      "text": "item.where(linkId = 'x').item.where(linkId = 'y').answer.value",
+      "range": {
+        "startOffset": 45,
+        "endOffset": 48
+      }
+    }
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "ruleId": "sdc/dependency-cycle",
+    "severity": "warning",
+    "at": "input/fsh/dependency-cycle-outward-and-innermost.fsh:14:54",
+    "message": "Declarations %x and %y reference each other; updates may not reach a stable value.",
+    "help": "Break the dependency cycle or verify that these expressions reach stable values in the form filler.",
+    "expression": {
+      "text": "%x + %y"
+    },
+    "related": [
+      {
+        "at": "/item/0/extension/1/valueExpression/expression (source-unavailable)",
+        "message": "%y is declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/shadowed-declaration",
+    "severity": "info",
+    "at": "input/fsh/dependency-cycle-outward-and-innermost.fsh:14:54",
+    "message": "The name %x on item q is also declared on the Questionnaire root, so other expressions on item q and its descendant items get this declaration's value.",
+    "help": "rename one of the declarations of %x, unless this item should override it",
+    "expression": {
+      "text": "%x + %y"
+    },
+    "related": [
+      {
+        "at": "/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%x is also declared here"
+      }
+    ]
+  }
+]

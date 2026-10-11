@@ -1,0 +1,19 @@
+# Each shadowing declaration is related to the nearest ancestor that declares the name.
+extensions:
+  - url: variable
+    name: a
+    expression: '1'
+items:
+  - linkId: g
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: '2'
+    items:
+      - linkId: q
+        type: string
+        extensions:
+          - url: variable
+            name: a
+            expression: '3'

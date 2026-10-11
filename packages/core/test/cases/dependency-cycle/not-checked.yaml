@@ -1,0 +1,17 @@
+# Expressions that do not parse, other languages and contained resources.
+extensions:
+  - url: variable
+    name: a
+    expression: '%b.where('
+  - url: variable
+    name: b
+    expression: '%a'
+  - url: variable
+    name: c
+    language: text/cql
+    expression: '%c'
+contained:
+  - extensions:
+      - url: variable
+        name: d
+        expression: '%d'

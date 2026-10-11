@@ -1,0 +1,64 @@
+[
+  {
+    "ruleId": "sdc/duplicate-declaration",
+    "severity": "error",
+    "at": "input/fsh/duplicate-declaration-three-times.fsh:12:46",
+    "message": "The name %a is declared more than once on the Questionnaire root, so it is unclear which value expressions that use it get.",
+    "help": "rename or remove one of the declarations of %a",
+    "expression": {
+      "text": "2"
+    },
+    "related": [
+      {
+        "at": "/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/duplicate-declaration",
+    "severity": "error",
+    "at": "input/fsh/duplicate-declaration-three-times.fsh:16:46",
+    "message": "The name %a is declared more than once on the Questionnaire root, so it is unclear which value expressions that use it get.",
+    "help": "rename or remove one of the declarations of %a",
+    "expression": {
+      "text": "3"
+    },
+    "related": [
+      {
+        "at": "/extension/0/valueExpression/expression (source-unavailable)",
+        "message": "%a is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/duplicate-declaration-three-times.fsh:8:46",
+    "message": "%a is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/duplicate-declaration-three-times.fsh:12:46",
+    "message": "%a is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "2"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/duplicate-declaration-three-times.fsh:16:46",
+    "message": "%a is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "3"
+    }
+  }
+]

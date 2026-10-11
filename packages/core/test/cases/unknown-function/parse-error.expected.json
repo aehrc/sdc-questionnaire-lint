@@ -1,0 +1,16 @@
+[
+  {
+    "ruleId": "sdc/parse-error",
+    "severity": "error",
+    "at": "input/fsh/unknown-function-parse-error.fsh:9:66",
+    "message": "The expression ends before it is complete.",
+    "note": "the FHIRPath parser reported: mismatched input '<EOF>'",
+    "expression": {
+      "text": "a.fist().where(",
+      "range": {
+        "startOffset": 15,
+        "endOffset": 15
+      }
+    }
+  }
+]

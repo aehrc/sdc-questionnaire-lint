@@ -1,0 +1,11 @@
+[
+  {
+    "ruleId": "sdc/language-not-in-value-set",
+    "severity": "warning",
+    "at": "input/fsh/language-not-allowed-unrestricted.fsh:15:67",
+    "message": "The language text/javascript is not one FHIR defines, so the form may ignore this expression.",
+    "expression": {
+      "text": "x"
+    }
+  }
+]

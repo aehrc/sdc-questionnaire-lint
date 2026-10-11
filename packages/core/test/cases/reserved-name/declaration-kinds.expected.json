@@ -1,0 +1,36 @@
+[
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "/extension/0 (not-found)",
+    "message": "The name %context is defined by FHIRPath, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it"
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-declaration-kinds.fsh:15:54",
+    "message": "The name %resource is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "%patient"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-declaration-kinds.fsh:19:54",
+    "message": "The name %ucum is defined by FHIRPath, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "/item/0/extension/2 (not-found)",
+    "message": "The name %questionnaire is defined by SDC, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "ruleId": "sdc/unknown-function",
+    "severity": "error",
+    "at": "input/fsh/unknown-function-fragment.fsh:9:82",
+    "message": "fist() is not a FHIRPath function, so this expression fails when the form runs.",
+    "help": "a function with a similar name exists: first()",
+    "expression": {
+      "text": "Observation?subject={{%patient.fist()}}",
+      "range": {
+        "startOffset": 31,
+        "endOffset": 35
+      }
+    }
+  }
+]

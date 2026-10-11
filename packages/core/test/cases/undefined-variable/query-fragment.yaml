@@ -1,0 +1,12 @@
+# An undefined name inside a text/x-fhir-query fragment, at the name in its query.
+extensions:
+  - url: variable
+    name: obs
+    language: text/x-fhir-query
+    expression: 'Observation?subject={{%patiant.id}}'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'

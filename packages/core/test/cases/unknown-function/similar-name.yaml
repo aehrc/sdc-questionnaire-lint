@@ -1,0 +1,7 @@
+# An unknown function, with a similar name in help and a range over the name.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.fist()'

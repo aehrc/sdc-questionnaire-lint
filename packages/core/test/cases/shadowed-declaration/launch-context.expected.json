@@ -1,0 +1,28 @@
+[
+  {
+    "ruleId": "sdc/shadowed-declaration",
+    "severity": "info",
+    "at": "input/fsh/shadowed-declaration-launch-context.fsh:15:51",
+    "message": "The name %patient on item q is also declared on the Questionnaire root, so other expressions on item q and its descendant items get this declaration's value.",
+    "help": "rename one of the declarations of %patient, unless this item should override it",
+    "expression": {
+      "text": "1"
+    },
+    "related": [
+      {
+        "at": "/extension/0 (source-unavailable)",
+        "message": "%patient is also declared here"
+      }
+    ]
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/shadowed-declaration-launch-context.fsh:15:51",
+    "message": "%patient is declared on item q, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %patient where its value is needed",
+    "expression": {
+      "text": "1"
+    }
+  }
+]

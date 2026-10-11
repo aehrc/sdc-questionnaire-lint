@@ -1,0 +1,15 @@
+[
+  {
+    "ruleId": "sdc/duplicate-declaration",
+    "severity": "error",
+    "at": "/extension/1 (not-found)",
+    "message": "The name %patient is declared more than once on the Questionnaire root, so it is unclear which value expressions that use it get.",
+    "help": "rename or remove one of the declarations of %patient",
+    "related": [
+      {
+        "at": "/extension/0 (source-unavailable)",
+        "message": "%patient is also declared here"
+      }
+    ]
+  }
+]

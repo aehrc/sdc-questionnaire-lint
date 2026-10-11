@@ -1,0 +1,11 @@
+# The later of two variables with one name on an item is reported, with the other as related.
+items:
+  - linkId: bmi
+    type: string
+    extensions:
+      - url: variable
+        name: weight
+        expression: '70'
+      - url: variable
+        name: weight
+        expression: '80'

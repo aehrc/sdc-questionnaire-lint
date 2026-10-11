@@ -1,0 +1,8 @@
+# A reference from another variable counts, even from an unused one.
+extensions:
+  - url: variable
+    name: a
+    expression: '1'
+  - url: variable
+    name: b
+    expression: '%a'

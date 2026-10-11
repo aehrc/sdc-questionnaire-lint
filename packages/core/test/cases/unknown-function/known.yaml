@@ -1,0 +1,17 @@
+# Known functions, operators called by name and the %factory functions.
+items:
+  - linkId: known
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.first().exists()'
+  - linkId: operator
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: 'a.`and`(b)'
+  - linkId: factory
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: "%factory.Coding('s', 'c')"

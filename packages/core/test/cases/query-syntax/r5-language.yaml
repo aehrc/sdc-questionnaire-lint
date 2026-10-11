@@ -1,0 +1,21 @@
+# The R5 language code text/x-fhir-query is checked too.
+hostVariables: [patient]
+items:
+  - linkId: fhirpath
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: text/x-fhir-query
+        expression: '%patient.id'
+  - linkId: unclosed
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: text/x-fhir-query
+        expression: 'Observation?subject={{%patient.id'
+  - linkId: search
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: text/x-fhir-query
+        expression: 'Observation?patient={{%patient.id}}'

@@ -1,0 +1,18 @@
+# A declaration whose own name in its expression means the binding outward is not a cycle (D25).
+extensions:
+  - url: variable
+    name: a
+    expression: '1'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-assembleContext"'
+  - 'extension[=].valueString = "linkIdPrefix"'
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: variable
+        name: linkIdPrefix
+        expression: "%linkIdPrefix + 'name.'"
+      - url: variable
+        name: a
+        expression: '%a + 1'

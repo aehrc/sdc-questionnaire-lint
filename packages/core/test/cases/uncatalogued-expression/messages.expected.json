@@ -1,0 +1,29 @@
+[
+  {
+    "ruleId": "sdc/uncatalogued-expression",
+    "severity": "info",
+    "at": "input/fsh/uncatalogued-expression-messages.fsh:9:51",
+    "message": "This expression is in a place the linter does not recognise, so only its query shape and the FHIRPath in its {{…}} fragments can be checked.",
+    "expression": {
+      "text": "Patient?_id=1"
+    }
+  },
+  {
+    "ruleId": "sdc/uncatalogued-expression",
+    "severity": "info",
+    "at": "input/fsh/uncatalogued-expression-messages.fsh:14:51",
+    "message": "This expression is in a place the linter does not recognise, so only its query shape and the FHIRPath in its {{…}} fragments can be checked.",
+    "expression": {
+      "text": "Patient?_id=2"
+    }
+  },
+  {
+    "ruleId": "sdc/uncatalogued-expression",
+    "severity": "info",
+    "at": "input/fsh/uncatalogued-expression-messages.fsh:19:51",
+    "message": "This expression is in a place the linter does not recognise, so it was not checked.",
+    "expression": {
+      "text": "AgeInYears()"
+    }
+  }
+]

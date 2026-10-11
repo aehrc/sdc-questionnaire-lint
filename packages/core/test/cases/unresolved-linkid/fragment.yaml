@@ -1,0 +1,16 @@
+# A missing linkId in a {{…}} fragment of a query, at the literal in the query. The form has a group g, its child a, and a's child c.
+items:
+  - linkId: g
+    type: group
+    items:
+      - linkId: a
+        type: boolean
+        text: 'Smoker'
+        extensions:
+          - url: variable
+            name: obs
+            language: application/x-fhir-query
+            expression: "Observation?code={{item.where(linkId = 'typo').answer.value.code}}"
+        items:
+          - linkId: c
+            type: string

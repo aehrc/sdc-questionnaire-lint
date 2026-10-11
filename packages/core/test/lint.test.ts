@@ -761,3 +761,42 @@ describe('FSH source mapping', () => {
     ]);
   });
 });
+
+// Fingerprints are left out of the lint cases (test/cases), so their stability is checked here.
+describe('duplicate-declaration fingerprints', () => {
+  const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
+  const launchContext = (name: string) => ({
+    url: `${sdc}launchContext`,
+    extension: [
+      { url: 'name', valueCoding: { code: name } },
+      { url: 'type', valueCode: 'Patient' },
+    ],
+  });
+  const allocateId = (name: string) => ({ url: `${sdc}extractAllocateId`, valueString: name });
+
+  async function fingerprints(extension: unknown[]): Promise<string[]> {
+    const cwd = await tempTree({
+      'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+        resourceType: 'Questionnaire',
+        id: 'A',
+        status: 'draft',
+        extension,
+      }),
+    });
+    return (await lint({ cwd })).findings
+      .filter(({ ruleId }) => ruleId === 'sdc/duplicate-declaration')
+      .map(({ fingerprint }) => fingerprint);
+  }
+
+  it('keeps the fingerprint at a launchContext when another extension is inserted before it', async () => {
+    const pair = [launchContext('patient'), launchContext('patient')];
+    const before = await fingerprints(pair);
+    expect(before).toHaveLength(1);
+    expect(await fingerprints([allocateId('x'), launchContext('user'), ...pair])).toEqual(before);
+  });
+
+  it('gives each repeat of a name at extensions its own fingerprint', async () => {
+    const repeated = await fingerprints([allocateId('a'), allocateId('a'), allocateId('a')]);
+    expect(new Set(repeated).size).toBe(2);
+  });
+});

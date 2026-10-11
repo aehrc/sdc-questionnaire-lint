@@ -1,0 +1,5 @@
+# A host variable that is not listed in hostVariables.
+extensions:
+  - url: variable
+    name: total
+    expression: '%PrePopQuery.total'

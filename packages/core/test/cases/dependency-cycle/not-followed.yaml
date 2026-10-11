@@ -1,0 +1,19 @@
+# A name defineVariable binds, a reference after a computed one, and an unnamed expression are not followed.
+extensions:
+  - url: variable
+    name: a
+    expression: "defineVariable('a', 1).select(%a)"
+  - url: variable
+    name: b
+    expression: 'defineVariable(%c.first(), 1).select(%b)'
+  - url: variable
+    name: c
+    expression: '1'
+  - url: variable
+    name: d
+    expression: '%e'
+  - url: variable
+    name: e
+    expression: '2'
+  - url: calculatedExpression
+    expression: '%d'

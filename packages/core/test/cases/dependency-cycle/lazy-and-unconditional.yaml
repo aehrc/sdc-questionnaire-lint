@@ -1,0 +1,20 @@
+# A cycle through a lazy branch, and through an unconditional expression, is a warning.
+items:
+  - linkId: lazy
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        expression: 'iif(false, %b, 1)'
+      - url: variable
+        name: b
+        expression: '%a'
+  - linkId: unconditional
+    type: string
+    extensions:
+      - url: variable
+        name: c
+        expression: '1 - %d'
+      - url: variable
+        name: d
+        expression: '%c'

@@ -1,0 +1,12 @@
+[
+  {
+    "ruleId": "sdc/language-not-allowed",
+    "severity": "error",
+    "at": "input/fsh/language-not-allowed-enable-when-query.fsh:9:51",
+    "message": "This enableWhenExpression is written in text/x-fhir-query, but SDC allows only FHIRPath or CQL here, so the form may ignore it.",
+    "help": "rewrite the expression in FHIRPath, with the language text/fhirpath, or in CQL, with text/cql",
+    "expression": {
+      "text": "Observation?code=x"
+    }
+  }
+]

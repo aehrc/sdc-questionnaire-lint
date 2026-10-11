@@ -1,0 +1,41 @@
+[
+  {
+    "ruleId": "sdc/uncatalogued-expression",
+    "severity": "info",
+    "at": "input/fsh/reserved-name-not-reserved.fsh:33:43",
+    "message": "This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.",
+    "expression": {
+      "text": "4"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-not-reserved.fsh:8:46",
+    "message": "%weight is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %weight where its value is needed",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-not-reserved.fsh:12:46",
+    "message": "%vsconditions is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %vsconditions where its value is needed",
+    "expression": {
+      "text": "2"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-not-reserved.fsh:23:51",
+    "message": "%Resource is declared on item a, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %Resource where its value is needed",
+    "expression": {
+      "text": "3"
+    }
+  }
+]

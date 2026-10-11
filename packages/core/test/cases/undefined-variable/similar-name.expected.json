@@ -1,0 +1,26 @@
+[
+  {
+    "ruleId": "sdc/undefined-variable",
+    "severity": "error",
+    "at": "input/fsh/undefined-variable-similar-name.fsh:14:54",
+    "message": "%weigt is not available on item \"BMI\" (bmi).",
+    "help": "a variable with a similar name is available: %weight",
+    "expression": {
+      "text": "%weigt / 2",
+      "range": {
+        "startOffset": 0,
+        "endOffset": 6
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/undefined-variable-similar-name.fsh:11:54",
+    "message": "%weight is declared on item \"BMI\" (bmi), but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %weight where its value is needed",
+    "expression": {
+      "text": "70"
+    }
+  }
+]

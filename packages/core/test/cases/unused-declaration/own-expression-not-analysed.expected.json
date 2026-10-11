@@ -1,0 +1,36 @@
+[
+  {
+    "ruleId": "sdc/parse-error",
+    "severity": "error",
+    "at": "input/fsh/unused-declaration-own-expression-not-analysed.fsh:16:52",
+    "message": "The expression has an unexpected (.",
+    "note": "the FHIRPath parser reported: mismatched input '('",
+    "expression": {
+      "text": "%(",
+      "range": {
+        "startOffset": 1,
+        "endOffset": 2
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-own-expression-not-analysed.fsh:10:51",
+    "message": "%a is declared on item cql, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "a"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-own-expression-not-analysed.fsh:16:51",
+    "message": "%b is declared on item broken, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %b where its value is needed",
+    "expression": {
+      "text": "%("
+    }
+  }
+]

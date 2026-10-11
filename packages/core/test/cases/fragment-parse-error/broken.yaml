@@ -1,0 +1,9 @@
+# A broken fragment, in the words of sdc/parse-error, with a range in the fragment.
+hostVariables: [patient]
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: application/x-fhir-query
+        expression: 'Observation?subject={{%patient.id.}}'

@@ -1,0 +1,8 @@
+# Another language is reported as written, with a similar code as help.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/fhir-path
+        expression: '1'

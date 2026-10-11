@@ -1,0 +1,26 @@
+[
+  {
+    "ruleId": "sdc/undefined-variable",
+    "severity": "error",
+    "at": "input/fsh/dependency-cycle-not-available.fsh:12:46",
+    "message": "%x is not available on the Questionnaire root.",
+    "help": "declare it on the root, or list it in hostVariables if the application running the form supplies it",
+    "expression": {
+      "text": "%x",
+      "range": {
+        "startOffset": 0,
+        "endOffset": 2
+      }
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/dependency-cycle-not-available.fsh:8:46",
+    "message": "%x is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %x where its value is needed",
+    "expression": {
+      "text": "%ctx"
+    }
+  }
+]

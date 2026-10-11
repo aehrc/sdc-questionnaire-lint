@@ -1,0 +1,19 @@
+# Only variables are reported: not an itemPopulationContext, a named expression, a launchContext or an extractAllocateId.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-extractAllocateId"'
+  - 'extension[=].valueString = "newId"'
+items:
+  - linkId: g
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        name: contact
+        expression: '%patient.contact'
+      - url: initialExpression
+        name: start
+        expression: 'today()'

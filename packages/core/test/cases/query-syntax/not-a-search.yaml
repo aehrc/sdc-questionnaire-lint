@@ -1,0 +1,8 @@
+# A query that is neither: the help suggests a FHIR search.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: itemPopulationContext
+        language: application/x-fhir-query
+        expression: 'observation?code=x'

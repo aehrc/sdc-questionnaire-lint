@@ -1,0 +1,262 @@
+[
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:8:46",
+    "message": "The name %resource is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "0"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:12:46",
+    "message": "The name %rootResource is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:16:46",
+    "message": "The name %context is defined by FHIRPath, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "2"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:20:46",
+    "message": "The name %ucum is defined by FHIRPath, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "3"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:24:46",
+    "message": "The name %questionnaire is defined by SDC, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "4"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:28:46",
+    "message": "The name %qitem is defined by SDC, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "5"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:32:46",
+    "message": "The name %sct is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "6"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:36:46",
+    "message": "The name %loinc is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "7"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:40:46",
+    "message": "The name %terminologies is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "8"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:44:46",
+    "message": "The name %factory is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "9"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:48:46",
+    "message": "The name %server is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "10"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:52:46",
+    "message": "The name %vs-conditions is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "11"
+    }
+  },
+  {
+    "ruleId": "sdc/reserved-name",
+    "severity": "error",
+    "at": "input/fsh/reserved-name-names.fsh:56:46",
+    "message": "The name %ext-birthPlace is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.",
+    "help": "rename the declaration, and the expressions that should use it",
+    "expression": {
+      "text": "12"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:8:46",
+    "message": "%resource is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %resource where its value is needed",
+    "expression": {
+      "text": "0"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:12:46",
+    "message": "%rootResource is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %rootResource where its value is needed",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:16:46",
+    "message": "%context is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %context where its value is needed",
+    "expression": {
+      "text": "2"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:20:46",
+    "message": "%ucum is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %ucum where its value is needed",
+    "expression": {
+      "text": "3"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:24:46",
+    "message": "%questionnaire is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %questionnaire where its value is needed",
+    "expression": {
+      "text": "4"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:28:46",
+    "message": "%qitem is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %qitem where its value is needed",
+    "expression": {
+      "text": "5"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:32:46",
+    "message": "%sct is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %sct where its value is needed",
+    "expression": {
+      "text": "6"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:36:46",
+    "message": "%loinc is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %loinc where its value is needed",
+    "expression": {
+      "text": "7"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:40:46",
+    "message": "%terminologies is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %terminologies where its value is needed",
+    "expression": {
+      "text": "8"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:44:46",
+    "message": "%factory is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %factory where its value is needed",
+    "expression": {
+      "text": "9"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:48:46",
+    "message": "%server is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %server where its value is needed",
+    "expression": {
+      "text": "10"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:52:46",
+    "message": "%vs-conditions is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %vs-conditions where its value is needed",
+    "expression": {
+      "text": "11"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/reserved-name-names.fsh:56:46",
+    "message": "%ext-birthPlace is declared on the Questionnaire root, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %ext-birthPlace where its value is needed",
+    "expression": {
+      "text": "12"
+    }
+  }
+]

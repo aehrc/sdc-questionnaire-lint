@@ -1,0 +1,38 @@
+# The R4 and R5 codes are accepted.
+items:
+  - linkId: cql
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/cql
+        expression: '1'
+  - linkId: fhirpath
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/fhirpath
+        expression: '2'
+  - linkId: application-query
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: application/x-fhir-query
+        expression: 'Patient?_id=1'
+  - linkId: text-query
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/x-fhir-query
+        expression: 'Patient?_id=2'
+  - linkId: cql-identifier
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/cql-identifier
+        expression: 'Age'
+  - linkId: cql-expression
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/cql-expression
+        expression: 'AgeInYears()'

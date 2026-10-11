@@ -1,0 +1,11 @@
+# An extractAllocateId and a named calculatedExpression on one item.
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: calculatedExpression
+        name: id
+        expression: '1'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-extractAllocateId"'
+      - 'extension[=].valueString = "id"'

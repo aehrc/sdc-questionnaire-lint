@@ -1,0 +1,20 @@
+# The message says what can still be checked in each language.
+items:
+  - linkId: application-query
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        language: application/x-fhir-query
+        expression: 'Patient?_id=1'
+  - linkId: text-query
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        language: text/x-fhir-query
+        expression: 'Patient?_id=2'
+  - linkId: cql
+    type: string
+    extensions:
+      - url: http://example.org/StructureDefinition/uncatalogued
+        language: text/cql
+        expression: 'AgeInYears()'

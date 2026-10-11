@@ -1,0 +1,41 @@
+# Each name FHIR, FHIRPath or SDC defines, with the definer in the message.
+extensions:
+  - url: variable
+    name: resource
+    expression: '0'
+  - url: variable
+    name: rootResource
+    expression: '1'
+  - url: variable
+    name: context
+    expression: '2'
+  - url: variable
+    name: ucum
+    expression: '3'
+  - url: variable
+    name: questionnaire
+    expression: '4'
+  - url: variable
+    name: qitem
+    expression: '5'
+  - url: variable
+    name: sct
+    expression: '6'
+  - url: variable
+    name: loinc
+    expression: '7'
+  - url: variable
+    name: terminologies
+    expression: '8'
+  - url: variable
+    name: factory
+    expression: '9'
+  - url: variable
+    name: server
+    expression: '10'
+  - url: variable
+    name: vs-conditions
+    expression: '11'
+  - url: variable
+    name: ext-birthPlace
+    expression: '12'

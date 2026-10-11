@@ -1,0 +1,22 @@
+[
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-consumer-cannot-see.fsh:13:51",
+    "message": "%a is declared on item x, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %a where its value is needed",
+    "expression": {
+      "text": "1"
+    }
+  },
+  {
+    "ruleId": "sdc/unused-declaration",
+    "severity": "warning",
+    "at": "input/fsh/unused-declaration-consumer-cannot-see.fsh:24:54",
+    "message": "%b is declared on item z, but no expression references it, so its value is never used.",
+    "help": "remove the variable, or reference %b where its value is needed",
+    "expression": {
+      "text": "2"
+    }
+  }
+]

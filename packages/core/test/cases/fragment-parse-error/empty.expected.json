@@ -1,0 +1,16 @@
+[
+  {
+    "ruleId": "sdc/fragment-parse-error",
+    "severity": "error",
+    "at": "input/fsh/fragment-parse-error-empty.fsh:9:61",
+    "message": "The expression is empty.",
+    "note": "the FHIRPath parser reported: mismatched input '<EOF>'",
+    "expression": {
+      "text": "Patient/{{}}",
+      "range": {
+        "startOffset": 10,
+        "endOffset": 10
+      }
+    }
+  }
+]

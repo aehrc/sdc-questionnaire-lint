@@ -1,0 +1,28 @@
+# A variable is still reported when the consumer could not see it: on a sibling, the root or in
+# extraction.
+extensions:
+  - url: itemPopulationContext
+    language: text/cql
+    expression: '%a'
+items:
+  - linkId: x
+    type: string
+    extensions:
+      - url: variable
+        name: a
+        expression: '1'
+  - linkId: y
+    type: string
+    extensions:
+      - url: calculatedExpression
+        language: text/cql
+        expression: '%a'
+  - linkId: z
+    type: string
+    extensions:
+      - url: variable
+        name: b
+        expression: '2'
+      - url: http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemExtractionContext
+        language: text/cql
+        expression: 'b'

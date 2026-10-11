@@ -1,0 +1,9 @@
+# A variable that no expression references, reported at its expression.
+items:
+  - linkId: bmi
+    type: string
+    text: 'BMI'
+    extensions:
+      - url: variable
+        name: weight
+        expression: '70'
