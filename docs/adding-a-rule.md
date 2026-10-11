@@ -213,6 +213,7 @@ A rule that no plan describes yet gets a slice first, agreed with the maintainer
 4. **The plan:** set the rule's status in the slice table of `docs/core-rules.md` to `done`, and complete the [checklist for every slice PR](core-rules.md#checklist-for-every-slice-pr), which includes the corpus run. Core-plan §4.1 is the original catalogue and is not kept current: record a new rule, or a change to a rule it lists such as a different default severity, in [plan-amendments.md](plan-amendments.md), as `sdc/reserved-name` was.
 5. **The README:** append the rule to the list in the **Status** line of [README.md](../README.md), and update the number of built-in rules before it, which is spelled out ("fifteen built-in rules").
 6. **architecture.md**, when the rule changes the pipeline or the analysis, or adds to what `leavesUnchecked` lists in [§8](architecture.md#8-report-report).
+7. **The rules library:** add the rule to `examples` in [`docs/.vitepress/rules.ts`](.vitepress/rules.ts) with the lint case its page shows as the example, `<rule-name>/<case>`: a short case whose expected findings include the rule, ideally the one whose message is the rule's `exampleMessage`. The documentation site generates the rule's page from its `meta.docs`, that case and its other lint cases; `npm run docs:build` fails until the entry exists.
 
 ## 7. Smart Forms rule checklist
 
@@ -224,6 +225,7 @@ For a `smart-forms/` rule in `packages/plugin-smart-forms`. Before you start, re
 4. **Tests:** lint cases in `packages/plugin-smart-forms/test/cases/<rule-name>/`, as in [section 5](#5-tests), including a case for each silence with the core rule `off`. The docs test runs `explain` for the rule.
 5. **The plan:** the rule's status in the [slice table](smart-forms-rules.md#slices-at-a-glance) of `docs/smart-forms-rules.md`, and its [checklist for every slice PR](smart-forms-rules.md#checklist-for-every-slice-pr), which includes the corpus run with the plugin.
 6. **The README:** add a row to the Smart Forms rule table under [The Smart Forms plugin](../README.md#the-smart-forms-plugin), and add the rule to the **Status** line.
+7. **The rules library:** add the rule's example lint case to `examples` in [`docs/.vitepress/rules.ts`](.vitepress/rules.ts), as for a [core rule](#6-core-rule-checklist).
 
 ## 8. Plugin rule checklist
 
@@ -260,7 +262,8 @@ Two things core does not do for plugin rules:
 1. `npm run check`: type-check, lint, format check, build, tests and package checks. It must pass.
 2. `npx sdc-lint explain <rule-id>` prints the rule's documentation; `npx sdc-lint explain` lists it with its default severity. Both use the built CLI, so run `npm run build` first. For a Smart Forms rule, list the plugin with a config: `npx sdc-lint explain smart-forms/<rule-name> --config packages/plugin-smart-forms/scripts/corpus.config.mjs`.
 3. `npm run corpus` lints the local corpus with the built-in rules and prints the findings added or removed since its snapshot; `npm run corpus -- --smart-forms` does the same with the Smart Forms plugin. Review every added finding: an `error` rule merges only with zero false positives. The corpus is local and never committed; slice 0 of [core-rules.md](core-rules.md#0-corpus) lists its forms, and the PR description reports the changes in findings by rule ID, count and JSON Pointer. Without a `corpus/` directory the command exits with a message. Copy in the public forms slice 0 lists, or say in the PR description that the corpus was not run, so that a reviewer who has it can run it before the PR merges.
-4. `npm run demo -- <config.yaml>` generates a SUSHI project from one lint case config into `demo/<instance>`, then compiles and lints it with the built-in rules, to try a form by hand. Without an argument it uses `packages/core/test/cases/demo/invalid-demo.yaml`.
+4. `npm run docs:build` builds the documentation site, with the rule's page in the [rules library](rules/index.md). `npm run docs:dev` serves it, to read the page.
+5. `npm run demo -- <config.yaml>` generates a SUSHI project from one lint case config into `demo/<instance>`, then compiles and lints it with the built-in rules, to try a form by hand. Without an argument it uses `packages/core/test/cases/demo/invalid-demo.yaml`.
 
 For a plugin outside this repository, run your own tests, then list the plugin in an `.mjs` config in an IG and run `sdc-lint explain <rule-id>` and `sdc-lint lint` there.
 

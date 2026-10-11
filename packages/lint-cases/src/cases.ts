@@ -1,15 +1,4 @@
-import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-} from 'node:fs';
-import { createRequire } from 'node:module';
+import { copyFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -24,16 +13,14 @@ import type {
   Severity,
   Suggestion,
 } from 'sdc-questionnaire-lint';
-import { generateProject, lintConfigFile, readFshConfig, type FshConfig } from './generate-fsh.js';
+import { lintConfigFile } from './generate-fsh.js';
+import { compileLintCases, readLintCases, type LintCase } from './project.js';
+
+export type { LintCase } from './project.js';
 
 // A lint case is a YAML config, test/cases/<group>/<case>.yaml, beside the findings the linter
 // must report for it, <case>.expected.yaml. Every case of a package is compiled into one SUSHI
-// project, so SUSHI runs once per change to the cases, not once per case.
-const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
-const generator = fileURLToPath(new URL('generate-fsh.ts', import.meta.url));
-// Outside node_modules, so Vitest transforms the .mjs linter configs and the plugin sources they
-// import; Node would import them as they are, and cannot load TypeScript that imports ./x.js.
-const cacheRoot = path.join(repoRoot, '.cache', 'lint-cases');
+// project (project.ts), so SUSHI runs once per change to the cases, not once per case.
 
 export interface LintCasesOptions {
   // The package's test/cases/ directory: new URL('../cases/', import.meta.url).
@@ -42,14 +29,6 @@ export interface LintCasesOptions {
   lint: (options: LintOptions) => Promise<CompletedReport>;
   // Files whose default export is a plugin; every case's linter config lists them.
   plugins?: URL[];
-}
-
-export interface LintCase {
-  // <group>/<case>, the test name.
-  name: string;
-  configPath: string;
-  expectedPath: string;
-  config: FshConfig;
 }
 
 export interface LintCases {
@@ -63,13 +42,6 @@ export interface LintCases {
   // Copies a case's compiled files (its FSH, its Questionnaire and the SUSHI index) into to, for
   // tests that change the project around it. name is <group>/<case>.
   copyCase: (name: string, to: string) => void;
-}
-
-function sushiEntry(): string {
-  const require = createRequire(import.meta.url);
-  const manifest = require.resolve('fsh-sushi/package.json');
-  const { bin } = JSON.parse(readFileSync(manifest, 'utf8')) as { bin: { sushi: string } };
-  return path.join(path.dirname(manifest), bin.sushi);
 }
 
 // A finding as a case expects it: no fingerprint or docs URL, and each location as one string, the
@@ -130,74 +102,13 @@ export function formatFindings(findings: CaseFinding[]): string {
 export function lintCases(options: LintCasesOptions): LintCases {
   const casesDirectory = fileURLToPath(options.casesDirectory);
   const plugins = (options.plugins ?? []).map((plugin) => fileURLToPath(plugin));
-  // Each package's projects in their own folder, so removing old ones leaves the others.
-  const cacheDirectory = path.join(
-    cacheRoot,
-    path.relative(repoRoot, casesDirectory).split(path.sep).join('-'),
-  );
-
-  // The case of a config file; its instance is <group>-<case>.
-  function lintCaseOf(configPath: string): LintCase {
-    const name = path.relative(casesDirectory, configPath).replace(/\.yaml$/, '');
-    const segments = name.split(path.sep);
-    return {
-      name: segments.join('/'),
-      configPath,
-      expectedPath: configPath.replace(/\.yaml$/, '.expected.yaml'),
-      config: readFshConfig(configPath, segments.join('-')),
-    };
-  }
-
-  const cases = readdirSync(casesDirectory, { recursive: true, encoding: 'utf8' })
-    .filter((file) => file.endsWith('.yaml') && !file.endsWith('.expected.yaml'))
-    .sort()
-    .map((file) => lintCaseOf(path.join(casesDirectory, file)));
+  const cases = readLintCases(casesDirectory);
 
   let compiled: string | undefined;
 
-  // Built in a folder named after a hash of the cases, the plugins and the generator, and renamed
-  // into place only once SUSHI succeeds, so test files compiling at the same time cannot see a
-  // half-built project, and an unchanged run reuses it.
   function compile(): string {
-    if (compiled !== undefined) return compiled;
-    const hash = createHash('sha256').update(readFileSync(generator));
-    for (const plugin of plugins) hash.update(plugin);
-    for (const { name, configPath } of cases) hash.update(name).update(readFileSync(configPath));
-    const key = hash.digest('hex').slice(0, 16);
-    const project = path.join(cacheDirectory, key);
-    if (!existsSync(project)) {
-      const building = `${project}.${String(process.pid)}.tmp`;
-      generateProject(
-        cases.map(({ config }) => config),
-        building,
-        plugins,
-      );
-      const sushi = spawnSync(process.execPath, [sushiEntry(), '.'], {
-        cwd: building,
-        encoding: 'utf8',
-        maxBuffer: 256 * 1024 * 1024,
-      });
-      if (sushi.status !== 0) {
-        rmSync(building, { recursive: true, force: true });
-        // SUSHI's output is long; its errors, with their file and line, are what matter.
-        const errors = sushi.stdout
-          .split('\n')
-          .filter((line) => /^(error|\s+(File|Line):)/.test(line));
-        throw new Error(`SUSHI could not compile the lint cases:\n${errors.join('\n')}`);
-      }
-      // Projects of older cases are no longer needed.
-      for (const entry of readdirSync(cacheDirectory)) {
-        if (!entry.startsWith(key)) rmSync(path.join(cacheDirectory, entry), { recursive: true });
-      }
-      try {
-        renameSync(building, project);
-      } catch {
-        // Another test file finished the same project first.
-        rmSync(building, { recursive: true, force: true });
-      }
-    }
-    compiled = project;
-    return project;
+    compiled ??= compileLintCases(casesDirectory, cases, plugins);
+    return compiled;
   }
 
   async function lintCase({ config, expectedPath }: LintCase): Promise<CaseFinding[]> {

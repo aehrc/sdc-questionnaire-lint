@@ -2,8 +2,9 @@ import { cpSync } from 'node:fs';
 import { extname, join, posix } from 'node:path';
 import { defineConfig } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
+import { fsh } from './fsh.js';
+import { repositoryUrl, ruleLibrary } from './rules.js';
 
-const repository = 'https://github.com/beda-software/sdc-questionnaire-lint';
 const rewrites: Record<string, string> = { 'README.md': 'index.md' };
 
 // Whether a repository path is part of the site: a page, or a schema or example report copied by
@@ -12,7 +13,9 @@ function onSite(path: string): boolean {
   return (
     path === 'README.md' ||
     path === 'GLOSSARY.md' ||
-    (path.startsWith('docs/') && !path.startsWith('docs/plans/'))
+    (path.startsWith('docs/') &&
+      !path.startsWith('docs/plans/') &&
+      !path.startsWith('docs/.vitepress/'))
   );
 }
 
@@ -31,7 +34,7 @@ function siteLink(href: string, pagePath: string): string | undefined {
   const rewritten = rewrites[target];
   if (rewritten !== undefined) return posix.relative(directory, rewritten) + hash;
   if (onSite(target)) return undefined;
-  return `${repository}/blob/main/${target}${hash}`;
+  return repositoryUrl(target) + hash;
 }
 
 // Heading ids as GitHub makes them, so that `file.md#heading` links work in both places. VitePress
@@ -68,6 +71,7 @@ export default withMermaid(
     cleanUrls: true,
     markdown: {
       anchor: { slugify },
+      languages: [fsh],
       // Vue compiles each page as a template, so a literal x-fhir-query `{{…}}` fragment would be
       // read as an interpolation. Encoding the braces keeps them as text.
       config(md) {
@@ -105,6 +109,7 @@ export default withMermaid(
       outline: [2, 3],
       nav: [
         { text: 'Guide', link: '/' },
+        { text: 'Rules', link: '/docs/rules/' },
         { text: 'CLI', link: '/docs/cli' },
         { text: 'Report format', link: '/docs/report-format' },
         { text: 'Architecture', link: '/docs/architecture' },
@@ -115,6 +120,17 @@ export default withMermaid(
           items: [
             { text: 'Overview', link: '/' },
             { text: 'Glossary', link: '/GLOSSARY' },
+          ],
+        },
+        {
+          text: 'Rules library',
+          items: [
+            { text: 'All rules', link: '/docs/rules/' },
+            ...ruleLibrary().map(({ group, rules }) => ({
+              text: group.title,
+              collapsed: true,
+              items: rules.map(({ id, link }) => ({ text: id, link })),
+            })),
           ],
         },
         {

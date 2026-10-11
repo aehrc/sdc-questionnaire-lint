@@ -61,7 +61,7 @@ In this repository, write lint cases, then run `npx vitest run -u packages/<pack
 
 ## 6. Update the docs and the plan
 
-Follow the rest of your checklist: §6 steps 4 to 6 for core, §7 steps 5 and 6 for smart-forms. A plugin outside this repository documents the rule in its own package.
+Follow the rest of your checklist: §6 steps 4 to 7 for core, §7 steps 5 to 7 for smart-forms. A plugin outside this repository documents the rule in its own package.
 
 **Done when** each of those steps is done or does not apply.
 
@@ -73,6 +73,7 @@ Read §9 and run its steps for your path.
 
 - `npm run check` passes. When it fails, fix the cause and run it again;
 - after `npm run build`, `npx sdc-lint explain <rule-id>` prints the rule's five `meta.docs` sections, and `npx sdc-lint explain` lists the rule with its default severity. For smart-forms, pass the `--config` that §9 gives;
+- `npm run docs:build` passes, so the rule has its page in the rules library;
 - you have run the corpus as §9 says and reviewed every added finding, or you know it was not run.
 
 Then report to the user: the rule ID and default severity, the files changed, the corpus findings by rule ID, count and JSON Pointer, or that the corpus was not run, and any step you stopped at for their decision.
