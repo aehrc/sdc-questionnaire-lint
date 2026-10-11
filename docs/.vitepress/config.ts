@@ -1,7 +1,48 @@
 import { cpSync } from 'node:fs';
-import { extname, join } from 'node:path';
+import { extname, join, posix } from 'node:path';
 import { defineConfig } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
+
+const repository = 'https://github.com/beda-software/sdc-questionnaire-lint';
+const rewrites: Record<string, string> = { 'README.md': 'index.md' };
+
+// Whether a repository path is part of the site: a page, or a schema or example report copied by
+// buildEnd. Keep it in step with srcExclude.
+function onSite(path: string): boolean {
+  return (
+    path === 'README.md' ||
+    path === 'GLOSSARY.md' ||
+    (path.startsWith('docs/') && !path.startsWith('docs/plans/'))
+  );
+}
+
+// The docs link to each other by repository path, as GitHub renders them. On the site, a link to a
+// rewritten page follows the rewrite, and a link to a file the site leaves out, such as source
+// code or AGENTS.md, points at that file on GitHub. Returns undefined for a link that needs no
+// change.
+function siteLink(href: string, pagePath: string): string | undefined {
+  if (/^([a-z]+:|\/|#)/i.test(href)) return undefined;
+  const hashIndex = href.indexOf('#');
+  const path = hashIndex === -1 ? href : href.slice(0, hashIndex);
+  const hash = hashIndex === -1 ? '' : href.slice(hashIndex);
+  const directory = posix.dirname(pagePath);
+  const target = posix.normalize(posix.join(directory, path));
+  if (target.startsWith('../')) return undefined;
+  const rewritten = rewrites[target];
+  if (rewritten !== undefined) return posix.relative(directory, rewritten) + hash;
+  if (onSite(target)) return undefined;
+  return `${repository}/blob/main/${target}${hash}`;
+}
+
+// Heading ids as GitHub makes them, so that `file.md#heading` links work in both places. VitePress
+// would drop underscores, collapse hyphens and prefix `_` to a leading digit.
+function slugify(heading: string): string {
+  return heading
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, '')
+    .replaceAll(' ', '-');
+}
 
 // The site is built from the repository root, so README.md, GLOSSARY.md and docs/ keep their
 // GitHub-relative links. Everything else that holds Markdown is excluded below; add new
@@ -23,9 +64,10 @@ export default withMermaid(
       'demo/**',
       'coverage/**',
     ],
-    rewrites: { 'README.md': 'index.md' },
+    rewrites,
     cleanUrls: true,
     markdown: {
+      anchor: { slugify },
       // Vue compiles each page as a template, so a literal x-fhir-query `{{…}}` fragment would be
       // read as an interpolation. Encoding the braces keeps them as text.
       config(md) {
@@ -35,6 +77,17 @@ export default withMermaid(
           md.renderer.rules[name] = (...args) =>
             render(...args).replaceAll('{{', '&#123;&#123;').replaceAll('}}', '&#125;&#125;');
         }
+        // Runs before VitePress's own link rule, which then resolves the changed link.
+        const linkOpen = md.renderer.rules.link_open;
+        md.renderer.rules.link_open = (tokens, idx, options, env: { relativePath: string }, self) => {
+          const token = tokens[idx];
+          const href = token?.attrGet('href');
+          const link = href == null ? undefined : siteLink(href, env.relativePath);
+          if (link !== undefined) token?.attrSet('href', link);
+          return linkOpen === undefined
+            ? self.renderToken(tokens, idx, options)
+            : linkOpen(tokens, idx, options, env, self);
+        };
       },
     },
     lastUpdated: true,
@@ -76,6 +129,7 @@ export default withMermaid(
           text: 'Contributing',
           items: [
             { text: 'How the linter works', link: '/docs/architecture' },
+            { text: 'Adding a rule', link: '/docs/adding-a-rule' },
             { text: 'Linter design guidelines', link: '/docs/linter-design-guidelines' },
           ],
         },
@@ -86,6 +140,7 @@ export default withMermaid(
             { text: 'Core plan', link: '/docs/core-plan' },
             { text: 'Plan amendments', link: '/docs/plan-amendments' },
             { text: 'Core rules plan', link: '/docs/core-rules' },
+            { text: 'Smart Forms rules plan', link: '/docs/smart-forms-rules' },
             { text: 'Slice 5 review', link: '/docs/reviews/slice-5' },
           ],
         },
