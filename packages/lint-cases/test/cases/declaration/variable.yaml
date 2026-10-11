@@ -1,0 +1,11 @@
+# A variable on the root, reported by the fixture plugin beside the sdc rules.
+extensions:
+  - url: variable
+    name: a
+    expression: '1'
+items:
+  - linkId: q
+    type: integer
+    extensions:
+      - url: calculatedExpression
+        expression: '%a'

@@ -1,0 +1,6 @@
+- ruleId: fixture/declaration
+  severity: info
+  at: input/fsh/declaration-variable.fsh:8:43
+  message: '%a is declared.'
+  expression:
+    text: '1'

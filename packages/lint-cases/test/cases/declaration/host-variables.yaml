@@ -1,0 +1,13 @@
+# A host variable from the config, which also lists the plugin.
+hostVariables:
+  - host
+extensions:
+  - url: variable
+    name: b
+    expression: '%host'
+items:
+  - linkId: q
+    type: integer
+    extensions:
+      - url: calculatedExpression
+        expression: '%b'

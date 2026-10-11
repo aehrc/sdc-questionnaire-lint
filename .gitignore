@@ -8,3 +8,4 @@ docs/plans/*
 lint-report.json
 corpus/
 /demo/
+.cache/

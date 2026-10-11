@@ -1,9 +1,6 @@
 // Generates SUSHI projects from YAML configs. The lint cases (test/cases/<group>/<case>.yaml) are
-// compiled together by test/support/cases.ts; npm run demo compiles one config on its own, then
-// compiles and lints it with example.ts, to try a form by hand. Run from the repository root:
-//   npm run demo                                    test/cases/demo/invalid-demo.yaml into demo/invalid-demo
-//   npm run demo -- path/to/config.yaml             another config, into demo/<instance>
-//   npm run demo -- path/to/config.yaml --out dir   another output folder
+// compiled together by cases.ts; npm run demo (packages/core/scripts/demo.ts) compiles one config on
+// its own, to try a form by hand.
 //
 // Quote every whole expression: "%a", "1", "'text'". Unquoted, %a is invalid YAML and 1 is a
 // number, and 'text' alone is YAML quoting, so the FHIRPath string literal becomes a path.
@@ -13,7 +10,7 @@
 // Extension: { url, name?, language?, expression?, reference? } (at least one of the last two)
 // Contained: { extensions?, fsh?, items? }
 // - instance defaults to the file name; a case's is <group>-<case>.
-// - hostVariables become the linter config of this Questionnaire.
+// - hostVariables, with the plugins of the project, become the linter config of this Questionnaire.
 // - url is an alias (see extensionUrls) or a full URL, written as is. An extension that holds its
 //   Expression in a sub-extension, such as contextExpression, is written as raw fsh lines.
 // - language defaults to text/fhirpath.
@@ -21,11 +18,9 @@
 //   after the extensions of the same level, below its path: "required = true" on an item becomes
 //   "* item[=].required = true".
 // - contained Questionnaires become inline instances named <instance>-contained-<n>.
-import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { parseArgs } from 'node:util';
+import { pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
 
 export interface FshExtension {
@@ -271,14 +266,42 @@ export const sushiConfig = [
   '',
 ].join('\n');
 
-// The linter config of a config with hostVariables, at the project root, because the linter
-// resolves the FSH directories and the SUSHI index against the config's directory.
-export const lintConfigFile = (config: FshConfig): string | undefined =>
-  config.hostVariables === undefined ? undefined : `lint-config-${config.instance}.json`;
+// The linter config of a config with hostVariables, or of every config when plugins are listed, at
+// the project root, because the linter resolves the FSH directories and the SUSHI index against the
+// config's directory. An .mjs config, because only one can list plugins.
+export const lintConfigFile = (
+  config: FshConfig,
+  plugins: readonly string[] = [],
+): string | undefined =>
+  config.hostVariables === undefined && plugins.length === 0
+    ? undefined
+    : `lint-config-${config.instance}.mjs`;
 
-// One SUSHI project holding every config, one FSH file each. Replaces only what the generator and
-// SUSHI write, so a wrong --out cannot wipe other files.
-export function generateProject(configs: readonly FshConfig[], outDir: string): void {
+// plugins are the files whose default exports are the plugins.
+function lintConfigModule(config: FshConfig, plugins: readonly string[]): string {
+  const names = plugins.map((_, entry) => `plugin${String(entry)}`);
+  return [
+    ...plugins.map(
+      (file, entry) => `import plugin${String(entry)} from '${pathToFileURL(file).href}';`,
+    ),
+    'export default {',
+    ...(config.hostVariables === undefined
+      ? []
+      : [`  hostVariables: ${JSON.stringify(config.hostVariables)},`]),
+    ...(plugins.length === 0 ? [] : [`  plugins: [${names.join(', ')}],`]),
+    '};',
+    '',
+  ].join('\n');
+}
+
+// One SUSHI project holding every config, one FSH file each, linted with the plugins, the files
+// whose default exports are plugins. Replaces only what the generator and SUSHI write, so a wrong
+// output folder cannot wipe other files.
+export function generateProject(
+  configs: readonly FshConfig[],
+  outDir: string,
+  plugins: readonly string[] = [],
+): void {
   const instances = configs.map(({ instance }) => instance);
   const repeated = instances.find((instance, entry) => instances.indexOf(instance) !== entry);
   if (repeated !== undefined) throw new Error(`instance ${repeated} is used more than once`);
@@ -289,48 +312,9 @@ export function generateProject(configs: readonly FshConfig[], outDir: string): 
   writeFileSync(path.join(outDir, 'sushi-config.yaml'), sushiConfig);
   for (const config of configs) {
     writeFileSync(path.join(outDir, 'input', 'fsh', `${config.instance}.fsh`), renderFsh(config));
-    const lintConfig = lintConfigFile(config);
+    const lintConfig = lintConfigFile(config, plugins);
     if (lintConfig !== undefined) {
-      const content = `${JSON.stringify({ hostVariables: config.hostVariables }, null, 2)}\n`;
-      writeFileSync(path.join(outDir, lintConfig), content);
+      writeFileSync(path.join(outDir, lintConfig), lintConfigModule(config, plugins));
     }
   }
-}
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
-  const example = fileURLToPath(new URL('example.ts', import.meta.url));
-
-  let config: FshConfig;
-  let project: string;
-  try {
-    const { values, positionals } = parseArgs({
-      allowPositionals: true,
-      options: { out: { type: 'string' } },
-    });
-    config = readFshConfig(
-      positionals[0] ??
-        fileURLToPath(new URL('../test/cases/demo/invalid-demo.yaml', import.meta.url)),
-    );
-    project = path.resolve(values.out ?? path.join(repoRoot, 'demo', config.instance));
-    generateProject([config], project);
-  } catch (error) {
-    console.error(`error: ${(error as Error).message}`);
-    process.exit(2);
-  }
-  console.log(`Generated ${path.relative(process.cwd(), project) || '.'}`);
-
-  // example.ts compiles the project with SUSHI and prints the text report.
-  const lintConfig = lintConfigFile(config);
-  const run = spawnSync(
-    process.execPath,
-    [
-      example,
-      project,
-      '--show-info',
-      ...(lintConfig === undefined ? [] : ['--config', lintConfig]),
-    ],
-    { stdio: 'inherit' },
-  );
-  process.exitCode = run.status ?? 2;
 }

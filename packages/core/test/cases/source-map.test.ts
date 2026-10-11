@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { CompletedReport, QuestionnaireFinding } from '../../src/index.js';
-import { compileCases, copyCase } from '../support/cases.js';
+import { coreCases } from '../support/cases.js';
 import { runBinary } from '../support/cli.js';
 import { tempTree } from '../support/tmp.js';
 
@@ -11,7 +11,7 @@ import { tempTree } from '../support/tmp.js';
 const demo = 'demo/invalid-demo';
 
 // SUSHI compiles every case once; the first run also downloads the FHIR packages.
-beforeAll(compileCases, 600_000);
+beforeAll(coreCases.compile, 600_000);
 
 function lintJson(cwd: string): CompletedReport {
   return JSON.parse(runBinary(['lint', '--format', 'json'], { cwd }).stdout) as CompletedReport;
@@ -29,7 +29,7 @@ function sources(report: CompletedReport): string[] {
 // A copy of the case with one file written, to run the CLI in.
 async function copyWith(file: string, content: string): Promise<string> {
   const dir = await tempTree();
-  copyCase(demo, dir);
+  coreCases.copyCase(demo, dir);
   writeFileSync(path.join(dir, file), content);
   return dir;
 }
@@ -40,7 +40,7 @@ const withFshDirectories = (fsh: string[]) =>
 // The report of the unchanged copy.
 const original = async (): Promise<CompletedReport> => {
   const dir = await tempTree();
-  copyCase(demo, dir);
+  coreCases.copyCase(demo, dir);
   return lintJson(dir);
 };
 

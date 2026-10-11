@@ -1,5 +1,5 @@
 # One mistake for each sdc rule, and nothing else. Quote every whole expression (see
-# scripts/generate-fsh.ts).
+# packages/lint-cases/src/generate-fsh.ts).
 
 extensions:
   # a and b reference each other; the cycle is reported once, on the first.

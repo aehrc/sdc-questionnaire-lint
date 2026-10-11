@@ -1,0 +1,17 @@
+{
+  "name": "@sdc-questionnaire-lint/lint-cases",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lint cases for the sdc-questionnaire-lint packages: YAML configs compiled by SUSHI, linted and compared with their expected findings",
+  "type": "module",
+  "exports": {
+    ".": "./src/cases.ts",
+    "./generate-fsh": "./src/generate-fsh.ts"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "devDependencies": {
+    "sdc-questionnaire-lint": "*"
+  }
+}
