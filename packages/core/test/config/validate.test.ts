@@ -37,6 +37,36 @@ describe('validateConfig', () => {
       'a is listed more than once',
     ],
     [
+      'compat that is not an object',
+      { compat: 'latest' },
+      '/compat',
+      'expected an object, got a string',
+    ],
+    [
+      'a compat target that is neither latest nor an object',
+      { compat: { 'smart-forms': 'newest' } },
+      '/compat/smart-forms',
+      'expected "latest" or an object of versions, got "newest"',
+    ],
+    [
+      'a compat version that is not a string',
+      { compat: { 'smart-forms': { renderer: 1.4 } } },
+      '/compat/smart-forms/renderer',
+      'expected a version string, got a number',
+    ],
+    [
+      'an empty compat version',
+      { compat: { 'smart-forms': { renderer: '' } } },
+      '/compat/smart-forms/renderer',
+      'renderer is empty',
+    ],
+    [
+      'a per-component latest',
+      { compat: { 'smart-forms': { renderer: 'latest' } } },
+      '/compat/smart-forms/renderer',
+      'renderer cannot be "latest"; only a whole namespace can',
+    ],
+    [
       'a bad rule setting',
       { rules: { 'sdc/parse-error': 'fatal' } },
       '/rules/sdc~1parse-error',
@@ -55,7 +85,7 @@ describe('validateConfig', () => {
   it('lists the known keys for an unknown key', () => {
     expect(() => validateConfig({ rulez: {} }, json)).toThrow(
       expect.objectContaining({
-        help: 'the known keys are files, hostVariables, plugins, rules, source, suppress',
+        help: 'the known keys are compat, files, hostVariables, plugins, rules, source, suppress',
       }),
     );
   });
@@ -67,6 +97,11 @@ describe('validateConfig', () => {
     expect(() => validateConfig({ hostVariables }, json)).toThrow(
       expect.objectContaining({ help }),
     );
+  });
+
+  it('accepts latest and exact versions in compat', () => {
+    const compat = { a: 'latest', b: { renderer: '1.4.0', populate: '4.7.1' } } as const;
+    expect(validateConfig({ compat }, json)).toEqual({ compat });
   });
 
   it('names the expected shape for a key that is not an object', () => {

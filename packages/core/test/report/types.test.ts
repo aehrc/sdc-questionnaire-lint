@@ -349,6 +349,6 @@ export const typeErrors = [
     configLocation: { file: 'c.json', pointer: '/suppress/0' },
   } satisfies ConfigFinding,
   undefinedHelp,
-  // @ts-expect-error Smart Forms compat needs all three component versions.
-  { 'smart-forms': { renderer: '1.0.0', populate: '1.0.0' } } satisfies RunCompat,
+  // @ts-expect-error Smart Forms compat needs the renderer and populate versions.
+  { 'smart-forms': { renderer: '1.0.0', 'template-extract': '1.0.0' } } satisfies RunCompat,
 ];

@@ -6,16 +6,20 @@ import type { LintRule, RuleContext, RuleFinding } from '../../src/plugins/contr
 import type { QuestionnaireFinding } from '../../src/report/types.js';
 import { runRules } from '../../src/run/rules.js';
 
-// A RuleContext over sites, with the stub scopeAt the runner gives every rule, that collects what
-// the rule reports.
+// A RuleContext over sites, with core's analysis of them as the runner gives every rule, that
+// collects what the rule reports.
 export function ruleContext(
   sites: readonly ExpressionSite[],
   findings: RuleFinding[],
 ): RuleContext {
+  const document = { file: 'Q.json', resource: {}, resourcePointer: '', localResources: [] };
+  const analysis = analyseDocument(document, sites);
   return {
-    document: { file: 'Q.json', resource: {}, resourcePointer: '', localResources: [] },
+    document,
     sites,
-    scopeAt: () => ({ available: false, names: [] }),
+    referencesAt: (site) => (sites.includes(site) ? analysis.references.get(site) : undefined),
+    variablesAt: (site) => (sites.includes(site) ? analysis.variablesAt(site) : undefined),
+    compat: {},
     options: undefined,
     report: (finding) => findings.push(finding),
   };
@@ -51,6 +55,12 @@ export function lintQuestionnaire(
     analysis: analyseDocument(document, sites, hostVariables),
   };
   return runRules(doc, [
-    { id: `sdc/${ruleName}`, namespace: 'sdc', rule, setting: rule.meta.defaultSeverity },
+    {
+      id: `sdc/${ruleName}`,
+      namespace: 'sdc',
+      rule,
+      setting: rule.meta.defaultSeverity,
+      compat: {},
+    },
   ]);
 }

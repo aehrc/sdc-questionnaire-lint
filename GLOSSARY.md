@@ -30,7 +30,7 @@ _Avoid_: Variable (one kind of declaration)
 
 **Available variables**:
 The names an expression can reference at its site; the site alone determines them. They are the declarations on its element, its ancestor items and the root, the innermost of a name winning (in a declaration's own expression, its own name means the next binding outward), plus the names FHIRPath, FHIR and SDC define, the names a module lists in assembleContext, and the host variables. An extraction site sees only extractAllocateId names, named extraction contexts, the built-in names, the assembleContext names and the host variables. Messages say a name "is not available on this item".
-_Avoid_: Visibility, context (FHIRPath's `%context` is something else); scope, except for the public `Scope`/`scopeAt` plugin stub, which stays until a plugin needs available variables
+_Avoid_: Visibility, context (FHIRPath's `%context` is something else), scope
 
 **Host variable**:
 A name an expression can reference that the form does not declare and that FHIRPath, FHIR and SDC do not define, but that the application running the form supplies at runtime by its own convention, such as an entry in Smart Forms' additionalContext or `%PrePopQuery` for a sourceQueries Bundle. Listed by exact name in the config's `hostVariables`, and available at every site.
@@ -84,7 +84,10 @@ _Avoid_: Partial run
 AEHRC's open-source SDC form stack, the runtime whose behaviour the Smart Forms plugin checks forms against.
 
 **Component**:
-One independently versioned part of Smart Forms: renderer, populate or template-extract. A construct can work in one component and fail in another.
+One independently versioned part of Smart Forms: renderer, populate or template-extract. A construct can work in one component and fail in another. A config's explicit compatibility target must name renderer and populate; template-extract is checked only when named.
+
+**Compatibility matrix**:
+What the plugin knows about each component: the versions it has verified, oldest to newest, and the runtime facts its rules rely on, each with its evidence. Each component's versions are verified independently.
 
 **Compatibility target**:
 The component versions a config checks against. The default, `"smart-forms": "latest"`, means the newest versions the installed plugin knows.

@@ -144,14 +144,14 @@ export function findFunctionCalls(text: string): FunctionCall[] | undefined {
 // One %name reference in a FHIRPath expression.
 export interface VariableReference {
   // The name fhirpath.js looks up.
-  name: string;
+  readonly name: string;
   // Zero-based UTF-16 offsets of the reference as written: the %, any whitespace or comments after
   // it, and the name with its backticks or quotes.
-  startOffset: number;
-  endOffset: number;
+  readonly startOffset: number;
+  readonly endOffset: number;
   // False when an earlier step of its chain is a defineVariable with a computed name, which may
   // bind it.
-  complete: boolean;
+  readonly complete: boolean;
 }
 
 // A string literal's value, decoded as fhirpath.js decodes it; anything without both quotes is

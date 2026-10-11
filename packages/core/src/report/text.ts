@@ -151,9 +151,10 @@ export function formatTextSummary(
   ];
   const smartForms = run.compat['smart-forms'];
   if (smartForms) {
+    const extract = smartForms['template-extract'];
     lines.push(
-      `Smart Forms: renderer ${smartForms.renderer}, populate ${smartForms.populate}, ` +
-        `template-extract ${smartForms['template-extract']}.`,
+      `Smart Forms: renderer ${smartForms.renderer}, populate ${smartForms.populate}` +
+        `${extract === undefined ? '' : `, template-extract ${extract}`}.`,
     );
   }
   return `${lines.join('\n')}\n`;

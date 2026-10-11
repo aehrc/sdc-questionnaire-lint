@@ -41,7 +41,9 @@ The CLI (`cli/run.ts`) calls `lint()` and passes the report to one of the two fo
 - the reserved `lint` namespace (`lintPlugin` in `builtin.ts`), used only for `lint/stale-suppression`;
 - the plugins listed in the config.
 
-It validates each plugin's shape against the plugin contract (`contract.ts`), rejects a reserved or duplicate namespace, and gives each rule its effective setting: the configured one, or the rule's default severity. It also rejects unknown rule IDs in `rules` and `suppress`, and suggests a similar name when one exists. All of this happens before any input is read, so `lint` and `explain` fail the same way.
+It validates each plugin's shape against the plugin contract (`contract.ts`), rejects a reserved or duplicate namespace, and gives each rule its effective setting: the configured one, or the rule's default severity. It also rejects unknown rule IDs in `rules` and `suppress`, and suggests a similar name when one exists.
+
+It then resolves the config's `compat` against the versions each plugin declares in `LintPlugin.compat`: `"latest"`, the default, takes the last, newest, verified version of every component, and an explicit object must name exact verified versions of the required components. Core treats versions as opaque strings. The result becomes the report's `run.compat`, and each rule's `compat`, frozen, the versions of its own namespace. All of this happens before any input is read, so `lint` and `explain` fail the same way.
 
 ## 3. Inputs (`inputs/`)
 
@@ -58,7 +60,7 @@ It validates each plugin's shape against the plugin contract (`contract.ts`), re
 
 This is the heart of the linter.
 
-- `expression-site.ts` defines the expression-site model rules receive: `QuestionnaireDocument`, `ExpressionSite`, `CataloguedLocation`, `QueryFragment`, `Scope`. It is public API.
+- `expression-site.ts` defines the expression-site model rules receive: `QuestionnaireDocument`, `ExpressionSite`, `CataloguedLocation`, `QueryFragment`. It is public API.
 - `extension-catalog.ts`: `extensionCatalog` is data, not code. It lists the SDC extensions the linter understands, such as variable, calculatedExpression, enableWhenExpression, initialExpression, itemPopulationContext, targetConstraint, and cqf-expression on primitive elements (`_title` on the root; `_text`, `_prefix` and `_answerValueSet` on items). For each one it records where the extension may sit, its sub-extension for a complex extension, and its use cases as the SDC expressions table lists them (rendering, population or extraction). Use cases do not decide which names an expression can reference. Supporting a new location means adding an entry here, not changing `expression-sites.ts`.
 - `expression-sites.ts`: `findExpressionSites` walks a Questionnaire's JSON depth-first and returns a flat list of frozen `ExpressionSite`s in document order.
   - A site at a catalogued location is catalogued.
@@ -70,7 +72,7 @@ This is the heart of the linter.
 - `dependencies.ts`: `findDependencies` records, for each declaration, the declarations its expression references, resolved at the expression's site or at each fragment of its query, and whether that list is known: the expression parses and no reference follows a `defineVariable` with a computed name. A reference that may be bound locally is left out.
 - `uses.ts`: `findUses` records, for each declaration, whether the expressions of others reference it: `referenced` when a reference resolves to it, `unreferenced` when none does and every expression that could see it was analysed, and otherwise `blocked` or `unknown`. An expression that could see it but was not analysed is CQL or another language, an Expression with only a reference, FHIRPath that does not parse, an uncatalogued expression that names it, a reference after a `defineVariable` with a computed name, a `questionnaire-constraint`, or a `subQuestionnaire`. `blocked` means only expressions with a syntax error were among them. A reference from a declaration's own expression is not a use of it, and a duplicate on the same element shares the uses of the other.
 - `linkids.ts`: `findLinkIds` lists the linkIds of a Questionnaire's items at any depth, not those of contained resources. `findLinkIdReferencesAt` gives the linkId references of each FHIRPath site that parses, with what the site establishes as items of this form: at a catalogued site, `%questionnaire`, `%resource`, `%context` and the expression's input, plus `%qitem` at an item site. Nothing is established at an uncatalogued site or in a modular Questionnaire, one that includes a `subQuestionnaire` or is a module (it has `assembleContext`, or an `assemble-expectation` that allows a child), because the assembled form has other items.
-- `document-analysis.ts`: `analyseDocument` computes core's internal analysis of a document once per run, from the document, its sites and the configured `hostVariables`: its declarations, the variable references of each FHIRPath site that parses, the available variables at each site (`variablesAt`), the dependencies of each declaration, their uses, the Questionnaire's linkIds and the linkId references of each FHIRPath site that parses. `lint.ts` keeps it on each analysed document. It is not exported, and plugin rules never receive it.
+- `document-analysis.ts`: `analyseDocument` computes core's internal analysis of a document once per run, from the document, its sites and the configured `hostVariables`: its declarations, the variable references of each FHIRPath site that parses, the available variables at each site (`variablesAt`), the dependencies of each declaration, their uses, the Questionnaire's linkIds and the linkId references of each FHIRPath site that parses. `lint.ts` keeps it on each analysed document. It is not exported. A plugin rule receives only its references and `variablesAt`, through `RuleContext`, frozen: rules run before the suppression assessment reuses the analysis.
 
 The analysis helpers:
 
@@ -80,11 +82,30 @@ The analysis helpers:
 
 ## 5. Rules (`rules/`, run by `run/rules.ts`)
 
-`runRules` calls each rule that is not off once per Questionnaire. A rule's `check(ctx)` is synchronous; `ctx` provides `document`, `sites`, `scopeAt()` (a stub: core's available variables stay internal until a plugin rule needs them), `options` (always `undefined` for now) and `report()`. An `sdc` rule also receives the document's analysis as a second argument (`CoreRule` in `plugins/core-rule.ts`); a plugin cannot register an `sdc` rule.
+`runRules` calls each rule that is not off once per Questionnaire. A rule's `check(ctx)` is synchronous; `ctx` provides `document`, `sites`, `referencesAt(site)` and `variablesAt(site)` (the analysis's references and available variables at a site; see [What a plugin can import](#what-a-plugin-can-import)), `compat` (the versions selected for the rule's namespace; `{}` for a plugin without compat), `options` (always `undefined` for now) and `report()`. An `sdc` rule also receives the document's analysis as a second argument (`CoreRule` in `plugins/core-rule.ts`); a plugin cannot register an `sdc` rule.
 
 `rules/describe.ts` names the element a finding is on, by the item's text and linkId, and places a finding about a declaration at its Expression or its extension.
 
 The runner validates every finding. A bad site, pointer or range, a throw, or a returned promise fails the run with `RULE_CRASH`; built-in and plugin rules are treated alike. It then turns each finding into a report `Finding` with its JSON location, an expression excerpt, its related locations and a fingerprint. A finding in a fragment is shown within its whole query.
+
+### What a plugin can import
+
+A plugin imports from the `sdc-questionnaire-lint` package only; everything under `packages/core/src` that `index.ts` does not export is internal. Besides `lint`, `defineConfig` and the report and config types, `index.ts` exports:
+
+- the plugin contract: `LintPlugin`, `LintRule`, `RuleContext`, `RuleFinding`, `RuleRelatedLocation`, `RuleDocs` and `PluginCompat` (`plugins/contract.ts`);
+- the expression-site model: `QuestionnaireDocument`, `ExpressionSite`, `CataloguedLocation`, `SiteItem` and the other types in `analysis/expression-site.ts`;
+- the language lookups (API stage A, [smart-forms-rules.md](smart-forms-rules.md#public-api-stages-s5)):
+  - `definedLanguages`: the six codes FHIR R4 and R5 define, frozen. A language outside them is `sdc/language-not-in-value-set`'s.
+  - `languagesAllowedAt(location)`: the languages SDC allows at a catalogued location, or `undefined` where it allows any language. A language outside the list is `sdc/language-not-allowed`'s, or the FHIR Validator's: the list also rejects `application/x-fhir-query` on enableWhenExpression (`sdc-inv1`).
+  - `isQueryLanguage(language)`: whether a language is either x-fhir-query code.
+- the types of core's name analysis (API stage B), which `RuleContext`'s `referencesAt` and `variablesAt` return:
+  - `VariableReference`: one `%name` reference, with its `name`, its range as written (`startOffset`, `endOffset`) and `complete`, which is false after a `defineVariable` with a computed name.
+  - `AvailableVariables`: the `variables` available at a site, and `resolve(name)`, the `Variable` a reference gets: its `name`, its `origin` (`declaration`, `builtin`, `assembled` or `host`) and, for a declaration, the `Declaration`.
+  - `Declaration` and `DeclarationKind`: a declaration's name, kind, pointer, item, use cases and declaring site.
+
+  `referencesAt(site)` is `undefined` when the site has no FHIRPath analysis: its language is not `text/fhirpath`, it has no text, or the text does not parse. It is `[]` when the text parses and references nothing. `variablesAt(site)` is `undefined` at an uncatalogued site. Both are `undefined` for an object that is not one of `ctx.sites`. A rule treats `undefined` as "cannot check", never as "no references". The list of built-in names is not exported: a rule reads `origin`.
+
+A plugin rule that stays silent where a core rule reports the same root cause checks the condition with these lookups, never whether that rule ran.
 
 ## 6. Suppressions (`run/suppressions.ts`, `run/fingerprint.ts`)
 

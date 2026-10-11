@@ -21,7 +21,7 @@ A completed report cannot contain `failure`. A failed report cannot contain `run
 | :- | :- |
 | `tool` | `{ "name": "sdc-questionnaire-lint", "version": "…" }` |
 | `plugins` | Array of `{ "name": "…", "version": "…" }`, including built-in `sdc`, sorted by namespace |
-| `compat` | Resolved component versions by plugin namespace; `{}` without a compatibility plugin. For Smart Forms, `smart-forms` contains exact `renderer`, `populate` and `template-extract` versions, never `latest` |
+| `compat` | The component versions selected by plugin namespace, which enabled plugin rules run against; `{}` without a compatibility plugin. Their presence does not mean any rule checked them. For Smart Forms, `smart-forms` contains exact `renderer` and `populate` versions, and `template-extract` when template extraction is selected; never `latest` |
 | `selection` | `full` when using configured/default inputs; `targeted` when CLI paths are supplied |
 
 `run.tool.name` identifies the package as `sdc-questionnaire-lint`, whether invoked as `sdc-lint` or through the long executable alias. Versions come from installed packages and the installed compatibility matrix. The examples use illustrative versions. Loading a plugin does not imply that every rule it provides is enabled; `explain` lists effective rule severities.
@@ -94,7 +94,7 @@ Prefer FSH source edits when FSH is the maintained source. A JSON-string target 
 | Code | Meaning |
 | :- | :- |
 | `USAGE_ERROR` | Invalid arguments after a valid JSON-format selection |
-| `CONFIG_INVALID` | Missing, unreadable, ambiguous or invalid config; invalid rule options; plugin loading failure |
+| `CONFIG_INVALID` | Missing, unreadable, ambiguous or invalid config, including a `compat` entry for an unlisted plugin or a plugin without compatibility versions, an unknown or missing required component, and an unverified version; plugin loading failure. Invalid rule options are reserved: the config cannot pass rule options yet |
 | `INPUT_NOT_FOUND` | Selected literal input does not exist |
 | `INPUT_PATTERN_UNMATCHED` | Selected glob or directory yields no files after exclusions |
 | `INPUT_UNREADABLE` | Selected input cannot be read, or required input existence/traversal checks cannot complete |

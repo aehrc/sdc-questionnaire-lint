@@ -4,6 +4,7 @@ import type { ExpressionSite } from './expression-site.js';
 export const X_FHIR_QUERY = 'application/x-fhir-query';
 export const X_FHIR_QUERY_R5 = 'text/x-fhir-query';
 
+// Whether a language is either query code. Exported to plugins.
 export function isQueryLanguage(language: string | undefined): boolean {
   return language === X_FHIR_QUERY || language === X_FHIR_QUERY_R5;
 }

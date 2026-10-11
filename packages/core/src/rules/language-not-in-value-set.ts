@@ -1,20 +1,7 @@
 import type { ExpressionSite } from '../analysis/expression-site.js';
-import { languagesAllowedAt } from '../analysis/extension-catalog.js';
-import { FHIRPATH } from '../analysis/fhirpath.js';
-import { X_FHIR_QUERY, X_FHIR_QUERY_R5 } from '../analysis/x-fhir-query.js';
+import { definedLanguages, languagesAllowedAt } from '../analysis/extension-catalog.js';
 import type { LintRule } from '../plugins/contract.js';
 import { closestName } from '../suggest.js';
-
-// The expression languages FHIR R4 and R5 define. A Questionnaire does not state its FHIR
-// version, so both sets are accepted (D11).
-const definedLanguages = [
-  'text/cql',
-  FHIRPATH,
-  X_FHIR_QUERY,
-  X_FHIR_QUERY_R5,
-  'text/cql-identifier',
-  'text/cql-expression',
-];
 
 // Where the rule checks: every Expression with a language, catalogued or not.
 export function hasExpressionLanguage(

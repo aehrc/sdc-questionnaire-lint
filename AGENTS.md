@@ -19,12 +19,13 @@ Stack: TypeScript, Node 22+, tsup, Vitest; fhirpath.js pinned to 4.10.1.
 - `npm test -- <pattern>`: run matching tests. CLI tests run against the built `packages/core/dist/cli.js`; the test setup rebuilds it.
 - `npm run typecheck`: type-check both packages; it builds core first, because the plugin is type-checked against core's build output.
 - `npm run build`: build both packages, core first.
-- `npm run corpus`: lint the local, gitignored `corpus/` with the built-in rules and print the findings added or removed since its snapshot; `-- --update` saves the snapshot. Not part of `npm run check`. Slice 0 of [docs/core-rules.md](docs/core-rules.md) lists the forms to copy into `corpus/forms/`.
+- `npm run corpus`: lint the local, gitignored `corpus/` with the built-in rules and print the findings added or removed since its snapshot; `-- --update` saves the snapshot; `-- --smart-forms` also lists the Smart Forms plugin and compares with its own snapshot. Not part of `npm run check`. Slice 0 of [docs/core-rules.md](docs/core-rules.md) lists the forms to copy into `corpus/forms/`.
 - `npm run format`: apply Prettier. Markdown, `docs/` and test fixtures are deliberately not formatted.
 - Do not run `npm audit fix --force`: it downgrades `fhirpath` below the 4.10.1 pin.
 - `npm run generate:functions --workspace sdc-questionnaire-lint`: regenerate `packages/core/src/analysis/fhirpath-function-catalog.ts`, the FHIRPath function catalogue, from the installed fhirpath.js. Run it after bumping `fhirpath`; never edit the file by hand.
 - Dependency versions are saved exactly (`save-exact` in `.npmrc`).
 - Install scripts of dependencies are blocked unless allowed in `allowScripts` in `package.json`. After adding a dependency, review `npm install-scripts ls`.
+- `fhirclient` is overridden with the empty stub `test/stubs/fhirclient` (root `devDependencies` and `overrides` in `package.json`). `@aehrc/sdc-populate`, a dev dependency of the plugin for reproduction tests, declares it but never imports it at run time, and the real package pulls in about 500 Expo and React Native packages and a `core-js` install script. The override names `@aehrc/sdc-populate@4.7.1`: re-check it when that version changes. Add the override before installing a new populate version, or npm keeps a nested real `fhirclient` in the lockfile.
 
 ## Workflow
 

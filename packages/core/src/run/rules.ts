@@ -214,6 +214,8 @@ export function runRules(
   const keys = siteKeys(document, sites);
   const declarations = declarationKeys(analysis.declarations);
   const findings: QuestionnaireFinding[] = [];
+  // By identity, as parseLocation checks a reported site: a copy of a site gets no analysis.
+  const known: ReadonlySet<ExpressionSite> = new Set(sites);
 
   // A site's location, or else the pointer's, or else the resource's. The linkId is the site's
   // item's, or the item of a declaration at the pointer.
@@ -271,7 +273,7 @@ export function runRules(
   }
 
   for (const resolved of rules) {
-    const { id, namespace, rule, setting } = resolved;
+    const { id, namespace, rule, setting, compat } = resolved;
     if (setting === 'off') continue;
     // report() never throws, so a rule cannot swallow its own invalid finding: the first problem
     // is kept here, later reports are ignored, and the run fails once check returns.
@@ -281,8 +283,9 @@ export function runRules(
       const ctx: RuleContext = {
         document,
         sites,
-        // A stub until the scope model exists (core-plan §3.1).
-        scopeAt: () => ({ available: false, names: [] }),
+        referencesAt: (site) => (known.has(site) ? analysis.references.get(site) : undefined),
+        variablesAt: (site) => (known.has(site) ? analysis.variablesAt(site) : undefined),
+        compat,
         options: undefined,
         report: (reported) => {
           if (problem !== undefined) return;

@@ -7,8 +7,8 @@ import type {
   SiteItem,
 } from './expression-site.js';
 
-// Declarations stay internal to core until a plugin rule needs them (core-rules.md D15): do not
-// export them from index.ts or add them to RuleContext.
+// Declaration and DeclarationKind are public: plugin rules reach declarations through the variables
+// RuleContext's variablesAt resolves (API stage B). The finders here stay internal.
 
 type Json = Record<string, unknown>;
 

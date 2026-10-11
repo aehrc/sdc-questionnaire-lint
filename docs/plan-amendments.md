@@ -67,3 +67,28 @@ Each bullet states the override; the reasons and the implementation are in [core
 - **§4.3, §6.1 `hostVariables` (D1, D2, D16):** a config array of names the host supplies, available at every site. `lint/unused-host-variable` is deferred.
 - **§6.3 suppressions (D22):** a suppression can target a launchContext or extractAllocateId declaration by element and name.
 - **Rule review (D7, D14):** each core rule is checked against a local, uncommitted corpus, and an error-severity rule merges only with zero false-positive errors on it. PRs report finding changes without expression excerpts from forms whose terms restrict redistribution.
+
+## From the Smart Forms rules plan (2026-10-09)
+
+Each bullet states the override; the reasons are in [smart-forms-rules.md](smart-forms-rules.md), under the cited decisions (Sn). The plan's other decisions are proposals until accepted, and a slice merges once every decision it cites is accepted.
+
+- **§2.1, §4.2 supported integration (S1):** plugin rules check population followed by rendering, assuming population succeeded. Template extraction is checked only when selected in `compat`. A renderer used without population, and a run where population failed, are outside the supported integration.
+- **§2.3 compatibility matrix (S3, S4):** core validates `compat` and resolves it against the versions the plugin declares in `LintPlugin.compat`. An explicit object names renderer and populate and may omit template-extract; there is no per-component `"latest"` and no nearest-version fallback. Each component's versions are listed oldest to newest, `"latest"` takes the last, and core never compares versions. Each component's versions are verified independently, and any combination of listed versions is accepted. The matrix is small typed runtime facts in the plugin, each with its evidence, not a universal entry schema; a fact does not name a rule.
+- **§2.1 evidence (S11):** runtime evidence is cited at the release commit of the package it belongs to, after checking the file is identical there.
+- **§6.1, §6.2 `presets`, `languages` and rule options (S7):** not added. Listing a plugin enables its rules at their defaults, and deployment facts belong in `compat` or `hostVariables`. The plan's examples that use `presets` and `languages` are superseded.
+- **§5.3 peer range:** before the first release, the plugin's peer range stays `^0.1.0`.
+
+Accepted with P1 (2026-10-09):
+
+- **§4.2 locations (S2):** plugin rules map a location to a component through the plugin's runtime facts, never through `site.useCases`. `smart-forms/expression-evaluated-as-fhirpath` (core-plan's `unchecked-language-evaluated-as-fhirpath`, S17) also checks populate's initialExpression and itemPopulationContext.
+- **§5.2 core API for plugins (S5):** core publishes analysis to plugins in stages, each with the slice that first needs it. Stage A exports the language lookups `definedLanguages`, `languagesAllowedAt` and `isQueryLanguage` ([architecture.md](architecture.md#what-a-plugin-can-import)).
+- **§4.2 overlap with core (S9):** a plugin rule stays silent where a core rule or the Validator reports the same root cause, by checking the condition itself, never whether that rule ran.
+- **§2.1 reproduction tests (S10):** every runtime fact has a reproduction test against the pinned npm package where a harness exists; until then it is `source-only`, with a permalink, and messages based on it claim only what the source shows.
+
+Accepted with P2 (2026-10-09):
+
+- **§5.2 core API for plugins (S5, D15, D18):** API stage B replaces the `scopeAt` stub and the `Scope` type with `RuleContext.referencesAt(site)` and `RuleContext.variablesAt(site)`, and exports the types they return: `VariableReference`, `AvailableVariables`, `Variable`, `Declaration` and `DeclarationKind`. D15 and D18 are lifted for these types; dependencies and uses stay internal until P5. `undefined` means the analysis is unavailable at the site, and is distinct from `[]`. Core and the plugin stay at 0.1.0 before the first release, so 0.1.0 is the version that ships stage B.
+- **§4.3 host-supplied `%questionnaire` and `%qitem` (S13):** a host that supplies either name through Smart Forms' `additionalContext` records a suppression with a reason naming the host; `hostVariables` cannot express it, because built-in names resolve first. This does not apply to an answerExpression: the renderer builds its context from the name before the first `.` alone, and `additionalContext` never reaches it, so no host can supply the name there.
+- **Reproduction dependencies:** `@aehrc/sdc-populate@4.7.1` declares `fhirclient`, which it never imports at run time and which pulls in about 500 Expo and React Native packages. An npm override replaces it with an empty local stub, `test/stubs/fhirclient`. A new `sdc-populate` version must re-check the override, which names 4.7.1.
+- **§4.3 `smart-forms/questionnaire-variable-unavailable` silence (S9):** the rule is silent for a name any declaration in the form has, wherever it is. `sdc/reserved-name` reports that declaration, which is the root cause. This claims nothing about whether the declaration supplies a value at run time.
+- **§4.3 `smart-forms/questionnaire-variable-unavailable` message:** the message states the consequence of the failed evaluation at each location, which leaves the previous result in place. An answerExpression gets its own message, because the renderer never evaluates one whose head is the name ([smart-forms-rules.md](smart-forms-rules.md#p2-smart-formsquestionnaire-variable-unavailable)).

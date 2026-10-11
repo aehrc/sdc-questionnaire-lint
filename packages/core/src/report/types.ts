@@ -113,7 +113,8 @@ export interface PackageVersion {
 export type SmartFormsVersions = {
   renderer: string;
   populate: string;
-  'template-extract': string;
+  // Absent when template extraction is not selected.
+  'template-extract'?: string;
 };
 
 export interface RunCompat {

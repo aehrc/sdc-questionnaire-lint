@@ -3,6 +3,8 @@ import type {
   ExpressionCarrier,
   ExpressionUseCase,
 } from './expression-site.js';
+import { FHIRPATH } from './fhirpath.js';
+import { X_FHIR_QUERY, X_FHIR_QUERY_R5 } from './x-fhir-query.js';
 
 // The catalog of SDC extensions the linter understands: the kinds of location an expression may
 // sit in, not the expressions of any one Questionnaire (core-plan §3.1 calls it the registry).
@@ -84,7 +86,22 @@ export const extensionCatalog: readonly CatalogEntry[] = Object.freeze([
   ),
 ]);
 
+// The expression languages FHIR R4 and R5 define. A Questionnaire does not state its FHIR
+// version, so both sets are accepted (D11). Exported to plugins: a language outside these codes is
+// sdc/language-not-in-value-set's to report.
+export const definedLanguages: readonly string[] = Object.freeze([
+  'text/cql',
+  FHIRPATH,
+  X_FHIR_QUERY,
+  X_FHIR_QUERY_R5,
+  'text/cql-identifier',
+  'text/cql-expression',
+]);
+
 // The languages SDC allows at a catalogued location; undefined when it allows any language.
+// Exported to plugins: a language outside the list is sdc/language-not-allowed's to report, or the
+// FHIR Validator's (sdc-inv1, application/x-fhir-query on enableWhenExpression), which the list
+// also rejects.
 export function languagesAllowedAt(location: CataloguedLocation): readonly string[] | undefined {
   return extensionCatalog.find((entry) => entry.url === location.url)?.languages;
 }

@@ -5,7 +5,7 @@ import { isObject } from '../object.js';
 import type { PackageVersion } from '../report/types.js';
 import { closestName } from '../suggest.js';
 import { lintPlugin, sdcPlugin, staleSuppressionId } from './builtin.js';
-import type { LintPlugin, LintRule } from './contract.js';
+import type { LintPlugin, LintRule, PluginCompat } from './contract.js';
 
 export interface ResolvedRule {
   // sdc/parse-error
@@ -15,6 +15,8 @@ export interface ResolvedRule {
   rule: LintRule;
   // Effective: the configured setting, or the rule's default severity.
   setting: RuleSetting;
+  // The versions selected for the rule's namespace, as ctx.compat gives them; frozen.
+  compat: Readonly<Record<string, string>>;
 }
 
 export interface RuleSet {
@@ -22,6 +24,8 @@ export interface RuleSet {
   pluginVersions: PackageVersion[];
   // Sorted by ID, including rules configured off and lint/stale-suppression.
   rules: ResolvedRule[];
+  // For run.compat: the versions selected for each plugin that declares compat, by namespace.
+  compat: Record<string, Readonly<Record<string, string>>>;
 }
 
 // The two halves of the report schema's rule ID pattern.
@@ -133,7 +137,110 @@ function validatePlugin(value: unknown, index: number, display: string): LintPlu
       fail([...at, 'check'], 'the rule has no check function', 'give the rule a check(ctx)');
     }
   }
+  if (plugin.compat !== undefined) validatePluginCompat(plugin.compat, fail);
   return value as LintPlugin;
+}
+
+// Checks the shape of a plugin's compat; fail points into the plugin.
+function validatePluginCompat(
+  compat: unknown,
+  fail: (at: (string | number)[], problem: string, help: string) => never,
+): void {
+  const shape = 'give compat { verified: { <component>: [<versions>] }, required: [<components>] }';
+  const record = isObject(compat) ? compat : fail(['compat'], 'compat is not an object', shape);
+  const verified = isObject(record.verified)
+    ? record.verified
+    : fail(['compat', 'verified'], 'compat has no verified object', shape);
+  if (Object.keys(verified).length === 0) {
+    fail(['compat', 'verified'], 'compat lists no components', shape);
+  }
+  for (const [component, versions] of Object.entries(verified)) {
+    const at = ['compat', 'verified', component];
+    if (!Array.isArray(versions) || versions.length === 0) {
+      fail(at, `${component} lists no versions`, 'list its verified versions, oldest to newest');
+    }
+    // By index, not forEach, which skips the holes of a sparse array.
+    for (let index = 0; index < versions.length; index++) {
+      const version: unknown = versions[index];
+      if (typeof version !== 'string' || version === '' || version === 'latest') {
+        fail([...at, index], 'expected an exact version', 'list exact versions, such as 1.4.0');
+      }
+      if (versions.indexOf(version) !== index) {
+        fail([...at, index], `${version} is listed more than once`, 'list each version once');
+      }
+    }
+  }
+  if (!Array.isArray(record.required)) {
+    fail(['compat', 'required'], 'compat has no required array', shape);
+  }
+  const required = record.required;
+  for (let index = 0; index < required.length; index++) {
+    const component: unknown = required[index];
+    const at = ['compat', 'required', index];
+    if (typeof component !== 'string' || !Object.hasOwn(verified, component)) {
+      fail(at, 'a required component is not in verified', 'list only components of verified');
+    }
+    if (required.indexOf(component) !== index) {
+      fail(at, `${component} is listed more than once`, 'list each required component once');
+    }
+  }
+}
+
+// A record without a prototype, so a key such as constructor or __proto__ is an ordinary key.
+function dictionary<T>(): Record<string, T> {
+  return Object.create(null) as Record<string, T>;
+}
+
+// The versions config compat selects for one plugin (S3): "latest" takes the last verified
+// version of every component; an object names exact verified versions, and must name the
+// required components. Keys follow the plugin's order of components.
+function resolveTarget(
+  namespace: string,
+  compat: PluginCompat,
+  target: 'latest' | Record<string, string>,
+  fail: (at: (string | number)[], problem: string, help: string) => never,
+): Readonly<Record<string, string>> {
+  const components = Object.keys(compat.verified);
+  const selected = dictionary<string>();
+  if (target === 'latest') {
+    for (const component of components) {
+      const versions = compat.verified[component] ?? [];
+      selected[component] = versions[versions.length - 1] ?? '';
+    }
+    return Object.freeze(selected);
+  }
+  for (const component of Object.keys(target)) {
+    if (!components.includes(component)) {
+      fail(
+        ['compat', namespace, component],
+        `unknown component ${component}`,
+        `the ${namespace} components are ${components.join(', ')}`,
+      );
+    }
+  }
+  for (const component of components) {
+    const versions = compat.verified[component] ?? [];
+    const version = Object.hasOwn(target, component) ? target[component] : undefined;
+    if (version === undefined) {
+      if (compat.required.includes(component)) {
+        fail(
+          ['compat', namespace],
+          `${component} is missing`,
+          `set ${component} to a verified version: ${versions.join(', ')}`,
+        );
+      }
+      continue;
+    }
+    if (!versions.includes(version)) {
+      fail(
+        ['compat', namespace, component],
+        `${component} ${version} is not a verified version`,
+        `set ${component} to a verified version: ${versions.join(', ')}`,
+      );
+    }
+    selected[component] = version;
+  }
+  return Object.freeze(selected);
 }
 
 // The built-in sdc and lint plugins and the config's plugins, with the config's settings
@@ -164,6 +271,33 @@ export function resolveRuleSet(loaded: LoadedConfig | null): RuleSet {
     plugins.push(plugin);
   });
 
+  // A namespace in config compat must be a listed plugin that declares compat.
+  const targets = config.compat ?? {};
+  for (const namespace of Object.keys(targets)) {
+    const plugin = plugins.find(({ meta }) => meta.name === namespace);
+    if (plugin === undefined) {
+      fail(
+        ['compat', namespace],
+        `no listed plugin has the namespace ${namespace}`,
+        `list the plugin providing ${namespace}/ rules in plugins in an .mjs config`,
+      );
+    } else if (plugin.compat === undefined) {
+      fail(
+        ['compat', namespace],
+        `the ${namespace} plugin does not check against runtime versions`,
+        `remove ${namespace} from compat`,
+      );
+    }
+  }
+  const compat: RuleSet['compat'] = dictionary();
+  for (const plugin of plugins) {
+    const { name } = plugin.meta;
+    if (plugin.compat === undefined) continue;
+    const target = Object.hasOwn(targets, name) ? targets[name] : undefined;
+    compat[name] = resolveTarget(name, plugin.compat, target ?? 'latest', fail);
+  }
+  const noCompat: Readonly<Record<string, string>> = Object.freeze({});
+
   const settings = config.rules ?? {};
   const ruleSet: RuleSet = {
     pluginVersions: plugins
@@ -179,10 +313,12 @@ export function resolveRuleSet(loaded: LoadedConfig | null): RuleSet {
             namespace: meta.name,
             rule,
             setting: settings[id] ?? rule.meta.defaultSeverity,
+            compat: compat[meta.name] ?? noCompat,
           };
         }),
       )
       .sort((a, b) => compareStrings(a.id, b.id)),
+    compat,
   };
 
   const ruleIds: string[] = ruleSet.rules.map(({ id }) => id);
