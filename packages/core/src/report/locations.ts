@@ -1,7 +1,9 @@
 // Where a finding is, in the words every human-facing format uses: its FSH line when mapped,
 // otherwise its compiled JSON or its config entry. Shared so the formats cannot drift apart.
 import type {
+  ConfigurationLocation,
   Finding,
+  QuestionnaireLocation,
   RelatedLocation,
   ResourceIdentity,
   SourceLocation,
@@ -17,8 +19,8 @@ export const unmappedReasons: Record<UnmappedReason, string> = {
   'source-unavailable': 'no FSH sources are available',
 };
 
-// A finding's primary location: an FSH range, a compiled JSON site with the reason it is not
-// mapped, or a config entry.
+// Where a finding, or one of its related locations, is: an FSH range, a compiled JSON site with
+// the reason it is not mapped, or a config entry.
 export type PrimaryLocation =
   | { kind: 'source'; location: SourceLocation }
   | {
@@ -30,16 +32,18 @@ export type PrimaryLocation =
     }
   | { kind: 'config'; file: string; pointer: string };
 
-export function primaryLocation(finding: Finding): PrimaryLocation {
-  if (finding.kind === 'config') {
-    const { file, pointer } = finding.configLocation;
+export function primaryLocation(
+  where: QuestionnaireLocation | ConfigurationLocation,
+): PrimaryLocation {
+  if (where.kind === 'config') {
+    const { file, pointer } = where.configLocation;
     return { kind: 'config', file, pointer };
   }
-  if (finding.sourceLocation.status === 'mapped') {
-    return { kind: 'source', location: finding.sourceLocation.location };
+  if (where.sourceLocation.status === 'mapped') {
+    return { kind: 'source', location: where.sourceLocation.location };
   }
-  const { file, pointer, resource } = finding.jsonLocation;
-  return { kind: 'compiled', file, pointer, resource, reason: finding.sourceLocation.reason };
+  const { file, pointer, resource } = where.jsonLocation;
+  return { kind: 'compiled', file, pointer, resource, reason: where.sourceLocation.reason };
 }
 
 export function displayPointer(pointer: string): string {
