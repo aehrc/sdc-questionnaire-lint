@@ -25,7 +25,8 @@ The linter reads compiled JSON: run sushi . after editing FSH.
 options:
   --config <path>      use this config file; by default sdc-questionnaire-lint.config.json
                        or .mjs is read from the current directory, if present
-  --format text|json   output format on stdout (default: text)
+  --format <format>    output format on stdout: text (default), json, github for
+                       GitHub Actions annotations and job summary, or sarif
   --show-info          include info findings in text output
   --help               print help and exit
   --version            print the linter version and exit
@@ -36,6 +37,7 @@ examples:
   sdc-lint lint "fsh-generated/resources/Questionnaire-*.json"
   sdc-lint lint --config ig/sdc-questionnaire-lint.config.json
   sdc-lint lint --format json > report.json
+  sdc-lint lint --format sarif > lint.sarif
 
 exit codes:
   0  analysis completed with no unsuppressed errors; warnings and info may remain

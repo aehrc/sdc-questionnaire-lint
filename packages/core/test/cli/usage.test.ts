@@ -75,3 +75,44 @@ describe('usage errors after a JSON format selection', () => {
     expect(result.stderr).toMatch(/^error: /);
   });
 });
+
+describe('usage errors after a github or sarif format selection', () => {
+  it('writes the failure annotation to stdout for github', () => {
+    const result = runBinary(['lint', '--format', 'github', '--bogus'], {
+      env: { ...process.env, GITHUB_STEP_SUMMARY: '' },
+    });
+    expect(result).toEqual({
+      code: 2,
+      stdout:
+        '::error title=sdc-lint failed%3A USAGE_ERROR::unknown flag --bogus' +
+        '%0Ahelp: run sdc-lint lint --help for the available flags\n',
+      stderr:
+        'error: unknown flag --bogus\nhelp: run sdc-lint lint --help for the available flags\n',
+    });
+  });
+
+  it('writes a SARIF log with no results for sarif', () => {
+    const result = runBinary(['lint', '--format=sarif', '--bogus']);
+    expect(result.code).toBe(2);
+    const log = JSON.parse(result.stdout) as {
+      runs: [{ results?: unknown; invocations: [{ toolExecutionNotifications: unknown }] }];
+    };
+    expect(log.runs[0]).not.toHaveProperty('results');
+    expect(log.runs[0].invocations[0].toolExecutionNotifications).toMatchObject([
+      {
+        descriptor: { id: 'USAGE_ERROR' },
+        message: { text: expect.stringMatching(/^unknown flag --bogus\n/) as unknown },
+      },
+    ]);
+  });
+
+  it.each([
+    [['lint', '--format', 'xml']],
+    [['lint', '--format', 'sarif', '--format', 'github']],
+    [['explain', '--format', 'sarif']],
+  ])('%j leaves stdout empty', (argv) => {
+    const result = runBinary(argv);
+    expect(result.code).toBe(2);
+    expect(result.stdout).toBe('');
+  });
+});

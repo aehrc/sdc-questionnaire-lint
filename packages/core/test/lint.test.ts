@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ExpressionSite, QuestionnaireDocument } from '../src/analysis/expression-site.js';
 import { findExpressionSites } from '../src/analysis/expression-sites.js';
 import { lint, type CompletedReport, type QuestionnaireFinding } from '../src/index.js';
+import { lintWithRules } from '../src/lint.js';
 import { expectValidReport } from './support/report.js';
 import { tempTree } from './support/tmp.js';
 
@@ -303,6 +304,21 @@ describe('config', () => {
     const report = await lint({ cwd });
     expect(report.findings).toMatchObject([{ ruleId: 'sdc/parse-error', severity: 'warning' }]);
     expect(report.summary).toMatchObject({ errors: 0, warnings: 1, config });
+  });
+
+  it('returns the rules of the run with the same report, including rules configured off', async () => {
+    const cwd = await tempTree({
+      [config]: JSON.stringify({ rules: { 'sdc/unknown-function': 'off' } }),
+      'fsh-generated/resources/Questionnaire-A.json': broken,
+    });
+    const { report, rules } = await lintWithRules({ cwd });
+    expect(report).toEqual(await lint({ cwd }));
+    const settings = new Map(rules.map(({ id, setting }) => [id, setting]));
+    expect(settings.get('sdc/unknown-function')).toBe('off');
+    expect(settings.get('sdc/parse-error')).toBe('error');
+    expect(settings.get('lint/stale-suppression')).toBe('warning');
+    const ids = rules.map(({ id }) => id);
+    expect(ids).toEqual([...ids].sort());
   });
 
   it('does not claim a syntax check ran when sdc/parse-error is off', async () => {

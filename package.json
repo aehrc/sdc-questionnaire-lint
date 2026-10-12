@@ -52,6 +52,8 @@
     "corpus": "npm run build --workspace sdc-questionnaire-lint && node packages/core/scripts/corpus.ts",
     "example": "npm run build --workspace sdc-questionnaire-lint && node packages/core/scripts/example.ts",
     "demo": "npm run build --workspace sdc-questionnaire-lint && node packages/core/scripts/demo.ts",
+    "demo:github": "npm run demo -- --format github",
+    "demo:sarif": "npm run demo -- --format sarif",
     "check:package": "publint packages/core && publint packages/plugin-smart-forms && attw --pack packages/core --profile esm-only && attw --pack packages/plugin-smart-forms --profile esm-only",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run build && npm test && npm run check:package"
   },

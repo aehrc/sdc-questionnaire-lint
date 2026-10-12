@@ -1,5 +1,11 @@
+import pkg from '../package.json' with { type: 'json' };
+import { formatGithubFailure, formatGithubFailureSummary } from './report/github.js';
 import { formatJsonReport } from './report/json.js';
-import type { FailedReport } from './report/types.js';
+import { formatSarifFailure } from './report/sarif.js';
+import type { FailedReport, FailureRecord } from './report/types.js';
+
+// The formats lint writes to stdout.
+export type OutputFormat = 'text' | 'json' | 'github' | 'sarif';
 
 // Codes are stable and never reused for another cause (report-format.md § Failures).
 export type FailureCode =
@@ -63,18 +69,49 @@ export function renderFailureText(failure: LintFailure): string {
   return `error: ${failure.message}\nhelp: ${failure.help}\n`;
 }
 
+function failureRecord(failure: LintFailure): FailureRecord {
+  return {
+    code: failure.code,
+    ...(failure.path === undefined ? {} : { path: failure.path }),
+    ...(failure.ruleId === undefined ? {} : { ruleId: failure.ruleId }),
+    message: failure.message,
+    help: failure.help,
+  };
+}
+
 // The failed report document. It never carries run, findings or summary.
 export function renderFailureJson(failure: LintFailure): string {
   const document: FailedReport = {
     schemaVersion: 1,
     status: 'failed',
-    failure: {
-      code: failure.code,
-      ...(failure.path === undefined ? {} : { path: failure.path }),
-      ...(failure.ruleId === undefined ? {} : { ruleId: failure.ruleId }),
-      message: failure.message,
-      help: failure.help,
-    },
+    failure: failureRecord(failure),
   };
   return formatJsonReport(document);
+}
+
+// What a failure writes besides the error and help on stderr: a document on stdout, except in
+// text, and for github a job summary section.
+export interface FailureOutput {
+  stdout?: string;
+  summary?: string;
+}
+
+// cwd is the working directory report paths are relative to, which a SARIF log names.
+export function renderFailureOutput(
+  format: OutputFormat,
+  failure: LintFailure,
+  cwd: string,
+): FailureOutput {
+  switch (format) {
+    case 'text':
+      return {};
+    case 'json':
+      return { stdout: renderFailureJson(failure) };
+    case 'github': {
+      const record = failureRecord(failure);
+      return { stdout: formatGithubFailure(record), summary: formatGithubFailureSummary(record) };
+    }
+    case 'sarif':
+      return { stdout: formatSarifFailure(failureRecord(failure), pkg.version, cwd) };
+  }
 }

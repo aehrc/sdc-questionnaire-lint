@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runCli } from '../../src/cli/run.js';
 import { expectValidReport } from './report.js';
+import { expectValidSarif } from './sarif.js';
 
 export interface CliResult {
   code: number;
@@ -13,10 +14,14 @@ export interface CliResult {
 const binary = fileURLToPath(new URL('../../dist/cli.js', import.meta.url));
 const binDirectory = fileURLToPath(new URL('../../../../node_modules/.bin/', import.meta.url));
 
-// Every JSON document a CLI test captures must be a valid report, so check it here once rather
-// than in each test.
+// Every JSON document a CLI test captures must be a valid report or SARIF log, so check it here
+// once rather than in each test.
 function checked(result: CliResult): CliResult {
-  if (result.stdout.startsWith('{')) expectValidReport(JSON.parse(result.stdout));
+  if (result.stdout.startsWith('{')) {
+    const document = JSON.parse(result.stdout) as object;
+    if ('runs' in document) expectValidSarif(document);
+    else expectValidReport(document);
+  }
   return result;
 }
 
