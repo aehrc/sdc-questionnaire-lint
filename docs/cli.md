@@ -379,7 +379,7 @@ Consume the report only after this invocation reaches the linter; a build failur
 
 The report records the version of the IG's installed `fsh-sushi` as `run.sushi`, which no flag needs to pass ([report-format.md](report-format.md#run-metadata-and-summary)). Install SUSHI as a development dependency and run that copy, as this recipe and `npm run` scripts do, so the recorded version is the one that generated the inputs. A SUSHI installed only globally is not recorded.
 
-In GitHub Actions, the `github` format annotates the pull request and writes the job summary, and a SARIF upload adds the findings to code scanning. Upload the SARIF only when the linter exits 0 or 1: exit 2 means the run did not complete, and the step is skipped rather than relying on how code scanning reads a failed run. During the report-only stage, leave out the last step; once errors become a required check, keep it.
+In GitHub Actions, the `github` format annotates the pull request and writes the job summary, and a SARIF upload adds the findings to code scanning. The upload is optional and needs `security-events: write`, so it runs in a job of its own: the lint job only reads the repository, and passes the SARIF log on as an artifact. Upload the SARIF only when the linter exits 0 or 1: exit 2 means the run did not complete, so no log is kept, rather than relying on how code scanning reads a failed run. Without code scanning, leave out the `Lint as SARIF` and `Keep the SARIF` steps and the `upload-sarif` job. During the report-only stage, leave out the `Fail on lint errors` step; once errors become a required check, keep it.
 
 ```yaml
 jobs:
@@ -387,7 +387,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write # only for the SARIF upload
+    outputs:
+      sarif: ${{ steps.sarif.outcome }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -407,13 +408,32 @@ jobs:
         if: steps.lint.outputs.status != '2'
         # Exit 1 is a completed run with errors; only exit 2 fails this step.
         run: ./node_modules/.bin/sdc-lint lint --format sarif > lint.sarif || [ $? -eq 1 ]
-      - uses: github/codeql-action/upload-sarif@v4
+      - name: Keep the SARIF
         if: steps.sarif.outcome == 'success'
+        uses: actions/upload-artifact@v7
         with:
-          sarif_file: lint.sarif
+          name: lint-sarif
+          path: lint.sarif
       - name: Fail on lint errors
         if: steps.lint.outputs.status != '0'
         run: exit ${{ steps.lint.outputs.status }}
+
+  upload-sarif:
+    needs: lint
+    # !cancelled() lets it run after the lint job failed on errors, when a log was kept.
+    if: ${{ !cancelled() && needs.lint.outputs.sarif == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: lint-sarif
+      - uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: lint.sarif
 ```
 
 ## Deferred
