@@ -7,7 +7,7 @@ import { compareStrings } from '../compare.js';
 import type { ResolvedRule } from '../plugins/rule-set.js';
 import { findingDetailLines, type PrimaryLocation, primaryLocation } from './locations.js';
 import { compareFindings } from './sort.js';
-import type { CompletedReport, Finding, Severity } from './types.js';
+import type { CompletedReport, FailureRecord, Finding, Severity } from './types.js';
 
 export const sarifSchemaUri =
   'https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json';
@@ -75,8 +75,18 @@ interface SarifToolComponent {
   rules?: SarifReportingDescriptor[];
 }
 
+interface SarifNotification {
+  level: 'error';
+  descriptor: { id: string };
+  associatedRule?: { id: string };
+  message: SarifMessage;
+  locations?: SarifLocation[];
+  properties?: Record<string, unknown>;
+}
+
 interface SarifInvocation {
   executionSuccessful: boolean;
+  toolExecutionNotifications?: SarifNotification[];
 }
 
 interface SarifRun {
@@ -221,6 +231,36 @@ export function formatSarifReport(
         columnKind: 'utf16CodeUnits',
         results: findings.map((finding) => result(finding, ruleIndex.get(finding.ruleId) ?? 0)),
         properties: { selection, compat, summary: report.summary },
+      },
+    ],
+  };
+  return `${JSON.stringify(log, null, 2)}\n`;
+}
+
+// A run that did not complete: one error notification naming the failure code, and no results.
+// SARIF reads an absent results as "the tool produced none" and [] as "nothing found"; uploading
+// [] to code scanning would close every open alert. version is the linter's own.
+export function formatSarifFailure(failure: FailureRecord, version: string, cwd: string): string {
+  const notification: SarifNotification = {
+    level: 'error',
+    descriptor: { id: failure.code },
+    ...(failure.ruleId === undefined ? {} : { associatedRule: { id: failure.ruleId } }),
+    message: { text: `${failure.message}\nhelp: ${failure.help}` },
+    ...(failure.path === undefined
+      ? {}
+      : {
+          locations: [{ physicalLocation: { artifactLocation: artifactLocation(failure.path) } }],
+        }),
+    properties: { help: failure.help },
+  };
+  const log: SarifLog = {
+    $schema: sarifSchemaUri,
+    version: '2.1.0',
+    runs: [
+      {
+        tool: { driver: { name: 'sdc-questionnaire-lint', version } },
+        invocations: [{ executionSuccessful: false, toolExecutionNotifications: [notification] }],
+        originalUriBaseIds: { [srcRoot]: { uri: directoryUri(cwd) } },
       },
     ],
   };

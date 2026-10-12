@@ -1,12 +1,18 @@
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import pkg from '../package.json' with { type: 'json' };
 import {
   type FailureCode,
   LintFailure,
   type LintFailureInit,
   renderFailureJson,
+  renderFailureOutput,
   renderFailureText,
 } from '../src/failure.js';
+import type { SarifLog } from '../src/report/sarif.js';
 import { expectValidReport } from './support/report.js';
+import { expectValidSarif } from './support/sarif.js';
 
 const codes: FailureCode[] = [
   'USAGE_ERROR',
@@ -98,5 +104,97 @@ describe('LintFailure', () => {
     // Bypasses the type check to exercise the runtime guard for untyped callers.
     const init = { code: 'RULE_CRASH', message: 'x', help: 'y' } as unknown as LintFailureInit;
     expect(() => new LintFailure(init)).toThrow(/requires a ruleId/);
+  });
+});
+
+describe('renderFailureOutput', () => {
+  const cwd = path.resolve('/work/ig');
+  const crash = new LintFailure({
+    code: 'RULE_CRASH',
+    message: 'Rule test/crashes threw: boom.',
+    help: 'Report the crash to the plugin author.',
+    path: 'questionnaires/a b.json',
+    ruleId: 'test/crashes',
+  });
+
+  function sarifOf(failure: LintFailure): SarifLog {
+    const { stdout = '' } = renderFailureOutput('sarif', failure, cwd);
+    return JSON.parse(stdout) as SarifLog;
+  }
+
+  it('writes nothing besides stderr in text', () => {
+    expect(renderFailureOutput('text', crash, cwd)).toEqual({});
+  });
+
+  it('writes the failed report in json', () => {
+    expect(renderFailureOutput('json', crash, cwd)).toEqual({ stdout: renderFailureJson(crash) });
+  });
+
+  it.each(codes)('writes one error annotation titled with %s in github', (code) => {
+    const { stdout = '' } = renderFailureOutput('github', failureFor(code), cwd);
+    expect(stdout.split('\n')).toHaveLength(2);
+    expect(stdout).toMatch(
+      new RegExp(`^::error title=sdc-lint failed%3A ${code}::Something failed \\(${code}\\)\\.`),
+    );
+    expect(stdout.endsWith('%0Ahelp: Do the next thing.\n')).toBe(true);
+  });
+
+  it('annotates the file a failure names, with its rule, in github', () => {
+    expect(renderFailureOutput('github', crash, cwd).stdout).toBe(
+      '::error file=questionnaires/a b.json,title=sdc-lint failed%3A RULE_CRASH::' +
+        'Rule test/crashes threw: boom.%0Arule: test/crashes' +
+        '%0Ahelp: Report the crash to the plugin author.\n',
+    );
+  });
+
+  it('writes a job summary with no counts in github', () => {
+    expect(renderFailureOutput('github', crash, cwd).summary).toBe(
+      [
+        '### sdc-lint did not complete',
+        '',
+        '- Code: RULE\\_CRASH',
+        '- File: questionnaires/a b.json',
+        '- Rule: test/crashes',
+        '- Problem: Rule test/crashes threw: boom.',
+        '- Help: Report the crash to the plugin author.',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it.each(codes)('writes a valid SARIF log with no results for %s', (code) => {
+    const log = sarifOf(failureFor(code));
+    expectValidSarif(log);
+    const [run] = log.runs;
+    expect(run).not.toHaveProperty('results');
+    expect(run.tool.driver).toEqual({ name: 'sdc-questionnaire-lint', version: pkg.version });
+    expect(run.invocations).toEqual([
+      {
+        executionSuccessful: false,
+        toolExecutionNotifications: [
+          {
+            level: 'error',
+            descriptor: { id: code },
+            ...(code === 'RULE_CRASH' ? { associatedRule: { id: 'test/crashes' } } : {}),
+            message: { text: `Something failed (${code}).\nhelp: Do the next thing.` },
+            properties: { help: 'Do the next thing.' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('locates the file a failure names under %SRCROOT% in SARIF', () => {
+    const [run] = sarifOf(crash).runs;
+    expect(run.invocations[0].toolExecutionNotifications?.[0]?.locations).toEqual([
+      {
+        physicalLocation: {
+          artifactLocation: { uri: 'questionnaires/a%20b.json', uriBaseId: '%SRCROOT%' },
+        },
+      },
+    ]);
+    expect(run.originalUriBaseIds).toEqual({
+      '%SRCROOT%': { uri: `${pathToFileURL(cwd).href}/` },
+    });
   });
 });

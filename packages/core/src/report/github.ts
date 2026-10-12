@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { displayPointer, findingDetailLines, primaryLocation, resourceLabel } from './locations.js';
 import { compareFindings } from './sort.js';
 import { formatTextFindings, formatTextSummary } from './text.js';
-import type { CompletedReport, Finding, Severity } from './types.js';
+import type { CompletedReport, FailureRecord, Finding, Severity } from './types.js';
 
 type AnnotationCommand = 'error' | 'warning' | 'notice';
 
@@ -150,4 +150,31 @@ export function formatGithubSummary(report: CompletedReport, limit = summaryLimi
       ? ''
       : `\n${String(omitted)} more ${omitted === 1 ? 'finding is' : 'findings are'} in the job log.\n`;
   return `${head}${table}${note}${tail}`;
+}
+
+// A run that did not complete: one error annotation titled with the failure code, at the file the
+// failure names when it names one.
+export function formatGithubFailure(failure: FailureRecord): string {
+  const properties: [string, string][] = [];
+  if (failure.path !== undefined) properties.push(['file', failure.path]);
+  properties.push(['title', `sdc-lint failed: ${failure.code}`]);
+  const lines = [
+    failure.message,
+    ...(failure.ruleId === undefined ? [] : [`rule: ${failure.ruleId}`]),
+    `help: ${failure.help}`,
+  ];
+  return `${workflowCommand('error', properties, lines.join('\n'))}\n`;
+}
+
+// The job summary of a run that did not complete. It has no counts and no table, so it cannot be
+// read as a clean run.
+export function formatGithubFailureSummary(failure: FailureRecord): string {
+  const facts = [
+    `Code: ${failure.code}`,
+    ...(failure.path === undefined ? [] : [`File: ${failure.path}`]),
+    ...(failure.ruleId === undefined ? [] : [`Rule: ${failure.ruleId}`]),
+    `Problem: ${failure.message}`,
+    `Help: ${failure.help}`,
+  ];
+  return `### sdc-lint did not complete\n\n${facts.map((fact) => `- ${markdownCell(fact)}\n`).join('')}`;
 }
