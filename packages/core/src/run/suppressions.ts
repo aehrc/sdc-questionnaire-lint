@@ -27,7 +27,7 @@ import {
   nothingToHide,
   siteGone,
 } from '../rules/stale-suppression.js';
-import { configFingerprint } from './fingerprint.js';
+import { configFingerprint, distinctFingerprints } from './fingerprint.js';
 
 export interface SuppressionOutcome {
   // Unsuppressed findings, then one stale finding per stale entry.
@@ -259,6 +259,8 @@ export async function applySuppressions(run: SuppressionRun): Promise<Suppressio
   const assessStaleness = isEnabled(run.rules, staleSuppressionId);
   const hidden = new Set<Finding>();
   const stale: ConfigFinding[] = [];
+  // Two entries with the same rule and selectors would otherwise share a fingerprint.
+  const distinct = distinctFingerprints();
   for (const [index, entry] of (loaded.config.suppress ?? []).entries()) {
     const assessment = await assess(entry, index, run, loaded);
     if (assessment.state === 'applied') {
@@ -274,7 +276,7 @@ export async function applySuppressions(run: SuppressionRun): Promise<Suppressio
         message: assessment.message,
         help: assessment.help,
         configLocation: { file: loaded.display, pointer: `/suppress/${String(index)}` },
-        fingerprint: configFingerprint(staleSuppressionId, entry),
+        fingerprint: distinct(configFingerprint(staleSuppressionId, entry)),
       });
     } else {
       suppressions.notAssessed++;

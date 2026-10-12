@@ -72,14 +72,17 @@ function sha256(identity: unknown[]): string {
   return createHash('sha256').update(JSON.stringify(identity)).digest('hex');
 }
 
-// Rule, file, resource and the site key; never a line number or an array index above the item.
+// Rule, file, resource, the site key and the text of the reported range; never a line number, an
+// offset or an array index above the item. Two findings of one rule at one site differ by the
+// text they report, so an edit elsewhere in the expression changes neither.
 export function questionnaireFingerprint(parts: {
   ruleId: string;
   file: string;
   resource: ResourceIdentity;
   key: string;
+  span: string | undefined;
 }): string {
-  const { ruleId, file, resource, key } = parts;
+  const { ruleId, file, resource, key, span } = parts;
   const identity = [
     ruleId,
     file,
@@ -87,8 +90,21 @@ export function questionnaireFingerprint(parts: {
     resource.id ?? null,
     resource.pointer,
     key,
+    span ?? null,
   ];
   return sha256(identity);
+}
+
+// Keeps fingerprints unique within a report: the first of a fingerprint is kept, and the n-th
+// repeat becomes a hash of it and n. Findings that share every part, such as one rule reporting
+// the same text twice in an expression, are told apart by the order they are reported in.
+export function distinctFingerprints(): (fingerprint: string) => string {
+  const occurrences = new Map<string, number>();
+  return (fingerprint) => {
+    const occurrence = (occurrences.get(fingerprint) ?? 0) + 1;
+    occurrences.set(fingerprint, occurrence);
+    return occurrence === 1 ? fingerprint : sha256([fingerprint, occurrence]);
+  };
 }
 
 // A finding about a suppression entry: the reporting rule, the suppressed rule and the selectors.

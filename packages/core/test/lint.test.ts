@@ -225,6 +225,47 @@ describe('expression findings', () => {
     expect(report.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
   });
 
+  describe('two findings of one rule in one expression', () => {
+    const calculated = (expression: string) => ({
+      item: [
+        {
+          linkId: 'q',
+          type: 'string',
+          extension: [{ url: `${sdc}calculatedExpression`, valueExpression: fhirPath(expression) }],
+        },
+      ],
+    });
+
+    // Each finding's reported text and fingerprint, in report order.
+    async function fingerprints(expression: string): Promise<[string, string][]> {
+      const { findings } = await lintQuestionnaire(calculated(expression));
+      return findings.map(({ expression: excerpt, fingerprint }) => {
+        const { startOffset = 0, endOffset = 0 } = excerpt?.range ?? {};
+        return [excerpt?.text.slice(startOffset, endOffset) ?? '', fingerprint];
+      });
+    }
+
+    it.each([
+      ['different text', '%foo & %bar'],
+      ['the same text', 'frob() | frob()'],
+    ])('get distinct fingerprints when they report %s', async (_, expression) => {
+      const found = await fingerprints(expression);
+      expect(found).toHaveLength(2);
+      expect(new Set(found.map(([, fingerprint]) => fingerprint)).size).toBe(2);
+    });
+
+    it('keep their fingerprints when the expression changes elsewhere', async () => {
+      expect(await fingerprints("%foo & ' and ' & %bar")).toEqual(
+        await fingerprints('%foo & %bar'),
+      );
+    });
+
+    it('keep the other fingerprint when one is fixed', async () => {
+      const [, bar] = await fingerprints('%foo & %bar');
+      expect(await fingerprints("'foo' & %bar")).toEqual([bar]);
+    });
+  });
+
   it.each(queryLanguages)(
     'reports a broken fragment once, as sdc/fragment-parse-error, in %s',
     async (language) => {

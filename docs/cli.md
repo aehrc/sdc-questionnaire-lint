@@ -223,7 +223,7 @@ One [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sar
 - Artifact URIs are relative to `%SRCROOT%`, which `originalUriBaseIds` defines as the working directory; report paths are relative to it too. Run the linter from the repository root, so code scanning finds the files.
 - A mapped finding has its FSH region. SARIF counts lines and columns as the report does, from 1 and in UTF-16 code units (`columnKind: "utf16CodeUnits"`) with an exclusive end column, so the numbers are the report's own.
 - An unmapped finding keeps its compiled JSON file, with no region; its `properties` hold `jsonLocation`, and `sourceMapping` with the reason it is unmapped. A configuration finding has the config file, and `properties.configLocation`.
-- `partialFingerprints` holds the report's `fingerprint`, as `primaryLocationLineHash` and as `sdcQuestionnaireLint/v1`. It has no line numbers, so code scanning keeps an alert when its FSH line moves.
+- `partialFingerprints` holds the report's `fingerprint`, as `primaryLocationLineHash` and as `sdcQuestionnaireLint/v1`. It has no line numbers, so code scanning keeps an alert when its FSH line moves. It is unique within the run, so two findings of one rule in one expression are two alerts.
 
 The result for the error in the text example:
 
