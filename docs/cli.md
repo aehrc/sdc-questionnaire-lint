@@ -58,10 +58,10 @@ For example, when invoked from the parent of `ig`, `lint --config ig/sdc-questio
 
 | Flag | Default | Meaning |
 | :- | :- | :- |
-| `--format text\|json` | `text` | Output format on stdout |
+| `--format text\|json\|github\|sarif` | `text` | Output format on stdout |
 | `--show-info` | false | Include info findings in text output |
 
-`--show-info` affects presentation only. It does not change analysis, counts, suppressions or exit status. JSON always includes all severities; the flag has no effect with `--format json`.
+`--show-info` affects presentation only. It does not change analysis, counts, suppressions or exit status. JSON, GitHub and SARIF output always include all severities; the flag has no effect with those formats.
 
 ### Input selection
 
@@ -101,11 +101,11 @@ Completed runs write findings and the summary to stdout before exiting. Human-re
 | 1 | Analysis completed with one or more unsuppressed errors |
 | 2 | The run did not complete: bad config, unreadable input, no Questionnaires found, a rule crash, or wrong usage |
 
-In text mode, stdout stays empty on failure. Once a valid `lint --format json` selection is recognized, handled failures also write one structured failure document to stdout, including subsequent argument-validation failures. Unknown commands or an invalid/ambiguous format selection use stderr only. Process termination and failures before the CLI can start cannot guarantee a JSON document.
+In text mode, stdout stays empty on failure. Once a valid `lint --format json`, `github` or `sarif` selection is recognized, handled failures also write that format's failure output to stdout, including subsequent argument-validation failures: the failed report for `json`, one error annotation for `github`, and a SARIF log with no results for `sarif`. Unknown commands or an invalid/ambiguous format selection use stderr only. Process termination and failures before the CLI can start cannot guarantee a failure document.
 
 Buffer the report until analysis completes; a handled failure discards partial findings and does not emit a success-shaped summary. Config and plugin logging must not contaminate report stdout. A rule crash identifies its rule ID in both the failure record and stderr.
 
-Findings are sorted identically in both formats: by displayed file, then known line and column (unknown positions last), then rule ID, then resource pointer and site/config pointer. Ties use the fingerprint. String comparisons are locale-independent. Counts are computed before text visibility filtering.
+Findings are sorted identically in every format: by displayed file, then known line and column (unknown positions last), then rule ID, then resource pointer and site/config pointer. Ties use the fingerprint. String comparisons are locale-independent. Counts are computed before text visibility filtering.
 
 ### `text`
 
@@ -159,7 +159,160 @@ A handled failure exits 2 and has this shape:
 }
 ```
 
-Failure codes identify the cause without parsing `message`. A failed report has no `findings`, `run` or `summary` fields, so it cannot be mistaken for a completed clean run. JSON is the complete record; later formats such as GitHub annotations and SARIF render this record.
+Failure codes identify the cause without parsing `message`. A failed report has no `findings`, `run` or `summary` fields, so it cannot be mistaken for a completed clean run. JSON is the complete record; the `github` and `sarif` formats render this record.
+
+### `github`
+
+For a GitHub Actions step. stdout holds one workflow-command annotation per finding, in report order, then every finding as text in a collapsed group, then the text summary. For the two findings of the text example, with the `::stop-commands::` token shown as `<token>`:
+
+```text
+::warning title=sdc/unused-declaration::fsh-generated/resources/Questionnaire-Example.json: "Patient summary" (patient-summary) declares %25age, which nothing uses.%0Alocation: compiled JSON; Questionnaire/Example; /item/1/extension/0/valueExpression/expression%0Anote: FSH line not found, the expression appears more than once%0Ahelp: remove the variable, or reference it as %25age
+::error file=input/fsh/Example.fsh,line=42,endLine=42,col=18,endColumn=29,title=sdc/undefined-variable::"Patient name" (patient-name) uses %25patientNmae, which is not defined. This field will not calculate.%0Ahelp: a variable with a similar name exists: %25patientName
+::group::sdc-lint findings
+::stop-commands::<token>
+fsh-generated/resources/Questionnaire-Example.json: warning sdc/unused-declaration "Patient summary" (patient-summary) declares %age, which nothing uses.
+  %patient.birthDate
+  location: compiled JSON; Questionnaire/Example; /item/1/extension/0/valueExpression/expression
+  note: FSH line not found, the expression appears more than once
+  help: remove the variable, or reference it as %age
+
+input/fsh/Example.fsh:42:18: error sdc/undefined-variable "Patient name" (patient-name) uses %patientNmae, which is not defined. This field will not calculate.
+  %patientNmae.exists()
+  ^~~~~~~~~~~~
+  help: a variable with a similar name exists: %patientName
+::<token>::
+::endgroup::
+::stop-commands::<token>
+2 findings (1 error, 1 warning, 0 info) in 1 questionnaire.
+Inputs: full run; 1 file read, 0 skipped. Expressions: 1 analysed, 0 unchecked. Suppressed findings: 0.
+Suppressions: 0 applied, 0 stale, 0 not assessed.
+Config: none, built-in defaults. FSH sources: input/fsh.
+Linter: 0.1.0. Plugins: sdc@0.1.0.
+::<token>::
+```
+
+- `error`, `warning` and `info` become `::error`, `::warning` and `::notice`, titled with the rule ID. The message is followed by the same `location:`, `note:`, `related:` and `help:` lines as text output, escaped as workflow commands require.
+- A mapped finding is annotated at its FSH file and lines. Columns are given only for a range on one line, and `endColumn` is inclusive, as GitHub reads it.
+- An unmapped or configuration finding keeps its severity, so an unmapped error is still an error annotation, but has no position: GitHub has no place for a compiled JSON site or a config entry. Its message starts with the file, and its `location:` line names the resource and pointer.
+- GitHub shows only the first few annotations of each kind in a step, so the log always holds every finding, info included. The log and the summary are written under `::stop-commands::`, with the SHA-256 of the text they wrap as the token, so text from a form cannot run a workflow command.
+- When `GITHUB_STEP_SUMMARY` is set, as it is in every Actions step, the job summary also gets a Markdown section: the counts, a table of every finding (Severity, Rule, Location, Message) and the other summary lines. Text from the forms is escaped so it cannot add Markdown or HTML. Rows stop below GitHub's 1 MiB limit, followed by a line saying how many more findings are in the job log. A summary that cannot be written is a `warning:` on stderr and does not change the exit status.
+
+On failure, stdout holds one error annotation titled with the failure code, at the failure's file when it names one:
+
+```text
+::error file=missing.json,title=sdc-lint failed%3A INPUT_NOT_FOUND::Input file does not exist.%0Ahelp: Check the supplied path.
+```
+
+and the job summary gets a section with no counts or table, so it cannot be read as a clean run:
+
+```markdown
+### sdc-lint did not complete
+
+- Code: INPUT\_NOT\_FOUND
+- File: missing.json
+- Problem: Input file does not exist.
+- Help: Check the supplied path.
+```
+
+### `sarif`
+
+One [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sarif-v2.1.0-errata01-os-complete.html) log on stdout with one run, for GitHub code scanning or another SARIF viewer. It renders the same record as `json`.
+
+- `tool.driver` names `sdc-questionnaire-lint` and its version, and describes each rule that ran, and any rule a finding names: its description, the "what it checks" and "how to fix" of its documentation, its `helpUri` and its default level. `tool.extensions` lists the plugins with their versions.
+- Each finding is a result, in report order, at the level `error`, `warning` or `note` (for info). Its message is the finding's message followed by the same detail lines as text output.
+- Artifact URIs are relative to `%SRCROOT%`, which `originalUriBaseIds` defines as the working directory; report paths are relative to it too. Run the linter from the repository root, so code scanning finds the files.
+- A mapped finding has its FSH region. SARIF counts lines and columns as the report does, from 1 and in UTF-16 code units (`columnKind: "utf16CodeUnits"`) with an exclusive end column, so the numbers are the report's own.
+- An unmapped finding keeps its compiled JSON file, with no region; its `properties` hold `jsonLocation`, and `sourceMapping` with the reason it is unmapped. A configuration finding has the config file, and `properties.configLocation`.
+- `partialFingerprints` holds the report's `fingerprint`, as `primaryLocationLineHash` and as `sdcQuestionnaireLint/v1`. It has no line numbers, so code scanning keeps an alert when its FSH line moves.
+
+The result for the error in the text example:
+
+```json
+{
+  "ruleId": "sdc/undefined-variable",
+  "ruleIndex": 0,
+  "level": "error",
+  "message": {
+    "text": "\"Patient name\" (patient-name) uses %patientNmae, which is not defined. This field will not calculate.\nhelp: a variable with a similar name exists: %patientName"
+  },
+  "locations": [
+    {
+      "physicalLocation": {
+        "artifactLocation": {
+          "uri": "input/fsh/Example.fsh",
+          "uriBaseId": "%SRCROOT%"
+        },
+        "region": {
+          "startLine": 42,
+          "startColumn": 18,
+          "endLine": 42,
+          "endColumn": 30
+        }
+      }
+    }
+  ],
+  "partialFingerprints": {
+    "primaryLocationLineHash": "example:undefined-variable:Example:patient-name:calculatedExpression:patientNmae",
+    "sdcQuestionnaireLint/v1": "example:undefined-variable:Example:patient-name:calculatedExpression:patientNmae"
+  },
+  "properties": {
+    "jsonLocation": {
+      "file": "fsh-generated/resources/Questionnaire-Example.json",
+      "pointer": "/item/0/extension/0/valueExpression/expression",
+      "resource": {
+        "resourceType": "Questionnaire",
+        "id": "Example",
+        "pointer": ""
+      }
+    },
+    "sourceMapping": {
+      "status": "mapped",
+      "confidence": "exact"
+    },
+    "expression": {
+      "text": "%patientNmae.exists()",
+      "range": {
+        "startOffset": 0,
+        "endOffset": 12
+      }
+    }
+  }
+}
+```
+
+A completed run always has `results`, `[]` when nothing was found. A failed run has no `results` at all: SARIF reads an absent `results` as "the tool produced no results", while `[]` would tell code scanning that every open alert is fixed. Its invocation reports the failure code and help:
+
+```json
+[
+  {
+    "executionSuccessful": false,
+    "toolExecutionNotifications": [
+      {
+        "level": "error",
+        "descriptor": {
+          "id": "INPUT_NOT_FOUND"
+        },
+        "message": {
+          "text": "Input file does not exist.\nhelp: Check the supplied path."
+        },
+        "locations": [
+          {
+            "physicalLocation": {
+              "artifactLocation": {
+                "uri": "missing.json",
+                "uriBaseId": "%SRCROOT%"
+              }
+            }
+          }
+        ],
+        "properties": {
+          "help": "Check the supplied path."
+        }
+      }
+    ]
+  }
+]
+```
 
 ## `explain`
 
@@ -224,6 +377,43 @@ exit "$lint_status"
 
 Consume the report only after this invocation reaches the linter; a build failure does not produce a new report. The file redirect truncates the previous report when the linter starts. Package-manager banners and SUSHI logs must not be redirected into the JSON report. Automation should retain the report on exit 1 as well as exit 0, and distinguish exit 2 from findings that need fixes.
 
+In GitHub Actions, the `github` format annotates the pull request and writes the job summary, and a SARIF upload adds the findings to code scanning. Upload the SARIF only when the linter exits 0 or 1: exit 2 means the run did not complete, and the step is skipped rather than relying on how code scanning reads a failed run. During the report-only stage, leave out the last step; once errors become a required check, keep it.
+
+```yaml
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # only for the SARIF upload
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: ./node_modules/.bin/sushi .
+      - name: Lint
+        id: lint
+        run: |
+          status=0
+          ./node_modules/.bin/sdc-lint lint --format github || status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+      - name: Lint as SARIF
+        id: sarif
+        if: steps.lint.outputs.status != '2'
+        # Exit 1 is a completed run with errors; only exit 2 fails this step.
+        run: ./node_modules/.bin/sdc-lint lint --format sarif > lint.sarif || [ $? -eq 1 ]
+      - uses: github/codeql-action/upload-sarif@v4
+        if: steps.sarif.outcome == 'success'
+        with:
+          sarif_file: lint.sarif
+      - name: Fail on lint errors
+        if: steps.lint.outputs.status != '0'
+        run: exit ${{ steps.lint.outputs.status }}
+```
+
 ## Deferred
 
-Not in the first version: `--strict-suppressions`, `--verbose`, `--preset`, `--fsh-dir`, the `concise`, JSON Lines, `github` and SARIF formats, file sinks (`--json <path>`, `--sarif <path>`), stdin input, `init` and `rules` commands, an MCP server, and `--format json` for `explain`.
+Not in the first version: `--strict-suppressions`, `--verbose`, `--preset`, `--fsh-dir`, the `concise` and JSON Lines formats, file sinks (`--json <path>`, `--sarif <path>`; one run writes one format to stdout), stdin input, `init` and `rules` commands, an MCP server, and `--format json` for `explain`.

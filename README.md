@@ -20,6 +20,8 @@ With FSH sources in `input/fsh`, a finding names the FSH file, line and column o
 sdc-lint lint fsh-generated/resources/Questionnaire-intake.json   # one file: a targeted run
 sdc-lint lint "fsh-generated/resources/Questionnaire-*.json"       # quote globs
 sdc-lint lint --format json > report.json                          # one JSON report on stdout
+sdc-lint lint --format github                                      # GitHub Actions annotations and job summary
+sdc-lint lint --format sarif > lint.sarif                          # SARIF for code scanning
 sdc-lint lint --show-info                                          # also show info findings
 ```
 
@@ -29,7 +31,7 @@ sdc-lint lint --show-info                                          # also show i
 | 1 | Analysis completed with one or more unsuppressed errors |
 | 2 | The run did not complete: bad config, unreadable input, no Questionnaires found, a rule crash, or wrong usage |
 
-Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
+Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout; `github` writes an error annotation and `sarif` a log with no results. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
 **Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with fifteen built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration`, `sdc/reserved-name`, `sdc/undefined-variable`, `sdc/shadowed-declaration`, `sdc/dependency-cycle`, `sdc/unused-declaration` and `sdc/unresolved-linkid`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules and select the runtime versions a compatibility plugin checks against. FSH source mapping works. The Smart Forms plugin has four rules: `smart-forms/unsupported-expression-language`, `smart-forms/expression-evaluated-as-fhirpath`, `smart-forms/questionnaire-variable-unavailable` and `smart-forms/unsupported-query-embedding`. Not built yet: the rest of the Smart Forms rules, slices P4 to P8 of the [Smart Forms rules plan](docs/smart-forms-rules.md).
 

@@ -7,6 +7,7 @@ import {
   formatGithubSummary,
   markdownCell,
 } from '../../src/report/github.js';
+import { LintFailure, renderFailureOutput } from '../../src/failure.js';
 import { formatTextFindings, formatTextSummary } from '../../src/report/text.js';
 import type { QuestionnaireFinding, SourceLocation } from '../../src/report/types.js';
 import {
@@ -14,6 +15,7 @@ import {
   questionnaireFinding,
   staleSuppressionFinding,
 } from '../support/builders.js';
+import { cliExamples } from '../support/docs.js';
 
 const fshRange: SourceLocation = {
   file: 'input/fsh/Example.fsh',
@@ -300,5 +302,28 @@ describe('formatGithubSummary', () => {
     expect(formatGithubSummary(completedReport(two), limit)).toContain(
       '\n1 more finding is in the job log.\n',
     );
+  });
+});
+
+// The examples under "### `github`" in docs/cli.md, from the findings of the text example.
+describe('the docs/cli.md examples', () => {
+  const [completed, failure] = cliExamples('### `github`', 'text');
+  const [failureSummary] = cliExamples('### `github`', 'markdown');
+  const missing = new LintFailure({
+    code: 'INPUT_NOT_FOUND',
+    path: 'missing.json',
+    message: 'Input file does not exist.',
+    help: 'Check the supplied path.',
+  });
+
+  it('shows the output for the text example', () => {
+    const output = formatGithubReport(completedReport([mappedError, unmappedWarning]));
+    expect(output.replace(/\b[0-9a-f]{64}\b/g, '<token>')).toBe(completed);
+  });
+
+  it('shows the failure annotation and job summary', () => {
+    const output = renderFailureOutput('github', missing, '/work/ig');
+    expect(output.stdout).toBe(failure);
+    expect(output.summary).toBe(failureSummary);
   });
 });

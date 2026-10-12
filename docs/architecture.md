@@ -24,9 +24,11 @@ flowchart TD
   buildSummary --> report(["CompletedReport<br/>report/types.ts"])
   report --> formatText["formatTextReport<br/>report/text.ts"]
   report --> formatJson["formatJsonReport<br/>report/json.ts"]
+  report --> formatGithub["formatGithubReport<br/>report/github.ts"]
+  report --> formatSarif["formatSarifReport<br/>report/sarif.ts"]
 ```
 
-The CLI (`cli/run.ts`) calls `lint()` and passes the report to one of the two formatters.
+The CLI (`cli/run.ts`) calls `lintWithRules()`, which is `lint()` returning the run's resolved rules as well, and passes the report to the formatter `--format` selects; SARIF also describes the rules. With `--format github`, `cli/step-summary.ts` appends `formatGithubSummary` to the job summary that `GITHUB_STEP_SUMMARY` names. A failure goes through `renderFailureOutput` in `failure.ts`: stderr in every format, and a failure document on stdout in `json`, `github` and `sarif`.
 
 ## 1. Config (`config/`)
 
@@ -133,5 +135,6 @@ The FSH modules mirror SUSHI 3.20.1, so they read FSH as SUSHI does: `fsh-docume
 - `types.ts` defines the public report contract, which matches [lint-report.schema.json](schemas/lint-report.schema.json).
 - `summary.ts`: `buildSummary` computes the counts.
 - `expression-coverage.ts`: `summarizeExpressionCoverage` counts the analysed and unchecked expressions for the summary. A site where an enabled rule applies but could not complete, which `incompleteSites` in `plugins/builtin.ts` lists, is unchecked: so far, a site where `sdc/undefined-variable` meets a reference after a `defineVariable` with a computed name, a declaration from which `sdc/dependency-cycle` reaches a declaration with such a reference, a variable whose use `sdc/unused-declaration` cannot establish (`unknown`), and a site where `sdc/unresolved-linkid` meets a linkId reference whose target or linkId is uncertain. A declaration that does not parse or is in another language is not followed, so it leaves nothing unchecked; a variable that only an expression with a syntax error could reference (`blocked`) is not unchecked either.
-- `sort.ts`: `compareFindings` orders findings; both formatters use it.
-- `json.ts` and `text.ts` are the two output formats: `formatJsonReport` and `formatTextReport`.
+- `sort.ts`: `compareFindings` orders findings; every formatter uses it.
+- `locations.ts`: `primaryLocation` says where a finding or related location is (its FSH range, its compiled JSON site and the reason it is unmapped, or its config entry), and `findingDetailLines` gives the `location:`, `note:`, `related:` and `help:` lines. Text, GitHub and SARIF output share them.
+- `json.ts`, `text.ts`, `github.ts` and `sarif.ts` are the four output formats: `formatJsonReport`, `formatTextReport`, `formatGithubReport` with `formatGithubSummary`, and `formatSarifReport`. `github.ts` and `sarif.ts` also render a failed run, for `renderFailureOutput`.

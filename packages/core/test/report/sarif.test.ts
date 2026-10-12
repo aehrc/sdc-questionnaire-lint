@@ -14,6 +14,8 @@ import {
 } from '../support/builders.js';
 import { docsDir, readJson } from '../support/report.js';
 import { expectValidSarif, validateSarifSchema } from '../support/sarif.js';
+import { cliExamples } from '../support/docs.js';
+import { LintFailure, renderFailureOutput } from '../../src/failure.js';
 
 // Absolute on every platform, so the expected base URI is too.
 const cwd = path.resolve('/work/ig');
@@ -401,4 +403,28 @@ describe('the SARIF schema check', () => {
     (onlyRun(document) as { originalUriBaseIds: unknown }).originalUriBaseIds = bases;
     return document;
   }
+});
+
+// The examples under "### `sarif`" in docs/cli.md: the result for the error of the text example,
+// and the invocation of a failed run.
+describe('the docs/cli.md examples', () => {
+  const [result = '', invocations = ''] = cliExamples('### `sarif`', 'json');
+
+  it('shows the result for the error of the text example', () => {
+    const fingerprint =
+      'example:undefined-variable:Example:patient-name:calculatedExpression:patientNmae';
+    const document = sarif(completedReport([{ ...mappedError, fingerprint }]), []);
+    expect(results(document)[0]).toEqual(JSON.parse(result));
+  });
+
+  it('shows the invocation of a failed run', () => {
+    const missing = new LintFailure({
+      code: 'INPUT_NOT_FOUND',
+      path: 'missing.json',
+      message: 'Input file does not exist.',
+      help: 'Check the supplied path.',
+    });
+    const { stdout = '' } = renderFailureOutput('sarif', missing, cwd);
+    expect((JSON.parse(stdout) as SarifLog).runs[0].invocations).toEqual(JSON.parse(invocations));
+  });
 });

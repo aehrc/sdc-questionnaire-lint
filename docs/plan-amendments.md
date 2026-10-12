@@ -107,3 +107,13 @@ Accepted with P2 (2026-10-09):
 Applied with P3 (2026-10-11):
 
 - **§4.2 `smart-forms/x-fhir-query-embedding-shape`:** built as `smart-forms/unsupported-query-embedding` (S17). Its scope is the `{{…}}` embeddings in named `application/x-fhir-query` variables, on the root and on items, which population fetches. "Not the supported `%launchContext.path` shape" is replaced by six checks, reproduced against `@aehrc/sdc-populate@4.7.1`: population does not recognise the embedding, the Questionnaire declares no launch context, the text is not a valid regular expression, the regular expression does not replace exactly its own embedding in every query, the head is not a launch context, or the path references a name population does not supply. Operators and literals are replaced, so they are not reported; the failures come from the unescaped regular expression population builds ([smart-forms-rules.md](smart-forms-rules.md#p3-smart-formsunsupported-query-embedding)).
+
+## From the GitHub and SARIF formats (2026-10-12)
+
+Issue #31. [cli.md](cli.md#github) and [cli.md](cli.md#sarif) hold the contract.
+
+- **§7.3, §7.4 formats:** `--format` takes `github` and `sarif` as well as `text` and `json`, each on stdout. File sinks (`--json <path>`, `--sarif <path>`) stay deferred, so one run writes one format.
+- **§7.4 GitHub run-level notices:** an unmapped or configuration finding is annotated with its own severity, `::error`, `::warning` or `::notice`, and no file position. The plan's "run-level notices for unmapped findings" is read as "annotations without a position", so an unmapped error still counts as an error.
+- **§7.4 GitHub job summary:** written to the file `GITHUB_STEP_SUMMARY` names, when set; the full findings are also in the log. A summary that cannot be written is a warning on stderr and leaves the exit status alone.
+- **§7.3 failures in github and sarif:** a recognized `github` or `sarif` selection gets a failure document on stdout, as `json` does: one `::error` annotation and a summary section without counts, or a SARIF log with `executionSuccessful: false` and no `results`. An absent `results` keeps code scanning from closing open alerts; the CLI recipe skips the SARIF upload on exit 2 as well.
+- **§7.4 SARIF locations and fingerprints:** artifact URIs are relative to `%SRCROOT%`, the working directory. `partialFingerprints.primaryLocationLineHash` carries the report's fingerprint, so upload-sarif does not compute one from the source line. Whether GitHub honours both, and its reading of `endColumn`, is checked against a real repository before the formats are relied on.
