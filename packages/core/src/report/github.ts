@@ -1,7 +1,8 @@
 // The GitHub Actions format: one workflow-command annotation per finding, then the complete text
-// log, since GitHub shows only the first few annotations of each kind per step.
+// log, since GitHub shows only the first few annotations of each kind per step; and the Markdown
+// job summary the CLI appends to $GITHUB_STEP_SUMMARY.
 import { createHash } from 'node:crypto';
-import { findingDetailLines, primaryLocation } from './locations.js';
+import { displayPointer, findingDetailLines, primaryLocation, resourceLabel } from './locations.js';
 import { compareFindings } from './sort.js';
 import { formatTextFindings, formatTextSummary } from './text.js';
 import type { CompletedReport, Finding, Severity } from './types.js';
@@ -76,4 +77,77 @@ export function formatGithubReport(report: CompletedReport): string {
   const group =
     log === '' ? '' : `::group::sdc-lint findings\n${withoutCommands(log)}::endgroup::\n`;
   return `${annotations}${group}${withoutCommands(formatTextSummary(report, all))}`;
+}
+
+// GitHub rejects a step summary over 1 MiB; rows stop short of it, leaving room for the rest.
+const summaryLimit = 900 * 1024;
+
+// Text from the forms as one table cell: Markdown and HTML render as written, a pipe cannot end
+// the cell, and line breaks stay inside it.
+export function markdownCell(text: string): string {
+  return text
+    .replace(/[\\`*_[\]~#]/g, '\\$&')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('|', '\\|')
+    .replace(/\r\n|\r|\n/g, '<br>');
+}
+
+function locationCell(finding: Finding): string {
+  const primary = primaryLocation(finding);
+  if (primary.kind === 'source') {
+    const { file, line, column } = primary.location;
+    return markdownCell(`${file}:${String(line)}:${String(column)}`);
+  }
+  const site =
+    primary.kind === 'config'
+      ? displayPointer(primary.pointer)
+      : `${resourceLabel(primary.resource)}; ${displayPointer(primary.pointer)}`;
+  return `${markdownCell(primary.file)}<br>${markdownCell(site)}`;
+}
+
+function summaryRow(finding: Finding): string {
+  const details = [
+    finding.message,
+    ...(finding.note === undefined ? [] : [`note: ${finding.note}`]),
+    ...(finding.help === undefined ? [] : [`help: ${finding.help}`]),
+  ];
+  const cells = [
+    finding.severity,
+    markdownCell(finding.ruleId),
+    locationCell(finding),
+    markdownCell(details.join('\n')),
+  ];
+  return `| ${cells.join(' | ')} |\n`;
+}
+
+// The job summary: the counts, a table of every finding, then the run's inputs, suppressions,
+// config and versions. limit is in bytes; tests lower it.
+export function formatGithubSummary(report: CompletedReport, limit = summaryLimit): string {
+  const [counts = '', ...facts] = formatTextSummary(report, { showInfo: true })
+    .trimEnd()
+    .split('\n');
+  const head = `### sdc-lint\n\n${markdownCell(counts)}\n\n`;
+  const tail = `\n${facts.map((fact) => `- ${markdownCell(fact)}\n`).join('')}`;
+  const findings = [...report.findings].sort(compareFindings);
+  if (findings.length === 0) return `${head.trimEnd()}\n${tail}`;
+
+  let table = '| Severity | Rule | Location | Message |\n| :- | :- | :- | :- |\n';
+  // Room for the note on findings left out, whose count has at most a few digits.
+  let budget = limit - Buffer.byteLength(head + table + tail) - 100;
+  let shown = 0;
+  for (const finding of findings) {
+    const row = summaryRow(finding);
+    budget -= Buffer.byteLength(row);
+    if (budget < 0) break;
+    table += row;
+    shown += 1;
+  }
+  const omitted = findings.length - shown;
+  const note =
+    omitted === 0
+      ? ''
+      : `\n${String(omitted)} more ${omitted === 1 ? 'finding is' : 'findings are'} in the job log.\n`;
+  return `${head}${table}${note}${tail}`;
 }

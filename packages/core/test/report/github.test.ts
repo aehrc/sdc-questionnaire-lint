@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { escapeData, escapeProperty, formatGithubReport } from '../../src/report/github.js';
+import {
+  escapeData,
+  escapeProperty,
+  formatGithubReport,
+  formatGithubSummary,
+  markdownCell,
+} from '../../src/report/github.js';
 import { formatTextFindings, formatTextSummary } from '../../src/report/text.js';
 import type { QuestionnaireFinding, SourceLocation } from '../../src/report/types.js';
 import {
@@ -197,5 +203,102 @@ describe('formatGithubReport', () => {
     }
     expect(stoppedBy).toBeUndefined();
     expect(active).toEqual(['::error', '::group::', '::endgroup::']);
+  });
+});
+
+describe('markdownCell', () => {
+  it('keeps Markdown and HTML from rendering, and a pipe from ending the cell', () => {
+    expect(markdownCell('a|b <script>&x</script> *em* _u_ `c` [l](u) ~s~ #h \\')).toBe(
+      'a\\|b &lt;script&gt;&amp;x&lt;/script&gt; \\*em\\* \\_u\\_ \\`c\\` \\[l\\](u) \\~s\\~ \\#h \\\\',
+    );
+  });
+
+  it('keeps line breaks inside the cell', () => {
+    expect(markdownCell('one\ntwo\r\nthree\rfour')).toBe('one<br>two<br>three<br>four');
+  });
+});
+
+describe('formatGithubSummary', () => {
+  const stale = staleSuppressionFinding();
+  const report = completedReport([info, unmappedWarning, mappedError, stale], {
+    config: 'sdc-questionnaire-lint.config.json',
+  });
+
+  it('writes the counts, a row per finding in report order, then the run', () => {
+    expect(formatGithubSummary(report)).toBe(
+      [
+        '### sdc-lint',
+        '',
+        '4 findings (1 error, 2 warnings, 1 info) in 1 questionnaire.',
+        '',
+        '| Severity | Rule | Location | Message |',
+        '| :- | :- | :- | :- |',
+        '| warning | sdc/unused-declaration | fsh-generated/resources/Questionnaire-Example.json<br>Questionnaire/Example; /item/1/extension/0/valueExpression/expression | "Patient summary" (patient-summary) declares %age, which nothing uses.<br>help: remove the variable, or reference it as %age |',
+        '| error | sdc/undefined-variable | input/fsh/Example.fsh:42:18 | "Patient name" (patient-name) uses %patientNmae, which is not defined. This field will not calculate.<br>help: a variable with a similar name exists: %patientName |',
+        '| info | sdc/shadowed-declaration | input/fsh/Example.fsh:60:18 | "Address" (address) declares %name, which hides %name declared above. |',
+        '| warning | lint/stale-suppression | sdc-questionnaire-lint.config.json<br>/suppress/0 | A suppression targets B.json, which no longer exists.<br>help: remove this suppression from the configuration |',
+        '',
+        '- Inputs: full run; 1 file read, 0 skipped. Expressions: 1 analysed, 0 unchecked. Suppressed findings: 0.',
+        '- Suppressions: 0 applied, 0 stale, 0 not assessed.',
+        '- Config: sdc-questionnaire-lint.config.json. FSH sources: input/fsh.',
+        '- Linter: 0.1.0. Plugins: sdc@0.1.0.',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('has no table for a run with no findings', () => {
+    expect(formatGithubSummary(completedReport())).toBe(
+      [
+        '### sdc-lint',
+        '',
+        '0 findings in 1 questionnaire.',
+        '',
+        '- Inputs: full run; 1 file read, 0 skipped. Expressions: 1 analysed, 0 unchecked. Suppressed findings: 0.',
+        '- Suppressions: 0 applied, 0 stale, 0 not assessed.',
+        '- Config: none, built-in defaults. FSH sources: input/fsh.',
+        '- Linter: 0.1.0. Plugins: sdc@0.1.0.',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('includes the Smart Forms versions when the plugin ran', () => {
+    const withPlugin = completedReport([], {});
+    withPlugin.run.compat = { 'smart-forms': { renderer: '1.4.0', populate: '4.7.1' } };
+    expect(formatGithubSummary(withPlugin)).toContain(
+      '- Smart Forms: renderer 1.4.0, populate 4.7.1.\n',
+    );
+  });
+
+  it('escapes text from the forms in its cell', () => {
+    const finding = mappedAt(fshRange, { message: '"A | B" (a) uses <b>%x</b>.\nSecond line.' });
+    expect(formatGithubSummary(completedReport([finding]))).toContain(
+      '| "A \\| B" (a) uses &lt;b&gt;%x&lt;/b&gt;.<br>Second line. |',
+    );
+  });
+
+  it('stops adding rows at the size limit, and says how many are in the log', () => {
+    const many = Array.from({ length: 30 }, (_, n) =>
+      mappedAt({ ...fshRange, line: n + 1, endLine: n + 1 }, { message: 'x'.repeat(200) }),
+    );
+    const summary = formatGithubSummary(completedReport(many), 4000);
+    expect(Buffer.byteLength(summary)).toBeLessThanOrEqual(4000);
+    const rows = summary.split('\n').filter((line) => line.startsWith('| error '));
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThan(30);
+    expect(summary).toContain(`\n${String(30 - rows.length)} more findings are in the job log.\n`);
+    expect(summary.endsWith('- Linter: 0.1.0. Plugins: sdc@0.1.0.\n')).toBe(true);
+  });
+
+  it('says one more finding in the singular', () => {
+    const two = [1, 2].map((line) =>
+      mappedAt({ ...fshRange, line, endLine: line }, { message: 'x'.repeat(200) }),
+    );
+    const full = formatGithubSummary(completedReport(two));
+    const limit = Buffer.byteLength(full) + 100 - 150;
+    expect(formatGithubSummary(completedReport(two), limit)).toContain(
+      '\n1 more finding is in the job log.\n',
+    );
   });
 });
