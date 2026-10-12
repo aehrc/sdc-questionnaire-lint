@@ -129,6 +129,8 @@ export interface RunMetadata {
   plugins: PackageVersion[];
   compat: RunCompat;
   selection: RunKind;
+  // The installed fsh-sushi; absent when none is installed for the IG.
+  sushi?: { version: string };
 }
 
 export interface Summary {

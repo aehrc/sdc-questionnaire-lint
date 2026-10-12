@@ -618,6 +618,17 @@
             "full",
             "targeted"
           ]
+        },
+        "sushi": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "$ref": "#/$defs/text"
+            }
+          },
+          "required": [
+            "version"
+          ]
         }
       },
       "required": [

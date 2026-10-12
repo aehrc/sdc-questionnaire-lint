@@ -125,11 +125,11 @@ fsh-generated/resources/Questionnaire-Example.json: warning sdc/unused-declarati
 Inputs: full run; 5 files read, 2 skipped. Expressions: 8 analysed, 1 unchecked. Suppressed findings: 0.
 Suppressions: 0 applied, 0 stale, 0 not assessed.
 Config: sdc-questionnaire-lint.config.mjs. FSH sources: input/fsh.
-Linter: 0.1.0. Plugins: sdc@0.1.0, smart-forms@0.1.0.
+Linter: 0.1.0. Plugins: sdc@0.1.0, smart-forms@0.1.0. SUSHI: 3.20.1.
 Smart Forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.
 ```
 
-Versions in examples are illustrative. The Smart Forms line is present only when that plugin runs; it always names the resolved component versions, including when config uses `latest`.
+Versions in examples are illustrative. `SUSHI` names the IG's installed SUSHI, the report's `run.sushi`, and is left out when none is found. The Smart Forms line is present only when that plugin runs; it always names the resolved component versions, including when config uses `latest`.
 
 - The first line of each finding has a stable format: `file[:line:col]: severity rule-id message`.
 - An unmapped finding names the compiled file without invented coordinates and adds a `location` line containing the resource identity and a file-relative JSON Pointer. For a Bundle or contained resource, include its resource pointer as well. If the resource has no ID, its resource type and pointer identify it. Show the expression excerpt when one is available, and the reason FSH mapping failed. Item text and linkId remain useful context, but are not the only locator.
@@ -142,7 +142,7 @@ Versions in examples are illustrative. The Smart Forms line is present only when
 
 One versioned document on stdout. [report-format.md](report-format.md) defines its fields, locations, counts and compatibility rules. The normative [JSON Schema](schemas/lint-report.schema.json) and [complete examples](examples/reports/README.md) cover completed, failed, mapped, unmapped and stale-suppression reports.
 
-A completed report has `status: "completed"`, all unsuppressed findings, run metadata and a summary. This includes runs that exit 1. Metadata records the linter and loaded plugin versions and resolved compatibility versions. The summary records files read/skipped, Questionnaires, expressions analysed/unchecked, severity counts, suppressed findings, suppression assessment, config and available FSH directories.
+A completed report has `status: "completed"`, all unsuppressed findings, run metadata and a summary. This includes runs that exit 1. Metadata records the linter and loaded plugin versions, resolved compatibility versions, and the version of the IG's installed SUSHI when one is found. The summary records files read/skipped, Questionnaires, expressions analysed/unchecked, severity counts, suppressed findings, suppression assessment, config and available FSH directories.
 
 A handled failure exits 2 and has this shape:
 
@@ -195,7 +195,7 @@ Linter: 0.1.0. Plugins: sdc@0.1.0.
 - A mapped finding is annotated at its FSH file and lines. Columns are given only for a range on one line, and `endColumn` is inclusive, as GitHub reads it.
 - An unmapped or configuration finding keeps its severity, so an unmapped error is still an error annotation, but has no position: GitHub has no place for a compiled JSON site or a config entry. Its message starts with the file, and its `location:` line names the resource and pointer.
 - GitHub shows only the first few annotations of each kind in a step, so the log always holds every finding, info included. The log and the summary are written under `::stop-commands::`, with the SHA-256 of the text they wrap as the token, so text from a form cannot run a workflow command.
-- When `GITHUB_STEP_SUMMARY` is set, as it is in every Actions step, the job summary also gets a Markdown section: the counts, a table of every finding (Severity, Rule, Location, Message) and the other summary lines. Text from the forms is escaped so it cannot add Markdown or HTML. Rows stop below GitHub's 1 MiB limit, followed by a line saying how many more findings are in the job log. A summary that cannot be written is a `warning:` on stderr and does not change the exit status.
+- When `GITHUB_STEP_SUMMARY` is set, as it is in every Actions step, the job summary also gets a Markdown section: the counts, a table of every finding (Severity, Rule, Location, Message) and the other summary lines, including the linter, plugin and SUSHI versions. Text from the forms is escaped so it cannot add Markdown or HTML. Rows stop below GitHub's 1 MiB limit, followed by a line saying how many more findings are in the job log. A summary that cannot be written is a `warning:` on stderr and does not change the exit status.
 
 On failure, stdout holds one error annotation titled with the failure code, at the failure's file when it names one:
 
@@ -218,7 +218,7 @@ and the job summary gets a section with no counts or table, so it cannot be read
 
 One [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sarif-v2.1.0-errata01-os-complete.html) log on stdout with one run, for GitHub code scanning or another SARIF viewer. It renders the same record as `json`.
 
-- `tool.driver` names `sdc-questionnaire-lint` and its version, and describes each rule that ran, and any rule a finding names: its description, the "what it checks" and "how to fix" of its documentation, its `helpUri` and its default level. `tool.extensions` lists the plugins with their versions.
+- `tool.driver` names `sdc-questionnaire-lint` and its version, and describes each rule that ran, and any rule a finding names: its description, the "what it checks" and "how to fix" of its documentation, its `helpUri` and its default level. `tool.extensions` lists the plugins with their versions. The run's `properties` hold the report's `selection`, `compat`, `summary` and, when the report has it, `sushi`.
 - Each finding is a result, in report order, at the level `error`, `warning` or `note` (for info). Its message is the finding's message followed by the same detail lines as text output.
 - Artifact URIs are relative to `%SRCROOT%`, which `originalUriBaseIds` defines as the working directory; report paths are relative to it too. Run the linter from the repository root, so code scanning finds the files.
 - A mapped finding has its FSH region. SARIF counts lines and columns as the report does, from 1 and in UTF-16 code units (`columnKind: "utf16CodeUnits"`) with an exclusive end column, so the numbers are the report's own.
@@ -376,6 +376,8 @@ exit "$lint_status"
 ```
 
 Consume the report only after this invocation reaches the linter; a build failure does not produce a new report. The file redirect truncates the previous report when the linter starts. Package-manager banners and SUSHI logs must not be redirected into the JSON report. Automation should retain the report on exit 1 as well as exit 0, and distinguish exit 2 from findings that need fixes.
+
+The report records the version of the IG's installed `fsh-sushi` as `run.sushi`, which no flag needs to pass ([report-format.md](report-format.md#run-metadata-and-summary)). Install SUSHI as a development dependency and run that copy, as this recipe and `npm run` scripts do, so the recorded version is the one that generated the inputs. A SUSHI installed only globally is not recorded.
 
 In GitHub Actions, the `github` format annotates the pull request and writes the job summary, and a SARIF upload adds the findings to code scanning. Upload the SARIF only when the linter exits 0 or 1: exit 2 means the run did not complete, and the step is skipped rather than relying on how code scanning reads a failed run. During the report-only stage, leave out the last step; once errors become a required check, keep it.
 

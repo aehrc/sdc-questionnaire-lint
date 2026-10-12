@@ -94,7 +94,8 @@ export function formatTextSummary(
       `${String(summary.suppressions.stale)} stale, ` +
       `${String(summary.suppressions.notAssessed)} not assessed.`,
     `Config: ${config}. FSH sources: ${fshSources}.`,
-    `Linter: ${run.tool.version}. Plugins: ${plugins}.`,
+    `Linter: ${run.tool.version}. Plugins: ${plugins}.` +
+      (run.sushi === undefined ? '' : ` SUSHI: ${run.sushi.version}.`),
   ];
   const smartForms = run.compat['smart-forms'];
   if (smartForms) {

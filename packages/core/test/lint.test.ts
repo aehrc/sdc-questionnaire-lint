@@ -52,6 +52,33 @@ describe('FSH sources in the summary', () => {
   });
 });
 
+describe('the SUSHI version in the run', () => {
+  const resources = { 'fsh-generated/resources/Questionnaire-A.json': questionnaire };
+  const sushi = JSON.stringify({ name: 'fsh-sushi', version: '3.20.1' });
+
+  it('records the installed fsh-sushi', async () => {
+    const cwd = await tempTree({ ...resources, 'node_modules/fsh-sushi/package.json': sushi });
+    const report = await lint({ cwd });
+    expectValidReport(report);
+    expect(report.run.sushi).toEqual({ version: '3.20.1' });
+  });
+
+  it('leaves it out when no fsh-sushi is installed', async () => {
+    const cwd = await tempTree(resources);
+    expect((await lint({ cwd })).run).not.toHaveProperty('sushi');
+  });
+
+  it('looks for it from the directory of a config in a subdirectory', async () => {
+    const config = 'ig/sdc-questionnaire-lint.config.json';
+    const cwd = await tempTree({
+      [config]: JSON.stringify({ files: ['out'] }),
+      'ig/out/Questionnaire-A.json': questionnaire,
+      'ig/node_modules/fsh-sushi/package.json': sushi,
+    });
+    expect((await lint({ cwd, configPath: config })).run.sushi).toEqual({ version: '3.20.1' });
+  });
+});
+
 describe('expression findings', () => {
   const queryLanguages = ['application/x-fhir-query', 'text/x-fhir-query'];
   const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';

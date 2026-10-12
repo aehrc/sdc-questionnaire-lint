@@ -177,6 +177,15 @@ describe('formatSarifReport', () => {
     });
   });
 
+  it('records the SUSHI version in the run properties, and leaves it out when unknown', () => {
+    const report = completedReport();
+    report.run.sushi = { version: '3.20.1' };
+    const document = sarif(report);
+    expectValidSarif(document);
+    expect(onlyRun(document).properties).toMatchObject({ sushi: { version: '3.20.1' } });
+    expect(onlyRun(log).properties).not.toHaveProperty('sushi');
+  });
+
   it('defines %SRCROOT% as the working directory', () => {
     expect(onlyRun(log).originalUriBaseIds).toEqual({
       '%SRCROOT%': { uri: `${pathToFileURL(cwd).href}/` },

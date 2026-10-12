@@ -216,7 +216,7 @@ export function formatSarifReport(
   const findings = [...report.findings].sort(compareFindings);
   const descriptors = ruleDescriptors(rules, findings);
   const ruleIndex = new Map(descriptors.map(({ id }, index) => [id, index]));
-  const { tool, plugins, compat, selection } = report.run;
+  const { tool, plugins, compat, selection, sushi } = report.run;
   const log: SarifLog = {
     $schema: sarifSchemaUri,
     version: '2.1.0',
@@ -230,7 +230,13 @@ export function formatSarifReport(
         originalUriBaseIds: { [srcRoot]: { uri: directoryUri(cwd) } },
         columnKind: 'utf16CodeUnits',
         results: findings.map((finding) => result(finding, ruleIndex.get(finding.ruleId) ?? 0)),
-        properties: { selection, compat, summary: report.summary },
+        // SUSHI is neither part of the linter nor run by it, so it is a property, not a component.
+        properties: {
+          selection,
+          compat,
+          ...(sushi === undefined ? {} : { sushi }),
+          summary: report.summary,
+        },
       },
     ],
   };

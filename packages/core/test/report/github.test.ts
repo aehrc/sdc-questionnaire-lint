@@ -273,6 +273,17 @@ describe('formatGithubSummary', () => {
     );
   });
 
+  it('includes the SUSHI version when the report has it', () => {
+    const withSushi = completedReport();
+    withSushi.run.sushi = { version: '3.20.1' };
+    expect(formatGithubSummary(withSushi)).toContain(
+      '- Linter: 0.1.0. Plugins: sdc@0.1.0. SUSHI: 3.20.1.\n',
+    );
+    expect(formatGithubReport(withSushi)).toContain(
+      'Linter: 0.1.0. Plugins: sdc@0.1.0. SUSHI: 3.20.1.\n',
+    );
+  });
+
   it('escapes text from the forms in its cell', () => {
     const finding = mappedAt(fshRange, { message: '"A | B" (a) uses <b>%x</b>.\nSecond line.' });
     expect(formatGithubSummary(completedReport([finding]))).toContain(

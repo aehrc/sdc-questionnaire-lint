@@ -12,6 +12,7 @@ import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
 import { runRules, type FindingOrigins } from './run/rules.js';
 import { findFshSources } from './run/sources.js';
+import { findSushiVersion } from './run/sushi-version.js';
 import { applySuppressions } from './run/suppressions.js';
 import { mapSourceLocations } from './source/map-findings.js';
 
@@ -55,6 +56,7 @@ export async function lintWithRules(options: LintOptions): Promise<LintRun> {
     runPaths,
   });
   const sources = await findFshSources(runPaths, cwd);
+  const sushiVersion = await findSushiVersion(runPaths.base);
   const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => {
     const sites = findExpressionSites(document);
     return {
@@ -89,6 +91,7 @@ export async function lintWithRules(options: LintOptions): Promise<LintRun> {
       plugins: ruleSet.pluginVersions,
       compat: ruleSet.compat,
       selection: runKind,
+      ...(sushiVersion === undefined ? {} : { sushi: { version: sushiVersion } }),
     },
     findings,
     summary: buildSummary({

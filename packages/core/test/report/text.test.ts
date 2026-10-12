@@ -78,6 +78,7 @@ function specReport(): CompletedReport {
     populate: '4.7.1',
     'template-extract': '1.0.15',
   };
+  report.run.sushi = { version: '3.20.1' };
   return report;
 }
 
@@ -286,6 +287,14 @@ describe('formatTextSummary', () => {
         'Suppressions: 0 applied, 0 stale, 0 not assessed.\n' +
         'Config: none, built-in defaults. FSH sources: input/fsh.\n' +
         'Linter: 0.1.0. Plugins: sdc@0.1.0.\n',
+    );
+  });
+
+  it('names the SUSHI version after the plugins when the report has it', () => {
+    const report = completedReport();
+    report.run.sushi = { version: '3.20.1' };
+    expect(formatTextSummary(report, plain)).toContain(
+      '\nLinter: 0.1.0. Plugins: sdc@0.1.0. SUSHI: 3.20.1.\n',
     );
   });
 
