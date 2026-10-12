@@ -80,6 +80,26 @@ describe('smart-forms/unsupported-query-embedding', () => {
     ]);
   });
 
+  // A name with both values is not valid FHIR, so FSH cannot write it.
+  it.each([
+    ['a valueCoding without a code', { system: `${sdc}launchContext` }],
+    ['a valueCoding with another code', { code: 'other' }],
+  ])('reads a launch name from valueId first, as population does, beside %s', async (_, coding) => {
+    const findings = await findingsOf({
+      extension: [
+        {
+          url: `${sdc}launchContext`,
+          extension: [
+            { url: 'name', valueCoding: coding, valueId: 'patient' },
+            { url: 'type', valueCode: 'Patient' },
+          ],
+        },
+        query('Condition?patient={{%patient.id}}'),
+      ],
+    });
+    expect(findings).toEqual([]);
+  });
+
   it('does not check a fragment that population finds an embedding inside', async () => {
     const findings = await findingsOf({
       extension: [launch, query('Condition?patient={{{%patient.id}}')],

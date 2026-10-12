@@ -4,7 +4,7 @@ Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §
 
 **Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12; the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
-P0 to P3 are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable` and `unsupported-query-embedding`, plugin rules receive core's references and available variables, and population facts, the embedding facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`.
+P0 to P3 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable` and `unsupported-query-embedding`, plugin rules receive core's references, available variables and declarations, and population facts, the embedding facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`.
 
 ## How to work on a slice
 
@@ -25,7 +25,7 @@ One PR per slice, in this order.
 |  | `smart-forms/expression-evaluated-as-fhirpath` | error | P0 | done |
 | [P2](#p2-smart-formsquestionnaire-variable-unavailable) | API stage B (`referencesAt`, `variablesAt`), populate reproduction harness, `smart-forms/questionnaire-variable-unavailable` | error | P1 | done |
 | [P3](#p3-smart-formsunsupported-query-embedding) | `smart-forms/unsupported-query-embedding` | error | P2 | done |
-| [H](#h-contract-hardening) | `ctx.declarations` (API stage B2), frozen `ctx.sites`; fixes in P2's silence and P3's launch names | – | P3 | todo |
+| [H](#h-contract-hardening) | `ctx.declarations` (API stage B2), frozen `ctx.sites`; fixes in P2's silence and P3's launch names | – | P3 | done |
 | [P4](#p4-supplied-names-hook) | Supplied-names hook, `PLUGIN_CRASH`, built-in names rejected in config `hostVariables`; the plugin supplies sourceQueries result names | – | P0 | todo |
 | [P5](#p5-smart-formsvariable-name-collision-and-smart-formsrepeating-group-variable) | API stage C (`dependenciesOf`, `useOf`, `readsInput`), `smart-forms/variable-name-collision` | error | H | todo |
 |  | `smart-forms/repeating-group-variable` | warning | P5 | todo |
@@ -176,7 +176,7 @@ Each fact names its evidence (S4, S10). When a harness exists, the evidence is a
 
 ### Public API stages (S5)
 
-`RuleContext` today gives a plugin `document`, the flat frozen `sites`, `compat`, `referencesAt` and `variablesAt`, `options: undefined` and `report()` with `relatedLocations`. Everything else is internal to core (`DocumentAnalysis`, `plugins/core-rule.ts`). Each stage is plumbing in `run/rules.ts` from an analysis core already computes once per document, plus exported readonly types in `index.ts` and a section in [architecture.md](architecture.md).
+`RuleContext` today gives a plugin `document`, the flat frozen `sites` and `declarations`, `compat`, `referencesAt` and `variablesAt`, `options: undefined` and `report()` with `relatedLocations`. Everything else is internal to core (`DocumentAnalysis`, `plugins/core-rule.ts`). Each stage is plumbing in `run/rules.ts` from an analysis core already computes once per document, plus exported readonly types in `index.ts` and a section in [architecture.md](architecture.md).
 
 | Stage | Slice | Adds to `RuleContext` | Exported types and functions |
 | :- | :- | :- | :- |
@@ -253,7 +253,7 @@ P0 resolves the compatibility target; it adds no Smart Forms findings and runs n
 - Default export `{ meta: { name: 'smart-forms', version }, rules: {}, compat }`, with the version from a `package.json` JSON import.
 - Components: `renderer` and `populate` (required), `template-extract` (optional). Verified: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.
 - No runtime facts yet: each arrives with its first consumer (S4). Remove `compat` from `files` in `package.json`; nothing ships outside `dist`.
-- Peer range stays `^0.1.0`: core is unreleased, so 0.1.0 is the version that ships `compat`. From P1, a rule that receives no `ctx.compat` throws, so an older core fails with `RULE_CRASH` instead of running silently.
+- Peer range stays `^0.1.0`: core is unreleased, so 0.1.0 is the version that ships `compat`. From P1, a rule that receives no version for a required component throws rather than check nothing, which a conforming core never causes: it selects every component in `compat.required` (`contract.ts`).
 - Tests build through one shared global setup that builds core at most once per Vitest run, then the plugin, so the plugin's tests also run alone from a clean checkout.
 
 **Corpus:** `npm run corpus -- --smart-forms` builds both packages, lints with the committed `packages/plugin-smart-forms/scripts/corpus.config.mjs` (it imports `../dist/index.js`, with `compat: 'latest'`), prints the Smart Forms versions from `run.compat`, and compares with a separate snapshot, `corpus/findings.smart-forms.json`. The snapshot keeps findings of every namespace, without messages; `--smart-forms --update` writes only that snapshot. Core slices keep their snapshot and stay independent of the plugin build.

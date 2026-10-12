@@ -1,13 +1,7 @@
 import type { Declaration } from '../analysis/declarations.js';
 import type { RuleRelatedLocation } from '../plugins/contract.js';
 import type { CoreRule } from '../plugins/core-rule.js';
-import { placeOf } from './describe.js';
-
-// The element a declaration is on, in a message.
-function elementName({ item }: Declaration): string {
-  if (item === undefined) return 'the Questionnaire root';
-  return item.linkId === undefined ? 'an item that has no linkId' : `item ${item.linkId}`;
-}
+import { elementName, placeOf } from './describe.js';
 
 const message = (name: string, element: string): string =>
   `The name %${name} is declared more than once on ${element}, so it is unclear which value ` +
@@ -26,7 +20,7 @@ export const duplicateDeclaration: CoreRule = {
       why:
         'SDC makes it an error to assign the same name more than once on one item. An ' +
         'expression that uses the name may get either value, depending on the form filler.',
-      exampleMessage: message('weight', 'item bmi'),
+      exampleMessage: message('weight', 'item "BMI" (bmi)'),
       fix:
         'Rename one of the declarations, and update the expressions that should use it, or ' +
         'remove the declaration that is not needed. Then run SUSHI again.',
@@ -53,7 +47,7 @@ export const duplicateDeclaration: CoreRule = {
       };
       ctx.report({
         ...placeOf(declaration),
-        message: message(declaration.name, elementName(declaration)),
+        message: message(declaration.name, elementName(ctx.document, declaration.item)),
         help: `rename or remove one of the declarations of %${declaration.name}`,
         relatedLocations: [related],
       });

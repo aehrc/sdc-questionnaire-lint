@@ -2,6 +2,7 @@
 items:
   - linkId: bmi
     type: string
+    text: BMI
     extensions:
       - url: variable
         name: weight

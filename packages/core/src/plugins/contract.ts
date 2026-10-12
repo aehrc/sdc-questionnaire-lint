@@ -1,5 +1,6 @@
 // The plugin contract (core-plan §5.2). Exported from the package, so changes are public API changes.
 import type { AvailableVariables } from '../analysis/available-variables.js';
+import type { Declaration } from '../analysis/declarations.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import type { VariableReference } from '../analysis/fhirpath.js';
 import type { OffsetRange, Severity } from '../report/types.js';
@@ -37,7 +38,15 @@ export interface RuleFinding {
 // What check receives for one Questionnaire.
 export interface RuleContext {
   readonly document: QuestionnaireDocument;
+  // Every expression site in the Questionnaire, in document order; each fragment of a query
+  // directly follows the query. The array and its sites are frozen.
   readonly sites: readonly ExpressionSite[];
+  // Every declaration in the Questionnaire, in document order: the array core's own rules use,
+  // frozen, as is each declaration. Each Variable.declaration variablesAt gives is one of its
+  // elements, and each declaration's site one of sites. The item of a launchContext or
+  // extractAllocateId declaration is a different object from site.item for the same item, so
+  // compare items by pointer.
+  readonly declarations: readonly Declaration[];
   // The %name references in a site's FHIRPath text, in source order, fragments included; [] when
   // the text parses and references nothing. undefined when the site has no FHIRPath analysis: its
   // language is not text/fhirpath, it has no text, or the text does not parse. A rule treats
@@ -50,7 +59,9 @@ export interface RuleContext {
   // Both return undefined for an object that is not one of sites: they compare by identity, so a
   // copy of a site is not one.
   // The component versions the run checks against for this rule's namespace, such as
-  // { renderer: '1.4.0', populate: '4.7.1' }; {} when the plugin declares no compat.
+  // { renderer: '1.4.0', populate: '4.7.1' }; {} when the plugin declares no compat. For a plugin
+  // with compat, core guarantees a version for every component in compat.required, and for every
+  // other verified component unless an explicit config compat object omits it.
   readonly compat: Readonly<Record<string, string>>;
   // Always undefined: the config cannot pass rule options yet.
   readonly options: unknown;
@@ -93,8 +104,8 @@ export interface PluginCompat {
 
 // A plugin: listed in plugins in an .mjs config, it registers its rules under its namespace.
 export interface LintPlugin {
-  // name is the rule namespace: smart-forms plus flat-variable-context gives
-  // smart-forms/flat-variable-context.
+  // name is the rule namespace: smart-forms plus variable-name-collision gives
+  // smart-forms/variable-name-collision.
   meta: { name: string; version: string };
   rules: Readonly<Record<string, LintRule>>;
   // Declared by a plugin that checks forms against runtime versions selected in config compat.

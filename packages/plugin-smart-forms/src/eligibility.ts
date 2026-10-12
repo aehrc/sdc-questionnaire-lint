@@ -9,10 +9,12 @@ export interface Reader {
   readonly handling: LanguageHandling;
 }
 
-// The versions of the components the run checks against. An older core passes no ctx.compat; the
-// rule then crashes with RULE_CRASH rather than check nothing, so each rule calls this first.
+// The versions of the components the run checks against, which each rule reads first. Core
+// guarantees a version for every component in compat.required, which lists every component here,
+// so a conforming core never makes this throw. The throw narrows the type, and fails a direct
+// caller of check that passes no version rather than check nothing.
 export function requireCompat(ctx: Pick<RuleContext, 'compat'>): Record<Component, string> {
-  // Typed as always present, but absent in a core older than 0.1.0.
+  // Typed as always present; read defensively for a direct caller of check.
   const compat = ctx.compat as Readonly<Record<string, string>> | undefined;
   const versions = {} as Record<Component, string>;
   for (const component of components) {
