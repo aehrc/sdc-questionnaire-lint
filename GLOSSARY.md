@@ -40,7 +40,7 @@ _Avoid_: Usage, variable use
 A name FHIRPath, FHIR or SDC defines, such as `%resource`, `%questionnaire`, `%qitem` or a name with the `vs-` or `ext-` prefix. Available at every site, except `%qitem`, which needs an item. A form must not declare one.
 
 **Host variable**:
-A name an expression can reference that the form does not declare and that FHIRPath, FHIR and SDC do not define, but that the application running the form supplies at runtime by its own convention, such as an entry in Smart Forms' additionalContext or `%PrePopQuery` for a sourceQueries Bundle. Listed by exact name in the config's `hostVariables`, and available at every site.
+A name an expression can reference that the form does not declare and that FHIRPath, FHIR and SDC do not define, but that the application running the form supplies at runtime by its own convention, such as an entry in Smart Forms' additionalContext or `%PrePopQuery` for a sourceQueries Bundle. Listed by exact name in the config's `hostVariables`, or supplied by a plugin the config lists, such as the Smart Forms plugin for sourceQueries results; available at every site.
 _Avoid_: Environment variable (FHIRPath's term for any `%name`), context variable
 
 ### Rules and findings
