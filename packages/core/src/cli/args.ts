@@ -1,14 +1,22 @@
 import { parseArgs } from 'node:util';
+import type { OutputFormat } from '../failure.js';
 
 export type Command = 'lint' | 'explain';
-export type Format = 'text' | 'json';
+export type Format = OutputFormat;
+
+const formats: readonly Format[] = ['text', 'json', 'github', 'sarif'];
+
+function isFormat(value: string): value is Format {
+  return (formats as readonly string[]).includes(value);
+}
 
 export type ParsedArgs =
   | { kind: 'help'; command?: Command }
   | { kind: 'version' }
   | { kind: 'lint'; paths: string[]; configPath?: string; format: Format; showInfo: boolean }
   | { kind: 'explain'; ruleId?: string; configPath?: string }
-  | { kind: 'usage-error'; message: string; help: string; jsonFormat: boolean }
+  // failureFormat: the one valid lint --format selection, whose failure document stdout still gets.
+  | { kind: 'usage-error'; message: string; help: string; failureFormat?: Format }
   | { kind: 'no-command' };
 
 interface Flag {
@@ -32,7 +40,8 @@ function helpFor(command: Command | undefined): string {
 }
 
 // parseArgs only tokenizes here. Its strict mode stops at the first bad argument, but --help and
-// --version must win over later errors, and a JSON format selection must survive them (T05).
+// --version must win over later errors, and a json, github or sarif format selection must survive
+// them (T05).
 function tokenize(argv: readonly string[]): {
   flags: Flag[];
   positionals: string[];
@@ -94,8 +103,8 @@ function findError(
       if (!value) return `${flag.rawName} requires a value`;
       if (seen.has(flag.name)) return `${flag.rawName} was given more than once`;
       seen.add(flag.name);
-      if (flag.name === 'format' && value !== 'text' && value !== 'json') {
-        return `--format must be text or json, not ${value}`;
+      if (flag.name === 'format' && !isFormat(value)) {
+        return `--format must be text, json, github or sarif, not ${value}`;
       }
     }
     if (command === 'explain' && lintOnlyFlags.has(flag.name)) {
@@ -112,6 +121,11 @@ function findError(
   return undefined;
 }
 
+// findError has checked the value, so anything else is the default.
+function formatOf(value: string | undefined): Format {
+  return value !== undefined && isFormat(value) ? value : 'text';
+}
+
 export function parseCliArgs(argv: readonly string[]): ParsedArgs {
   const { flags, positionals, command: word } = tokenize(argv);
   const has = (name: string): boolean => flags.some((flag) => flag.name === name);
@@ -123,7 +137,6 @@ export function parseCliArgs(argv: readonly string[]): ParsedArgs {
       kind: 'usage-error',
       message: `unknown command ${word}`,
       help: helpFor(undefined),
-      jsonFormat: false,
     };
   }
   const command: Command | undefined = word;
@@ -132,9 +145,16 @@ export function parseCliArgs(argv: readonly string[]): ParsedArgs {
 
   const message = findError(command, flags, positionals);
   if (message !== undefined) {
-    const formats = flags.filter((flag) => flag.name === 'format');
-    const jsonFormat = command === 'lint' && formats.length === 1 && formats[0]?.value === 'json';
-    return { kind: 'usage-error', message, help: helpFor(command), jsonFormat };
+    const selected = flags.filter((flag) => flag.name === 'format');
+    const value = selected.length === 1 ? selected[0]?.value : undefined;
+    const failureFormat =
+      command === 'lint' && value !== undefined && isFormat(value) ? value : undefined;
+    return {
+      kind: 'usage-error',
+      message,
+      help: helpFor(command),
+      ...(failureFormat === undefined ? {} : { failureFormat }),
+    };
   }
 
   const configPath = valueOf('config');
@@ -147,7 +167,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedArgs {
         kind: 'lint',
         paths: positionals,
         ...config,
-        format: valueOf('format') === 'json' ? 'json' : 'text',
+        format: formatOf(valueOf('format')),
         showInfo: has('show-info'),
       };
     case 'explain': {

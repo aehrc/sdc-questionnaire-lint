@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { type ParsedArgs, parseCliArgs } from '../../src/cli/args.js';
+import { type Format, type ParsedArgs, parseCliArgs } from '../../src/cli/args.js';
 
 const lintHelp = 'run sdc-lint lint --help for the available flags';
 const explainHelp = 'run sdc-lint explain --help for the available flags';
 const topHelp = 'run sdc-lint --help for the available commands and flags';
 
-function usage(message: string, help: string, jsonFormat = false): ParsedArgs {
-  return { kind: 'usage-error', message, help, jsonFormat };
+function usage(message: string, help: string, failureFormat?: Format): ParsedArgs {
+  return {
+    kind: 'usage-error',
+    message,
+    help,
+    ...(failureFormat === undefined ? {} : { failureFormat }),
+  };
 }
 
 const cases: [string, string[], ParsedArgs][] = [
@@ -149,7 +154,7 @@ const cases: [string, string[], ParsedArgs][] = [
   [
     'bad --format value',
     ['lint', '--format', 'yaml'],
-    usage('--format must be text or json, not yaml', lintHelp),
+    usage('--format must be text, json, github or sarif, not yaml', lintHelp),
   ],
   [
     'value on a boolean flag',
@@ -175,6 +180,37 @@ const cases: [string, string[], ParsedArgs][] = [
     'positional with no command',
     ['--', 'a.json'],
     usage('unexpected argument a.json; name a command first', topHelp),
+  ],
+  ...(['github', 'sarif'] as const).map((format): [string, string[], ParsedArgs] => [
+    `lint --format=${format}`,
+    ['lint', `--format=${format}`],
+    { kind: 'lint', paths: [], format, showInfo: false },
+  ]),
+  // The format selection a failure document is written in
+  ...(['json', 'github', 'sarif'] as const).map((format): [string, string[], ParsedArgs] => [
+    `--format ${format} before an error`,
+    ['lint', '--format', format, '--bogus'],
+    usage('unknown flag --bogus', lintHelp, format),
+  ]),
+  [
+    '--format text before an error',
+    ['lint', '--format', 'text', '--bogus'],
+    usage('unknown flag --bogus', lintHelp, 'text'),
+  ],
+  [
+    'two --format selections before an error',
+    ['lint', '--format', 'sarif', '--format', 'github'],
+    usage('--format was given more than once', lintHelp),
+  ],
+  [
+    '--format sarif with explain',
+    ['explain', '--format', 'sarif'],
+    usage('--format is not available for explain', explainHelp),
+  ],
+  [
+    '--format sarif without a command',
+    ['--format', 'sarif', '--bogus'],
+    usage('unknown flag --bogus', topHelp),
   ],
 ];
 
