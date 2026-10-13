@@ -645,6 +645,120 @@ describe('RuleContext sites and declarations (API stage B2)', () => {
   });
 });
 
+describe('RuleContext dependencies, uses and readsInput (API stage C)', () => {
+  const variable = (name: string, text: string, language = 'text/fhirpath') => ({
+    url: 'http://hl7.org/fhir/StructureDefinition/variable',
+    valueExpression: { name, language, expression: text },
+  });
+  const document: QuestionnaireDocument = {
+    file: 'Q.json',
+    resource: {
+      resourceType: 'Questionnaire',
+      extension: [variable('title', "'T'"), variable('unused', '1')],
+      item: [
+        {
+          linkId: 'g',
+          type: 'group',
+          extension: [
+            variable('x', '%title & item.answer.value'),
+            variable('y', '%x & linkId'),
+            variable('z', '%x.('),
+          ],
+          item: [{ linkId: 'a', type: 'string' }],
+        },
+        { linkId: 'b', type: 'string', extension: [variable('c', '%title', 'text/cql')] },
+        { linkId: 'h', type: 'string', extension: [variable('w', '2')] },
+      ],
+    },
+    resourcePointer: '',
+    localResources: [],
+  };
+  const sites = findExpressionSites(document);
+  const analysed = {
+    input: doc.input,
+    document,
+    sites,
+    analysis: analyseDocument(document, sites),
+  };
+
+  function received<T>(read: (ctx: RuleContext) => T): T {
+    let result: T | undefined;
+    const rule = {
+      meta: { description: 'Records what it receives.', defaultSeverity: 'error' },
+      check: (ctx: RuleContext) => {
+        result = read(ctx);
+      },
+    } as LintRule;
+    runRules(analysed, [
+      { id: 'test/rule', namespace: 'test', rule, setting: 'error', compat: {} },
+    ]);
+    return result as T;
+  }
+  const named = (ctx: RuleContext, name: string) => {
+    const found = ctx.declarations.find((declaration) => declaration.name === name);
+    if (found === undefined) throw new Error(`no declaration ${name}`);
+    return found;
+  };
+
+  it("gives a declaration's dependencies, as the analysis holds them", () => {
+    const [x, y, title] = received((ctx) =>
+      ['x', 'y', 'title'].map((name) => ctx.dependenciesOf(named(ctx, name))),
+    );
+    expect(x?.on.map(({ name }) => name)).toEqual(['title']);
+    expect(y?.on.map(({ name }) => name)).toEqual(['x']);
+    expect(title).toEqual({ on: [], analysed: true, known: true });
+    expect(Object.isFrozen(x?.on)).toBe(true);
+  });
+
+  it("gives a declaration's use", () => {
+    // Only z, which does not parse, can reference y; the CQL on b can reference unused.
+    expect(
+      received((ctx) =>
+        ['title', 'x', 'w', 'y', 'unused'].map((name) => ctx.useOf(named(ctx, name))),
+      ),
+    ).toEqual(['referenced', 'referenced', 'unreferenced', 'blocked', 'unknown']);
+  });
+
+  it('gives undefined for a copy of a declaration', () => {
+    expect(
+      received((ctx) => {
+        const copy = { ...named(ctx, 'x') };
+        return [ctx.dependenciesOf(copy), ctx.useOf(copy)];
+      }),
+    ).toEqual([undefined, undefined]);
+  });
+
+  it('tells whether a site reads its input other than its linkId', () => {
+    expect(
+      received((ctx) =>
+        ['x', 'y', 'title'].map((name) => {
+          const { site } = named(ctx, name);
+          return site === undefined ? 'no site' : ctx.readsInput(site);
+        }),
+      ),
+    ).toEqual([true, false, false]);
+  });
+
+  it('gives undefined where referencesAt does, and for a copy of a site', () => {
+    expect(
+      received((ctx) =>
+        [
+          named(ctx, 'z').site,
+          named(ctx, 'c').site,
+          { ...(named(ctx, 'x').site as ExpressionSite) },
+        ].map((site) => [
+          ctx.referencesAt(site as ExpressionSite),
+          ctx.readsInput(site as ExpressionSite),
+        ]),
+      ),
+    ).toEqual([
+      [undefined, undefined],
+      [undefined, undefined],
+      [undefined, undefined],
+    ]);
+  });
+});
+
 describe('plugin findings in a report', () => {
   it('produce a valid report for each accepted shape', async () => {
     const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';

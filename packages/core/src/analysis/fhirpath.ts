@@ -479,3 +479,119 @@ export function findLinkIdReferences(
     uncertain: references.some(({ literal, established }) => !established || literal === undefined),
   };
 }
+
+// The arguments fhirpath.js 4.10.1 evaluates against each item of the function's target, by
+// function: those typed Expr, and sort's SortArgument (fhirpath.js:79-120,191,695-750). coalesce's
+// ExprAtCurrent arguments are evaluated against its target with the enclosing $this. Every other
+// argument, and every operand of an operator, is evaluated against the enclosing $this, or else
+// the input (fhirpath.js:753-754).
+const itemArguments: Readonly<Record<string, (index: number) => boolean>> = {
+  where: () => true,
+  select: () => true,
+  exists: () => true,
+  all: () => true,
+  repeat: () => true,
+  iif: () => true,
+  sort: () => true,
+  aggregate: (index) => index === 0,
+  trace: (index) => index === 1,
+  defineVariable: (index) => index === 1,
+};
+
+// The functions that read their target only through their arguments, or not at all.
+const targetUnread: ReadonlySet<string> = new Set(['iif', 'select', 'today', 'now', 'timeOfDay']);
+
+// The functions whose argument is a type, such as Coding, which is not evaluated.
+const typeArguments: ReadonlySet<string> = new Set(['ofType', 'is', 'as']);
+
+// The nodes fhirpath.js evaluates against their own input; every other node is an operator, whose
+// operands are evaluated against the enclosing $this.
+const ownInput: ReadonlySet<string> = new Set([
+  'EntireExpression',
+  'ParenthesizedTerm',
+  'TermExpression',
+  'InvocationExpression',
+  'IndexerExpression',
+  'PolarityExpression',
+]);
+
+// Where the walk evaluates a node: whether its input, and whether $this, is the expression's input.
+interface Focus {
+  current: boolean;
+  self: boolean;
+}
+
+// Whether a FHIRPath expression's value can differ between two inputs that share their linkId,
+// such as two repetitions of a group, or undefined when it does not parse: some term is evaluated
+// with the expression's input as its focus, other than to read its linkId, or it uses %context
+// (docs/smart-forms-rules.md, P5). A syntactic test: it does not prove that a value differs.
+export function readsInput(text: string): boolean | undefined {
+  const parsed = parse(text);
+  if (!('tree' in parsed)) return undefined;
+  let reads = false;
+
+  // A value that is the input and is used other than to read its linkId.
+  const use = (isInput: boolean): void => {
+    if (isInput) reads = true;
+  };
+
+  // Whether invocation's result is the input, applied to a target that is the input or not.
+  const invoke = (invocation: ParseNode, target: boolean, focus: Focus): boolean => {
+    if (invocation.type === 'ThisInvocation') return focus.self;
+    if (invocation.type === 'MemberInvocation') {
+      if (identifierName(invocation) !== 'linkId') use(target);
+      return false;
+    }
+    if (invocation.type !== 'FunctionInvocation') return false;
+    const functn = child(invocation, 'Functn');
+    const name = identifierName(functn) ?? '';
+    const args = typeArguments.has(name) ? [] : (child(functn, 'ParamList')?.children ?? []);
+    const onItems = itemArguments[name];
+    args.forEach((argument, index) => {
+      const argumentFocus: Focus =
+        onItems?.(index) === true
+          ? { current: target, self: target }
+          : name === 'coalesce'
+            ? { current: target, self: focus.self }
+            : { current: focus.self, self: focus.self };
+      use(visit(argument, argumentFocus));
+    });
+    if (!targetUnread.has(name)) use(target);
+    return false;
+  };
+
+  // Whether node's value is the input.
+  const visit = (node: ParseNode, focus: Focus): boolean => {
+    const [first, second] = node.children ?? [];
+    if (!ownInput.has(node.type)) {
+      for (const next of node.children ?? []) {
+        use(visit(next, { current: focus.self, self: focus.self }));
+      }
+      return false;
+    }
+    switch (node.type) {
+      case 'TermExpression': {
+        if (first?.type === 'ExternalConstantTerm') return constantName(node) === 'context';
+        if (first?.type === 'InvocationTerm') {
+          const invocation = first.children?.[0];
+          return invocation === undefined ? false : invoke(invocation, focus.current, focus);
+        }
+        return first === undefined ? false : visit(first, focus);
+      }
+      case 'InvocationExpression':
+        return first === undefined || second === undefined
+          ? false
+          : invoke(second, visit(first, focus), focus);
+      case 'EntireExpression':
+      case 'ParenthesizedTerm':
+        return first === undefined ? false : visit(first, focus);
+      default:
+        // An indexer or a polarity: its value is part of its first operand's.
+        for (const next of node.children ?? []) use(visit(next, focus));
+        return false;
+    }
+  };
+
+  use(visit(parsed.tree, { current: true, self: true }));
+  return reads;
+}

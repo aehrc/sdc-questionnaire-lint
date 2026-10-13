@@ -1,9 +1,12 @@
+import fhirpath from 'fhirpath';
+import r4 from 'fhirpath/fhir-context/r4/index.js';
 import { describe, expect, it } from 'vitest';
 import {
   findFhirPathSyntaxProblem,
   findFunctionCalls,
   findLinkIdReferences,
   findVariableReferences,
+  readsInput,
 } from '../../src/analysis/fhirpath.js';
 
 describe('findFhirPathSyntaxProblem', () => {
@@ -340,5 +343,138 @@ describe('findLinkIdReferences', () => {
 
   it('returns undefined for text that does not parse', () => {
     expect(findLinkIdReferences("item.where(linkId = 'a'", { roots, focus: true })).toBeUndefined();
+  });
+});
+
+describe('readsInput', () => {
+  it('is true for a path, $this or a function call with no target at the top level', () => {
+    for (const text of ['item.answer.value', '$this.item', 'exists()', 'ofType(Coding)', 'text']) {
+      expect(readsInput(text), text).toBe(true);
+    }
+  });
+
+  it('is true for %context anywhere', () => {
+    for (const text of [
+      '%context',
+      '%context.item',
+      "%resource.item.where(linkId = 'a').select(%context.item)",
+      '%resource.iif(%context.exists(), 1, 0)',
+    ]) {
+      expect(readsInput(text), text).toBe(true);
+    }
+  });
+
+  it('is false for a path in an argument evaluated against the target', () => {
+    for (const text of [
+      "%resource.item.where(linkId = 'x')",
+      '%resource.iif(true, item.answer.valueString, 0)',
+      '%resource.item.select(answer.valueString)',
+      '%resource.item.exists(answer.exists())',
+      '%resource.item.all(answer.exists())',
+      '%resource.repeat(item)',
+      '%resource.item.aggregate($total + answer.count(), 0)',
+      "%resource.trace('t', item)",
+      "%resource.defineVariable('v', item).select(%v)",
+      '%resource.item.sort(linkId)',
+      '%resource.coalesce(item.answer)',
+    ]) {
+      expect(readsInput(text), text).toBe(false);
+    }
+  });
+
+  it('is true for a path in any other argument or operand', () => {
+    for (const text of [
+      '%resource.item.select(answer.valueString).combine(item.answer.valueString)',
+      '%resource.item.aggregate($total + 1, item.count())',
+      '%resource.trace(item.linkId.first(), 1)',
+      '%resource.item.count() + item.count()',
+      'iif(item.exists(), 1, 0)',
+    ]) {
+      expect(readsInput(text), text).toBe(true);
+    }
+  });
+
+  it('is true for $this in a coalesce argument, which keeps the enclosing $this', () => {
+    expect(readsInput('%resource.coalesce($this.item)')).toBe(true);
+  });
+
+  it('is false for functions with no target that do not read it, literals and other names', () => {
+    for (const text of [
+      'today()',
+      'now()',
+      'timeOfDay()',
+      "iif(%a > 1, 'x', 'y')",
+      "select('x')",
+      "'x'",
+      '1 + 2',
+      '%resource.item.answer',
+      '%rootResource',
+      '%qitem.text',
+      '%weight / (%height * %height)',
+      '%resource.ofType(QuestionnaireResponse)',
+      '%resource.item is Coding',
+    ]) {
+      expect(readsInput(text), text).toBe(false);
+    }
+  });
+
+  it("is false for a term that reads only the input's linkId", () => {
+    for (const text of [
+      'linkId',
+      '$this.linkId',
+      '%context.linkId',
+      '(%context).linkId',
+      '%resource.item.where(linkId = %context.linkId).count()',
+    ]) {
+      expect(readsInput(text), text).toBe(false);
+    }
+  });
+
+  it('is true for linkId together with another read', () => {
+    expect(readsInput('linkId & item.answer.value')).toBe(true);
+  });
+
+  it('returns undefined for text that does not parse', () => {
+    expect(readsInput('item.where(')).toBeUndefined();
+  });
+
+  // Two repetitions of the group g, which share their linkId, evaluated with the pinned fhirpath.js
+  // and its R4 model as QuestionnaireResponse items, so that answer.value resolves: readsInput is
+  // true exactly when the values differ.
+  describe('against two repetitions of a group', () => {
+    const repetition = (value: string) => ({
+      linkId: 'g',
+      item: [{ linkId: 'a', answer: [{ valueString: value }] }],
+    });
+    const repetitions = [repetition('first'), repetition('second')];
+    const resource = {
+      resourceType: 'QuestionnaireResponse',
+      status: 'in-progress',
+      item: [{ linkId: 'x', answer: [{ valueString: 'outside' }] }, ...repetitions],
+    };
+    const valueAt = (text: string, input: object): string =>
+      JSON.stringify(
+        fhirpath.evaluate(
+          input,
+          { base: 'QuestionnaireResponse.item', expression: text },
+          { resource, rootResource: resource },
+          // Its typings break exactOptionalPropertyTypes.
+          r4 as Parameters<typeof fhirpath.evaluate>[3],
+        ),
+      );
+
+    it.each([
+      ["item.where(linkId='a').answer.value", true],
+      ['%context.item.answer.value', true],
+      ['$this.item.answer.value', true],
+      ['linkId', false],
+      ["%resource.item.where(linkId='x').answer.value", false],
+      ['%resource.item.where(linkId=%context.linkId).count()', false],
+    ])('%s', (text, differs) => {
+      const [first, second] = repetitions.map((input) => valueAt(text, input));
+      expect(first).not.toBe('[]');
+      expect(first !== second).toBe(differs);
+      expect(readsInput(text)).toBe(differs);
+    });
   });
 });

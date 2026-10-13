@@ -1,8 +1,10 @@
 // The plugin contract (core-plan §5.2). Exported from the package, so changes are public API changes.
 import type { AvailableVariables } from '../analysis/available-variables.js';
 import type { Declaration } from '../analysis/declarations.js';
+import type { Dependencies } from '../analysis/dependencies.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import type { VariableReference } from '../analysis/fhirpath.js';
+import type { DeclarationUse } from '../analysis/uses.js';
 import type { OffsetRange, Severity } from '../report/types.js';
 
 export type { Severity };
@@ -56,8 +58,20 @@ export interface RuleContext {
   // The names an expression can reference at a site, and the variable each name resolves to;
   // undefined at an uncatalogued site, where name analysis cannot run.
   variablesAt(site: ExpressionSite): AvailableVariables | undefined;
-  // Both return undefined for an object that is not one of sites: they compare by identity, so a
-  // copy of a site is not one.
+  // Whether a site's FHIRPath expression can give a different value for two inputs that share their
+  // linkId, such as two repetitions of a group: some term is evaluated with the expression's input
+  // as its focus, other than to read the input's linkId, or it uses %context. A syntactic test, not
+  // proof that a value differs. undefined where referencesAt is.
+  readsInput(site: ExpressionSite): boolean | undefined;
+  // referencesAt, variablesAt and readsInput return undefined for an object that is not one of
+  // sites: they compare by identity, so a copy of a site is not one.
+  // What a declaration's expression references, the declarations its references resolve to
+  // included; and whether the expressions of others reference it: referenced, unreferenced, or,
+  // when an expression that could reference it was not analysed, blocked (only syntax errors) or
+  // unknown. Both follow SDC's scoping, as variablesAt does, and return undefined for an object
+  // that is not one of declarations: they compare by identity.
+  dependenciesOf(declaration: Declaration): Dependencies | undefined;
+  useOf(declaration: Declaration): DeclarationUse | undefined;
   // The component versions the run checks against for this rule's namespace, such as
   // { renderer: '1.4.0', populate: '4.7.1' }; {} when the plugin declares no compat. For a plugin
   // with compat, core guarantees a version for every component in compat.required, and for every

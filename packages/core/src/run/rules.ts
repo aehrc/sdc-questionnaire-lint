@@ -322,6 +322,10 @@ export function runRules(
         declarations: analysis.declarations,
         referencesAt: (site) => (known.has(site) ? analysis.references.get(site) : undefined),
         variablesAt: (site) => (known.has(site) ? analysis.variablesAt(site) : undefined),
+        readsInput: (site) => (known.has(site) ? analysis.readsInput(site) : undefined),
+        // The maps are keyed by the declarations themselves, so a copy gets nothing.
+        dependenciesOf: (declaration) => analysis.dependencies.get(declaration),
+        useOf: (declaration) => analysis.uses.get(declaration),
         compat,
         options: undefined,
         report: (reported) => {
