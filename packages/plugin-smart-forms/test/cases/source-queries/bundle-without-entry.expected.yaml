@@ -1,0 +1,10 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/source-queries-bundle-without-entry.fsh:8:43
+  message: '%prepop is not available on the Questionnaire root.'
+  help: declare it on the root, or list it in hostVariables if the application running the form supplies it
+  expression:
+    text: '%prepop.entry.count()'
+    range:
+      startOffset: 0
+      endOffset: 7

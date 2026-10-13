@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import smartForms from '../src/index.js';
 import { readSourceQueries } from '../src/source-queries.js';
+import { lintWithPlugin } from './support/lint.js';
 import { documentOf, questionnaire, sdc, VARIABLE } from './support/sites.js';
 
 const sourceQuery = (valueReference: unknown) => ({ url: `${sdc}sourceQueries`, valueReference });
@@ -89,5 +91,142 @@ describe('readSourceQueries', () => {
     expect(read({})).toEqual([]);
     expect(read({ extension: 'x', contained: 'y' })).toEqual([]);
     expect(read({ extension: [null, 'x', sourceQuery(null)] })).toEqual([]);
+  });
+});
+
+describe('the hostVariables hook', () => {
+  const compat = Object.freeze({ renderer: '1.4.0', populate: '4.7.1' });
+  const supplied = (fields: Record<string, unknown>) =>
+    smartForms.hostVariables?.({ document: documentOf(questionnaire(fields)), compat });
+
+  it('supplies a #id with a contained Bundle with entries, empty ones and any type included', () => {
+    expect(
+      supplied({
+        contained: [bundle('a', { entry: [] }), bundle('b', { type: 'collection', entry: [{}] })],
+        extension: [sourceQuery({ reference: '#a' }), sourceQuery({ reference: '#b' })],
+      }),
+    ).toEqual(['a', 'b']);
+  });
+
+  it('does not supply a #id without such a Bundle', () => {
+    expect(
+      supplied({
+        contained: [
+          { resourceType: 'Patient', id: 'patient' },
+          bundle('none', {}),
+          bundle('nulled', { entry: null }),
+          bundle('shadowed', {}),
+          bundle('shadowed', { entry: [] }),
+        ],
+        extension: [
+          sourceQuery({ reference: '#patient' }),
+          sourceQuery({ reference: '#none' }),
+          sourceQuery({ reference: '#nulled' }),
+          sourceQuery({ reference: '#shadowed' }),
+          sourceQuery({ reference: '#missing' }),
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it('supplies sourceQuery<i> for every other reference, counting every valueReference', () => {
+    expect(
+      supplied({
+        contained: [bundle('a', { entry: [] })],
+        extension: [
+          sourceQuery({ display: 'display only' }),
+          sourceQuery({ reference: '' }),
+          sourceQuery({}),
+          sourceQuery({ reference: '#' }),
+          sourceQuery({ reference: '#a' }),
+          sourceQuery({ reference: 'Observation?c=1' }),
+          sourceQuery({ reference: 'Patient/p1' }),
+        ],
+      }),
+    ).toEqual(['a', 'sourceQuery5', 'sourceQuery6']);
+  });
+
+  it('supplies a #a b name, but not a #%x one, which a host variable cannot be', () => {
+    expect(
+      supplied({
+        contained: [bundle('%x', { entry: [] }), bundle('a b', { entry: [] })],
+        extension: [sourceQuery({ reference: '#%x' }), sourceQuery({ reference: '#a b' })],
+      }),
+    ).toEqual(['a b']);
+  });
+
+  it('ignores item-level sourceQueries and a URL with a version', () => {
+    expect(
+      supplied({
+        extension: [{ url: `${sdc}sourceQueries|3.0.0`, valueReference: { reference: 'Patient' } }],
+        item: [{ linkId: 'g', type: 'group', extension: [sourceQuery({ reference: 'Patient' })] }],
+      }),
+    ).toEqual([]);
+  });
+
+  it('supplies nothing when subjectType lacks Patient', () => {
+    const extension = [sourceQuery({ reference: 'Observation?c=1' })];
+    expect(supplied({ subjectType: ['Group'], extension })).toEqual([]);
+    expect(supplied({ subjectType: ['Group', 'Patient'], extension })).toEqual(['sourceQuery0']);
+    expect(supplied({ subjectType: [], extension })).toEqual(['sourceQuery0']);
+  });
+
+  it('needs the Smart Forms versions in compat', () => {
+    expect(() =>
+      smartForms.hostVariables?.({ document: documentOf(questionnaire({})), compat: {} }),
+    ).toThrow(/names no Smart Forms renderer version/);
+  });
+});
+
+// What the lint cases cannot build: SUSHI drops an empty array and an empty object.
+describe('the supplied names in a lint run', () => {
+  async function undefinedNames(
+    fields: Record<string, unknown>,
+    rules: Record<string, string> = {},
+  ) {
+    const report = await lintWithPlugin(
+      { 'Questionnaire-Q.json': JSON.stringify(questionnaire(fields)) },
+      `rules: ${JSON.stringify({ 'sdc/unused-declaration': 'off', ...rules })}`,
+    );
+    return report.findings
+      .filter(({ ruleId }) => ruleId === 'sdc/undefined-variable')
+      .map(({ message }) => message);
+  }
+  const uses = (expression: string) => ({
+    url: VARIABLE,
+    valueExpression: { name: 'v', language: 'text/fhirpath', expression },
+  });
+
+  it('accepts %id for a contained Bundle with an empty entry', async () => {
+    expect(
+      await undefinedNames({
+        contained: [bundle('prepop', { entry: [] })],
+        extension: [sourceQuery({ reference: '#prepop' }), uses('%prepop.entry.count()')],
+      }),
+    ).toEqual([]);
+  });
+
+  it('supplies the names with every smart-forms rule off', async () => {
+    const off = Object.fromEntries(
+      Object.keys(smartForms.rules).map((key) => [`smart-forms/${key}`, 'off']),
+    );
+    expect(
+      await undefinedNames(
+        { extension: [sourceQuery({ reference: 'Patient' }), uses('%sourceQuery0.id')] },
+        off,
+      ),
+    ).toEqual([]);
+  });
+
+  it('counts an empty valueReference for the index of sourceQuery<i>', async () => {
+    expect(
+      await undefinedNames({
+        extension: [
+          sourceQuery({}),
+          sourceQuery({ reference: 'Observation?code=1' }),
+          uses('%sourceQuery1.total + %sourceQuery0.total'),
+        ],
+      }),
+    ).toEqual(['%sourceQuery0 is not available on the Questionnaire root.']);
   });
 });

@@ -1,5 +1,6 @@
 import type { LintPlugin } from 'sdc-questionnaire-lint';
 import pkg from '../package.json' with { type: 'json' };
+import { hostVariables } from './host-variables.js';
 import { expressionEvaluatedAsFhirpath } from './rules/expression-evaluated-as-fhirpath.js';
 import { questionnaireVariableUnavailable } from './rules/questionnaire-variable-unavailable.js';
 import { unsupportedExpressionLanguage } from './rules/unsupported-expression-language.js';
@@ -25,6 +26,8 @@ const smartForms: LintPlugin = {
     // Template extraction is checked only when selected.
     required: ['renderer', 'populate'],
   },
+  // The sourceQueries results population binds, so that sdc/undefined-variable accepts them.
+  hostVariables,
 };
 
 export default smartForms;
