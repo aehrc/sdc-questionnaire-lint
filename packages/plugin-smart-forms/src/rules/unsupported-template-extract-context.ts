@@ -99,7 +99,14 @@ export const unsupportedTemplateExtractContext: LintRule = {
     const version = templateExtractVersion(ctx);
     if (version === undefined) return;
     const facts = extractionAt(version);
-    if (!facts.has('context-read-only-from-value-string')) return;
+    // The facts the check copies: which templates are extracted, and which contexts are read.
+    if (
+      !facts.has('template-selection') ||
+      !facts.has('first-context-only') ||
+      !facts.has('context-read-only-from-value-string')
+    ) {
+      return;
+    }
     const sites = new Map(
       ctx.sites
         .filter(({ carrier }) => carrier === 'expression')
