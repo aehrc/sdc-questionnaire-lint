@@ -33,6 +33,8 @@ export default defineConfig({
 | `smart-forms/expression-evaluated-as-fhirpath` | error | An expression Smart Forms evaluates as FHIRPath whatever its language |
 | `smart-forms/questionnaire-variable-unavailable` | error | A reference to `%questionnaire` or `%qitem`, which Smart Forms does not supply |
 | `smart-forms/unsupported-query-embedding` | error | A `{{…}}` embedding in an x-fhir-query that Smart Forms population does not fill as written |
+| `smart-forms/variable-name-collision` | error | A name declared on two elements, or named like a sourceQueries result, which Smart Forms stores as one value |
+| `smart-forms/repeating-group-variable` | warning | A variable on or below a repeating group whose value differs between repetitions, of which Smart Forms keeps one |
 
 `sdc-lint explain smart-forms/<rule>` prints what a rule checks, why, an example message and the fix. The [rules library](https://github.com/beda-software/sdc-questionnaire-lint/blob/main/docs/rules/index.md) has the same documentation with example forms, and the [Smart Forms rules plan](https://github.com/beda-software/sdc-questionnaire-lint/blob/main/docs/smart-forms-rules.md) the runtime facts behind each rule.
 
