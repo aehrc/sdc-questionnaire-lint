@@ -1,0 +1,10 @@
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/repeating-group-variable-not-parsed.fsh:11:63
+  message: The expression has an unexpected (.
+  note: "the FHIRPath parser reported: mismatched input '('"
+  expression:
+    text: item.answer.(
+    range:
+      startOffset: 12
+      endOffset: 13

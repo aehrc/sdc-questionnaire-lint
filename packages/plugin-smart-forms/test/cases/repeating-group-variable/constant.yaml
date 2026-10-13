@@ -1,0 +1,17 @@
+# A constant is the same in every repetition.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: "'x'"
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%v'

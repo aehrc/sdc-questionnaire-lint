@@ -1,0 +1,10 @@
+- ruleId: smart-forms/repeating-group-variable
+  severity: warning
+  at: input/fsh/repeating-group-variable-reads-input.fsh:11:51
+  message: '%v is calculated for each repetition of item "Medication" (g), but Smart Forms keeps one value, so every repetition gets the value calculated for one of them, usually the last.'
+  help: compute it from the whole response, or move the item out of the repeating group
+  expression:
+    text: item.where(linkId = 'a').answer.value
+  related:
+    - at: /item/0 (source-unavailable)
+      message: this group repeats

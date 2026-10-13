@@ -1,0 +1,17 @@
+# A path inside a predicate over %resource reads the response, the same in every repetition.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: "%resource.item.where(linkId = 'g').item.answer.value"
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%v'

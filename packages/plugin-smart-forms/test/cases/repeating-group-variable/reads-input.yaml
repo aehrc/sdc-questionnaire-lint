@@ -1,0 +1,17 @@
+# A variable on a repeating group that reads its input differs between repetitions.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: "item.where(linkId = 'a').answer.value"
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%v'

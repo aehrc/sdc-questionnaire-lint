@@ -1,0 +1,15 @@
+# A group that does not repeat has one value per variable.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    extensions:
+      - url: variable
+        name: v
+        expression: 'item.answer.value'
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%v'

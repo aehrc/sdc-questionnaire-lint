@@ -3,6 +3,7 @@ import pkg from '../package.json' with { type: 'json' };
 import { hostVariables } from './host-variables.js';
 import { expressionEvaluatedAsFhirpath } from './rules/expression-evaluated-as-fhirpath.js';
 import { questionnaireVariableUnavailable } from './rules/questionnaire-variable-unavailable.js';
+import { repeatingGroupVariable } from './rules/repeating-group-variable.js';
 import { unsupportedExpressionLanguage } from './rules/unsupported-expression-language.js';
 import { unsupportedQueryEmbedding } from './rules/unsupported-query-embedding.js';
 import { variableNameCollision } from './rules/variable-name-collision.js';
@@ -17,6 +18,7 @@ const smartForms: LintPlugin = {
     'questionnaire-variable-unavailable': questionnaireVariableUnavailable,
     'unsupported-query-embedding': unsupportedQueryEmbedding,
     'variable-name-collision': variableNameCollision,
+    'repeating-group-variable': repeatingGroupVariable,
   },
   compat: {
     // Oldest to newest: "latest" selects the last. Each version is verified on its own (S3).

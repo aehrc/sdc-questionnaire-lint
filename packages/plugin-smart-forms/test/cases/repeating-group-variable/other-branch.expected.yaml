@@ -1,0 +1,17 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/repeating-group-variable-other-branch.fsh:22:51
+  message: '%v is not available on item b.'
+  help: declare it on this item, an ancestor item or the root, or list it in hostVariables if the application running the form supplies it
+  expression:
+    text: '%v'
+    range:
+      startOffset: 0
+      endOffset: 2
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/repeating-group-variable-other-branch.fsh:11:51
+  message: '%v is declared on item "Medication" (g), but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %v where its value is needed
+  expression:
+    text: item.answer.value

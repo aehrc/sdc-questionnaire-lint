@@ -1,0 +1,17 @@
+- ruleId: smart-forms/repeating-group-variable
+  severity: warning
+  at: input/fsh/repeating-group-variable-unknown-use.fsh:11:51
+  message: '%v is calculated for each repetition of item "Medication" (g), but Smart Forms keeps one value, so every repetition gets the value calculated for one of them, usually the last.'
+  help: compute it from the whole response, or move the item out of the repeating group
+  expression:
+    text: item.answer.value
+  related:
+    - at: /item/0 (source-unavailable)
+      message: this group repeats
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/repeating-group-variable-unknown-use.fsh:17:59
+  message: Smart Forms ignores this calculatedExpression on item a because it is written in text/cql; it uses only text/fhirpath here, so the answer is never calculated from it.
+  help: rewrite it in FHIRPath with the language text/fhirpath; to use server data, fetch it in an application/x-fhir-query variable on this item or an ancestor and reference that variable
+  expression:
+    text: '%v'
