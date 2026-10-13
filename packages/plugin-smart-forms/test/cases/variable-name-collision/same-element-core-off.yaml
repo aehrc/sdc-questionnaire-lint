@@ -1,0 +1,14 @@
+# As same-element, with sdc/duplicate-declaration off: still no collision.
+rules:
+  sdc/unused-declaration: 'off'
+  sdc/duplicate-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'first'"
+      - url: variable
+        name: x
+        expression: "'second'"

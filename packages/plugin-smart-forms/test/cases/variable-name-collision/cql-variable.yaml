@@ -1,0 +1,17 @@
+# A text/cql variable binds nothing in Smart Forms, so it does not collide with a FHIRPath %x.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        language: text/cql
+        expression: 'X'
+  - linkId: b
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'b'"

@@ -1,0 +1,16 @@
+# Two sibling items each declare %x: Smart Forms keeps one value, so each can get the other's.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'a'"
+  - linkId: b
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'b'"

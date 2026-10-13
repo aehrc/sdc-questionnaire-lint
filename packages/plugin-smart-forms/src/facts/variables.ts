@@ -107,7 +107,7 @@ export const variableFacts: FactTable<readonly VariableFact[]> = Object.freeze({
 });
 
 // The variable facts of a component version, by behaviour.
-export function variablesAt(
+export function variableFactsAt(
   component: Component,
   version: string,
 ): ReadonlyMap<VariableBehaviour, VariableFact> {

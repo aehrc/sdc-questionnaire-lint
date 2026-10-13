@@ -1,0 +1,10 @@
+- ruleId: sdc/shadowed-declaration
+  severity: info
+  at: input/fsh/variable-name-collision-root-population-context.fsh:14:51
+  message: The name %x on item a is also declared on the Questionnaire root, so other expressions on item a and its descendant items get this declaration's value.
+  help: rename one of the declarations of %x, unless this item should override it
+  expression:
+    text: "'a'"
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is also declared here'

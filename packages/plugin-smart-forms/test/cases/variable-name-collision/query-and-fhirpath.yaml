@@ -1,0 +1,17 @@
+# An application/x-fhir-query variable and a FHIRPath variable on sibling items share %x.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        language: application/x-fhir-query
+        expression: 'Observation?code=1'
+  - linkId: b
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'b'"

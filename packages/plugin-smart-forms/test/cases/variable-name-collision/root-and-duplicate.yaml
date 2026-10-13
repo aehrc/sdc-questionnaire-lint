@@ -1,0 +1,18 @@
+# %x on the root and twice on one item: the item's first %x collides with the root's, and its
+# second is only sdc/duplicate-declaration's.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    expression: "'root'"
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'first'"
+      - url: variable
+        name: x
+        expression: "'second'"

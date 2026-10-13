@@ -1,0 +1,18 @@
+# As root-and-duplicate, with sdc/duplicate-declaration off: the second %x is still not reported.
+rules:
+  sdc/unused-declaration: 'off'
+  sdc/duplicate-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    expression: "'root'"
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'first'"
+      - url: variable
+        name: x
+        expression: "'second'"

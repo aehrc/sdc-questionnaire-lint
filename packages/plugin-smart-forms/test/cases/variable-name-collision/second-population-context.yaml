@@ -1,0 +1,23 @@
+# Population reads only the first itemPopulationContext on an item, so the second, %x, does not
+# collide with the variable %x.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: g
+    type: group
+    extensions:
+      - url: itemPopulationContext
+        name: c
+        expression: "'c'"
+      - url: itemPopulationContext
+        name: x
+        expression: "'x'"
+    items:
+      - linkId: q
+        type: string
+  - linkId: b
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'b'"

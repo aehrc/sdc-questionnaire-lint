@@ -1,0 +1,18 @@
+# A variable %x in a contained Questionnaire is not a declaration of this form.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    expression: "'root'"
+contained:
+  - extensions:
+      - url: variable
+        name: x
+        expression: "'contained'"
+    items:
+      - linkId: c
+        type: string
+items:
+  - linkId: q
+    type: string

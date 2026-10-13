@@ -217,6 +217,34 @@ function holderOf(
   return extensionOf(document, site)?.holder;
 }
 
+function onItemWithChildren(document: QuestionnaireDocument, site: ExpressionSite): boolean {
+  return site.item !== undefined && children(itemOf(document, site.item)).length > 0;
+}
+
+function isFirstNamedContext(document: QuestionnaireDocument, site: ExpressionSite): boolean {
+  const holder = holderOf(document, site);
+  return (
+    holder !== undefined &&
+    isFirstOfItsUrl(holder) &&
+    nonEmptyString(site.name) &&
+    nonEmptyString(site.text)
+  );
+}
+
+// Whether populate reads an itemPopulationContext site: the first of its URL on an item with child
+// items, with a name and text. A later one of the same name in the form replaces it and is evaluated
+// instead, so its group is built from the later one's values (readPopulationExpressions.ts:47-63).
+export function populationReadsContext(
+  document: QuestionnaireDocument,
+  site: ExpressionSite,
+): boolean {
+  return (
+    site.location?.url === ITEM_POPULATION_CONTEXT &&
+    onItemWithChildren(document, site) &&
+    isFirstNamedContext(document, site)
+  );
+}
+
 const readPopulationExpressions = `${populateSource}readPopulationExpressions.ts`;
 const constructResponse = `${populateSource}constructResponse.ts`;
 // The key of a targetConstraint extension the renderer builds, or undefined when it builds none.
@@ -371,7 +399,7 @@ const populate471: readonly Prerequisite[] = Object.freeze([
   prerequisite(
     { url: ITEM_POPULATION_CONTEXT },
     'an item with child items; a root itemPopulationContext is read by nothing',
-    (document, site) => site.item !== undefined && children(itemOf(document, site.item)).length > 0,
+    onItemWithChildren,
     source(readPopulationExpressions, 52, 56),
     reproduced(
       populatePrerequisites,
@@ -385,15 +413,7 @@ const populate471: readonly Prerequisite[] = Object.freeze([
   prerequisite(
     { url: ITEM_POPULATION_CONTEXT },
     'the first itemPopulationContext on the item, with a name and text',
-    (document, site) => {
-      const holder = holderOf(document, site);
-      return (
-        holder !== undefined &&
-        isFirstOfItsUrl(holder) &&
-        nonEmptyString(site.name) &&
-        nonEmptyString(site.text)
-      );
-    },
+    isFirstNamedContext,
     source(readPopulationExpressions, 53, 63),
     source(readPopulationExpressions, 128, 141),
     reproduced(

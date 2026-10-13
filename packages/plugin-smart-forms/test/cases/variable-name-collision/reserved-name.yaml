@@ -1,0 +1,16 @@
+# A name SDC defines declared on two items is sdc/reserved-name's, not a collision.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: qitem
+        expression: "'a'"
+  - linkId: b
+    type: string
+    extensions:
+      - url: variable
+        name: qitem
+        expression: "'b'"

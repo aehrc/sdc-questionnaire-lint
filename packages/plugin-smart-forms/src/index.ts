@@ -5,6 +5,7 @@ import { expressionEvaluatedAsFhirpath } from './rules/expression-evaluated-as-f
 import { questionnaireVariableUnavailable } from './rules/questionnaire-variable-unavailable.js';
 import { unsupportedExpressionLanguage } from './rules/unsupported-expression-language.js';
 import { unsupportedQueryEmbedding } from './rules/unsupported-query-embedding.js';
+import { variableNameCollision } from './rules/variable-name-collision.js';
 
 // The Smart Forms plugin. Listing it in plugins checks forms against the Smart Forms versions
 // selected in compat (docs/smart-forms-rules.md).
@@ -15,6 +16,7 @@ const smartForms: LintPlugin = {
     'expression-evaluated-as-fhirpath': expressionEvaluatedAsFhirpath,
     'questionnaire-variable-unavailable': questionnaireVariableUnavailable,
     'unsupported-query-embedding': unsupportedQueryEmbedding,
+    'variable-name-collision': variableNameCollision,
   },
   compat: {
     // Oldest to newest: "latest" selects the last. Each version is verified on its own (S3).

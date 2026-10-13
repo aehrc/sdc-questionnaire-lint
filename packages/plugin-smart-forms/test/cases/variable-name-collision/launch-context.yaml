@@ -1,0 +1,17 @@
+# An item variable %patient replaces the patient launchContext; reported at the variable, with
+# the launchContext as related location.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: patient
+        expression: "'not a patient'"

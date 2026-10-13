@@ -1,0 +1,10 @@
+- ruleId: smart-forms/variable-name-collision
+  severity: error
+  at: input/fsh/variable-name-collision-siblings.fsh:16:51
+  message: "%x is also declared on item a; Smart Forms keeps one value for each name, so expressions on either element can get the other's value."
+  help: rename one of the declarations so the name is declared on one element only
+  expression:
+    text: "'b'"
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is also declared here'
