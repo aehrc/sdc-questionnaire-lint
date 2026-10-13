@@ -365,6 +365,42 @@ describe('runRules on what a rule reports', () => {
     ]);
   });
 
+  it('gives a pointer the linkId of the innermost item it lies in', () => {
+    const resource = {
+      resourceType: 'Questionnaire',
+      contained: [{ resourceType: 'Questionnaire', item: [{ linkId: 'inside' }] }],
+      item: [
+        { linkId: 'g', item: [{ linkId: 'a' }, { text: 'no linkId' }] },
+        { linkId: 'h', extension: [{ url: 'u' }] },
+      ],
+    };
+    const withItems = { ...inBundle, document: { ...inBundle.document, resource } };
+    const pointers = [
+      '/item/0',
+      '/item/0/item/0/extension/0',
+      '/item/0/item/1',
+      '/item/1/extension/0',
+      '/item/10',
+      '/item/1x',
+      '/extension/0',
+      '/contained/0/item/0',
+    ];
+    const rule = ruleThat((ctx) => {
+      ctx.report({
+        message: 'Related.',
+        pointer: `${resourcePointer}/item/0/item/0`,
+        relatedLocations: pointers.map((pointer) => ({ pointer: `${resourcePointer}${pointer}` })),
+      });
+    });
+    const [finding] = runRules(withItems, [rule]);
+    expect(finding?.jsonLocation).toMatchObject({ linkId: 'a' });
+    expect(
+      finding?.relatedLocations?.map((related) =>
+        related.kind === 'questionnaire' ? related.jsonLocation.linkId : 'not questionnaire',
+      ),
+    ).toEqual(['g', 'a', undefined, 'h', undefined, undefined, undefined, undefined]);
+  });
+
   it("passes core's analysis to sdc rules only, never to a plugin rule", () => {
     const received: unknown[][] = [];
     const recording = {

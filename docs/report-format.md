@@ -60,7 +60,7 @@ Every finding has stable `ruleId`, `severity`, `message`, `fingerprint` and `kin
 | `questionnaire` | `jsonLocation` and `sourceLocation` |
 | `config` | `configLocation`; no Questionnaire or FSH location is required or invented |
 
-`jsonLocation` contains `file`, `pointer`, `resource`, and optional `linkId`. Both `pointer` and `resource.pointer` are JSON Pointers from the root of the input file. `resource` contains its `resourceType`, optional `id`, and the pointer to that resource: `""` for a standalone root, `/entry/0/resource` for a Bundle entry, or the corresponding contained-resource pointer. The resource pointer identifies a resource even when an ID is absent or duplicated. The finding pointer identifies the exact site, including root-level expressions without an item.
+`jsonLocation` contains `file`, `pointer`, `resource`, and optional `linkId`. Both `pointer` and `resource.pointer` are JSON Pointers from the root of the input file. `resource` contains its `resourceType`, optional `id`, and the pointer to that resource: `""` for a standalone root, `/entry/0/resource` for a Bundle entry, or the corresponding contained-resource pointer. The resource pointer identifies a resource even when an ID is absent or duplicated. The finding pointer identifies the exact site, including root-level expressions without an item. `linkId` is the linkId of the item the location is on: the item of the expression, or else the innermost item of the Questionnaire the pointer lies in. A location on the root, or in a contained resource, has none.
 
 `sourceLocation` uses the plan's source-map union:
 
