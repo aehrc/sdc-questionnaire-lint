@@ -56,6 +56,9 @@ const examples: Readonly<Record<string, { case: string } | { tests: readonly str
   },
   'smart-forms/variable-name-collision': { case: 'variable-name-collision/siblings' },
   'smart-forms/repeating-group-variable': { case: 'repeating-group-variable/reads-input' },
+  'smart-forms/named-expression-not-referenceable': {
+    case: 'named-expression-not-referenceable/calculated-expression',
+  },
 };
 
 interface RuleGroup {
