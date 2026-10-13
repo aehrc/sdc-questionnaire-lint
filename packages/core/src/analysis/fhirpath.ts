@@ -447,7 +447,7 @@ export function findLinkIdReferences(
     if (invocation.type !== 'FunctionInvocation') return unknown;
     const functn = child(invocation, 'Functn');
     const name = identifierName(functn);
-    const args = child(functn, 'ParamList')?.children ?? [];
+    const args = argumentsOf(invocation);
     // Only repeat's argument continues the chain of its input: the items it gives are reached
     // from those through the argument's steps.
     const argumentInput: Value =
