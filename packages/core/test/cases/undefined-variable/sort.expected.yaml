@@ -1,0 +1,10 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/undefined-variable-sort.fsh:9:62
+  message: '%x is not available on item a.'
+  help: declare it on this item, an ancestor item or the root, or list it in hostVariables if the application running the form supplies it
+  expression:
+    text: (1|2).sort(%x)
+    range:
+      startOffset: 11
+      endOffset: 13

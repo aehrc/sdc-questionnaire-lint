@@ -1,0 +1,10 @@
+- ruleId: sdc/unknown-function
+  severity: error
+  at: input/fsh/unknown-function-sort.fsh:14:68
+  message: fist() is not a FHIRPath function, so this expression fails when the form runs.
+  help: 'a function with a similar name exists: first()'
+  expression:
+    text: (1|2).sort($this.fist() desc)
+    range:
+      startOffset: 17
+      endOffset: 21

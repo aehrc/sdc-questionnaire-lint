@@ -94,6 +94,14 @@ describe('findFunctionCalls', () => {
     expect(names('%v.fist()')).toEqual(['fist']);
   });
 
+  it('finds sort, which fhirpath.js parses without a name, and the calls in its arguments', () => {
+    expect(findFunctionCalls('(1|2).sort($this)')).toEqual([
+      { name: 'sort', startOffset: 6, endOffset: 10 },
+    ]);
+    expect(findFunctionCalls('`sort`()')).toEqual([{ name: 'sort', startOffset: 0, endOffset: 6 }]);
+    expect(names('a.sort($this.fist() desc, b.first())')).toEqual(['sort', 'fist', 'first']);
+  });
+
   it('does not count a member access as a call', () => {
     expect(findFunctionCalls('a.b')).toEqual([]);
   });
@@ -197,6 +205,12 @@ describe('findVariableReferences', () => {
     expect(findVariableReferences("`defineV\\u0061riable`('a', 1).select(%a)")).toEqual([
       { name: 'a', startOffset: 37, endOffset: 39, complete: false },
     ]);
+  });
+
+  it('finds references in the arguments of sort, which fhirpath.js parses without a parameter list', () => {
+    expect(names('(1|2).sort(%x)')).toEqual(['x']);
+    expect(names('a.sort(%a desc, %b asc).select(%c)')).toEqual(['a', 'b', 'c']);
+    expect(names('sort()')).toEqual([]);
   });
 
   it('decodes escapes in a quoted name as fhirpath.js does, keeping a backslash before a line break', () => {

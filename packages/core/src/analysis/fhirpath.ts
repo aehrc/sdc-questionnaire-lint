@@ -106,10 +106,24 @@ function onOwnFunctions(call: ParseNode, parent: ParseNode | undefined): boolean
   );
 }
 
+// Whether a Functn is a sort call: fhirpath.js parses sort, or `sort`, as a Functn with no
+// Identifier and no ParamList, only a SortDirectionArgument child for each argument
+// (fhirpath.js:613-617). The FunctionInvocation holds the name as written and its position.
+function isSort(functn: ParseNode | undefined): functn is ParseNode {
+  return functn !== undefined && child(functn, 'Identifier') === undefined;
+}
+
+// The arguments of a FunctionInvocation, in source order.
+function argumentsOf(call: ParseNode): ParseNode[] {
+  const functn = child(call, 'Functn');
+  return (isSort(functn) ? functn.children : child(functn, 'ParamList')?.children) ?? [];
+}
+
 // The call a FunctionInvocation makes. fhirpath.js strips the backticks of a delimited name, then
 // decodes its escape sequences; a name with one gives undefined rather than a guess.
 function toCall(text: string, call: ParseNode): FunctionCall | undefined {
-  const { text: written, start } = child(child(call, 'Functn'), 'Identifier') ?? {};
+  const functn = child(call, 'Functn');
+  const { text: written, start } = (isSort(functn) ? call : child(functn, 'Identifier')) ?? {};
   if (written === undefined || start === undefined) {
     throw new Error(`fhirpath.js gave a function call without a name: ${text}`);
   }
@@ -253,7 +267,7 @@ export function findVariableReferences(text: string): VariableReference[] | unde
       for (const next of node.children ?? []) visit(next, shared ? local : copy(local));
       return;
     }
-    const args = child(child(node, 'Functn'), 'ParamList')?.children ?? [];
+    const args = argumentsOf(node);
     for (const argument of args) visit(argument, copy(local));
     // fhirpath.js accepts one or two arguments, and binds the name after evaluating them. A call
     // whose name has an escape sequence may be defineVariable, so it counts as a computed name.
@@ -548,15 +562,8 @@ export function readsInput(text: string): boolean | undefined {
     }
     if (invocation.type !== 'FunctionInvocation') return false;
     const functn = child(invocation, 'Functn');
-    // fhirpath.js parses a sort call as a Functn with the text sort, no Identifier and a
-    // SortDirectionArgument child for each argument (fhirpath.js:613-617).
-    const sort = functn !== undefined && child(functn, 'Identifier') === undefined;
-    const name = sort ? 'sort' : (identifierName(functn) ?? '');
-    const args = sort
-      ? (functn.children ?? [])
-      : typeArguments.has(name)
-        ? []
-        : (child(functn, 'ParamList')?.children ?? []);
+    const name = isSort(functn) ? 'sort' : (identifierName(functn) ?? '');
+    const args = typeArguments.has(name) ? [] : argumentsOf(invocation);
     const onItems = itemArguments.get(name);
     args.forEach((argument, index) => {
       const argumentFocus: Focus =
