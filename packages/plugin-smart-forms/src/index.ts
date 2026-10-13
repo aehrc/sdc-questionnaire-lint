@@ -8,6 +8,7 @@ import { questionnaireVariableUnavailable } from './rules/questionnaire-variable
 import { repeatingGroupVariable } from './rules/repeating-group-variable.js';
 import { unsupportedExpressionLanguage } from './rules/unsupported-expression-language.js';
 import { unsupportedQueryEmbedding } from './rules/unsupported-query-embedding.js';
+import { unsupportedTemplateExtractContext } from './rules/unsupported-template-extract-context.js';
 import { variableNameCollision } from './rules/variable-name-collision.js';
 
 // The Smart Forms plugin. Listing it in plugins checks forms against the Smart Forms versions
@@ -23,6 +24,7 @@ const smartForms: LintPlugin = {
     'repeating-group-variable': repeatingGroupVariable,
     'named-expression-not-referenceable': namedExpressionNotReferenceable,
     'forward-variable-reference': forwardVariableReference,
+    'unsupported-template-extract-context': unsupportedTemplateExtractContext,
   },
   compat: {
     // Oldest to newest: "latest" selects the last. Each version is verified on its own (S3).

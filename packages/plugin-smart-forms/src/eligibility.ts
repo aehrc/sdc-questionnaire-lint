@@ -29,6 +29,13 @@ export function requireCompat(ctx: Pick<RuleContext, 'compat'>): Record<Componen
   return versions;
 }
 
+// The selected template-extract version, or undefined when compat does not select it: template
+// extraction is checked only when selected (S3). Read defensively, like requireCompat.
+export function templateExtractVersion(ctx: Pick<RuleContext, 'compat'>): string | undefined {
+  const compat = ctx.compat as Readonly<Record<string, string>> | undefined;
+  return compat?.['template-extract'];
+}
+
 // The selected components that read a site, whatever its language: those with a language fact for
 // its location whose prerequisites hold there. None for an uncatalogued site, a fragment site or a
 // location nothing reads, such as candidateExpression, contextExpression, itemExtractionContext,

@@ -1,0 +1,6 @@
+- ruleId: sdc/uncatalogued-expression
+  severity: info
+  at: input/fsh/unsupported-template-extract-context-suppressed.fsh:24:59
+  message: This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.
+  expression:
+    text: item.where(linkId = 'systolic')

@@ -1,0 +1,26 @@
+# A template the root and an item reference: the item's reference is extracted.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtract"'
+  - 'extension[=].extension[0].url = "template"'
+  - 'extension[=].extension[=].valueReference.reference = "#root-and-item"'
+items:
+  - linkId: bp
+    type: group
+    text: 'Blood pressure'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtract"'
+      - 'extension[=].extension[0].url = "template"'
+      - 'extension[=].extension[=].valueReference.reference = "#root-and-item"'
+    items:
+      - linkId: systolic
+        type: decimal
+contained:
+  - resourceType: Observation
+    fsh:
+      - 'id = "root-and-item"'
+      - 'status = #final'
+      - 'code.text = "Blood pressure"'
+      - 'component[0].code.text = "Systolic"'
+      - 'component[0].extension[0].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtractContext"'
+      - 'component[0].extension[0].valueExpression.language = #text/fhirpath'
+      - 'component[0].extension[0].valueExpression.expression = "item.where(linkId = ''systolic'')"'

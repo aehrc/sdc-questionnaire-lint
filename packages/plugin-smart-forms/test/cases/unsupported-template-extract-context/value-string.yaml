@@ -1,0 +1,21 @@
+# A context written as valueString is read, and has no expression site.
+items:
+  - linkId: bp
+    type: group
+    text: 'Blood pressure'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtract"'
+      - 'extension[=].extension[0].url = "template"'
+      - 'extension[=].extension[=].valueReference.reference = "#value-string"'
+    items:
+      - linkId: systolic
+        type: decimal
+contained:
+  - resourceType: Observation
+    fsh:
+      - 'id = "value-string"'
+      - 'status = #final'
+      - 'code.text = "Blood pressure"'
+      - 'component[0].code.text = "Systolic"'
+      - 'component[0].extension[0].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtractContext"'
+      - 'component[0].extension[0].valueString = "item.where(linkId = ''systolic'')"'

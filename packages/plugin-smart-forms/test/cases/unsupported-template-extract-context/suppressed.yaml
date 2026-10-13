@@ -1,0 +1,27 @@
+# A finding suppressed by the pointer of its expression in the contained template is not reported.
+suppress:
+  - rule: smart-forms/unsupported-template-extract-context
+    file: fsh-generated/resources/Questionnaire-unsupported-template-extract-context-suppressed.json
+    pointer: /contained/0/component/0/extension/0/valueExpression/expression
+    reason: The form is never extracted by Smart Forms.
+items:
+  - linkId: bp
+    type: group
+    text: 'Blood pressure'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtract"'
+      - 'extension[=].extension[0].url = "template"'
+      - 'extension[=].extension[=].valueReference.reference = "#suppressed"'
+    items:
+      - linkId: systolic
+        type: decimal
+contained:
+  - resourceType: Observation
+    fsh:
+      - 'id = "suppressed"'
+      - 'status = #final'
+      - 'code.text = "Blood pressure"'
+      - 'component[0].code.text = "Systolic"'
+      - 'component[0].extension[0].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtractContext"'
+      - 'component[0].extension[0].valueExpression.language = #text/fhirpath'
+      - 'component[0].extension[0].valueExpression.expression = "item.where(linkId = ''systolic'')"'

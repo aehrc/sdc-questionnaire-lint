@@ -1,0 +1,23 @@
+# A context in the extension of a primitive, written to _effectiveDateTime.
+items:
+  - linkId: bp
+    type: group
+    text: 'Blood pressure'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtract"'
+      - 'extension[=].extension[0].url = "template"'
+      - 'extension[=].extension[=].valueReference.reference = "#primitive-wrapper"'
+    items:
+      - linkId: systolic
+        type: decimal
+contained:
+  - resourceType: Observation
+    fsh:
+      - 'id = "primitive-wrapper"'
+      - 'status = #final'
+      - 'code.text = "Blood pressure"'
+      - 'component[0].code.text = "Systolic"'
+      - 'effectiveDateTime = "2024-01-01"'
+      - 'effectiveDateTime.extension[0].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtractContext"'
+      - 'effectiveDateTime.extension[0].valueExpression.language = #text/fhirpath'
+      - 'effectiveDateTime.extension[0].valueExpression.expression = "item.where(linkId = ''when'')"'
