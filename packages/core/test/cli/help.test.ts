@@ -24,7 +24,9 @@ describe('--help', () => {
     expect(stdout).toMatch(/^ {2}sdc-lint lint$/m);
     expect(stdout).toContain('sdc-lint lint "fsh-generated/resources/Questionnaire-*.json"');
     expect(stdout).toContain('--config ig/sdc-questionnaire-lint.config.json');
-    expect(stdout).toContain('--format text|json');
+    expect(stdout).toContain('--format <format>');
+    expect(stdout).toMatch(/text \(default\), json, github .*\n.* or sarif$/m);
+    expect(stdout).toContain('sdc-lint lint --format sarif > lint.sarif');
     expect(stdout).toContain('--show-info');
     expect(stdout).toMatch(/^exit codes:\n {2}0 .*\n {2}1 .*\n {2}2 /m);
   });

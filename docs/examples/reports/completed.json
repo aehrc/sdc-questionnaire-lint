@@ -23,7 +23,10 @@
         "template-extract": "1.0.15"
       }
     },
-    "selection": "full"
+    "selection": "full",
+    "sushi": {
+      "version": "3.20.1"
+    }
   },
   "findings": [],
   "summary": {

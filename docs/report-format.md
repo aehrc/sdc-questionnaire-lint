@@ -23,8 +23,11 @@ A completed report cannot contain `failure`. A failed report cannot contain `run
 | `plugins` | Array of `{ "name": "…", "version": "…" }`, including built-in `sdc`, sorted by namespace |
 | `compat` | The component versions selected by plugin namespace, which enabled plugin rules run against; `{}` without a compatibility plugin. Their presence does not mean any rule checked them. For Smart Forms, `smart-forms` contains exact `renderer` and `populate` versions, and `template-extract` when template extraction is selected; never `latest` |
 | `selection` | `full` when using configured/default inputs; `targeted` when CLI paths are supplied |
+| `sushi` | Optional. `{ "version": "…" }`: the version of the `fsh-sushi` package installed for the IG; absent when it is unknown |
 
 `run.tool.name` identifies the package as `sdc-questionnaire-lint`, whether invoked as `sdc-lint` or through the long executable alias. Versions come from installed packages and the installed compatibility matrix. The examples use illustrative versions. Loading a plugin does not imply that every rule it provides is enabled; `explain` lists effective rule severities.
+
+SUSHI writes no version into its output, so `run.sushi` records the installed package instead: the `fsh-sushi` that Node would load from the directory config paths resolve against, searching its `node_modules` and then those of each parent directory. That is the SUSHI that `npm run` scripts and `./node_modules/.bin/sushi` run. `NODE_PATH` and global installs are not searched, because a SUSHI the IG does not install need not be the one that generated the inputs. The field is absent when no `fsh-sushi` is found, or when the first one found has an unreadable `package.json` or no version. The linter does not check that this SUSHI generated the inputs.
 
 `summary` records:
 
@@ -50,7 +53,7 @@ Expression counts describe coverage, not correctness: a syntax check that comple
 
 ## Findings and locations
 
-Every finding has stable `ruleId`, `severity`, `message`, `fingerprint` and `kind` fields. `help`, `note`, `docsUrl`, `expression`, `relatedLocations` and `suggestions` are optional. Omit an unavailable optional field instead of inventing data. Messages state the problem; help states an action. Fingerprints use rule, resource and stable site identity, or for a launchContext or extractAllocateId its element and name, not source line numbers. Configuration fingerprints use the suppression selector and rule rather than its current array index.
+Every finding has stable `ruleId`, `severity`, `message`, `fingerprint` and `kind` fields. `help`, `note`, `docsUrl`, `expression`, `relatedLocations` and `suggestions` are optional. Omit an unavailable optional field instead of inventing data. Messages state the problem; help states an action. Fingerprints use rule, resource and stable site identity, or for a launchContext or extractAllocateId its element and name, plus the text of the finding's expression range when it has one; never source line numbers or offsets. Configuration fingerprints use the suppression selector and rule rather than its current array index. A fingerprint is unique within a report: when two findings share every part, such as two reports of the same text at one site or two suppression entries with the same rule and selectors, the later ones get a distinct fingerprint from their order.
 
 | Kind | Required location fields |
 | :- | :- |

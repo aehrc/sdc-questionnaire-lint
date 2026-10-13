@@ -18,6 +18,7 @@ const completed: Report = {
       'smart-forms': { renderer: '1.4.0', populate: '4.7.1', 'template-extract': '1.0.15' },
     },
     selection: 'full',
+    sushi: { version: '3.20.1' },
   },
   findings: [],
   summary: {
@@ -54,6 +55,7 @@ const mapped: Report = {
     plugins: [{ name: 'sdc', version: '0.1.0' }],
     compat: {},
     selection: 'full',
+    sushi: { version: '3.20.1' },
   },
   findings: [
     {
@@ -128,6 +130,7 @@ const staleSuppression: Report = {
     plugins: [{ name: 'sdc', version: '0.1.0' }],
     compat: {},
     selection: 'full',
+    sushi: { version: '3.20.1' },
   },
   findings: [
     {
@@ -164,6 +167,7 @@ const targeted: Report = {
     plugins: [{ name: 'sdc', version: '0.1.0' }],
     compat: {},
     selection: 'targeted',
+    sushi: { version: '3.20.1' },
   },
   findings: [
     {

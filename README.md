@@ -20,6 +20,8 @@ With FSH sources in `input/fsh`, a finding names the FSH file, line and column o
 sdc-lint lint fsh-generated/resources/Questionnaire-intake.json   # one file: a targeted run
 sdc-lint lint "fsh-generated/resources/Questionnaire-*.json"       # quote globs
 sdc-lint lint --format json > report.json                          # one JSON report on stdout
+sdc-lint lint --format github                                      # GitHub Actions annotations and job summary
+sdc-lint lint --format sarif > lint.sarif                          # SARIF for code scanning
 sdc-lint lint --show-info                                          # also show info findings
 ```
 
@@ -29,7 +31,7 @@ sdc-lint lint --show-info                                          # also show i
 | 1 | Analysis completed with one or more unsuppressed errors |
 | 2 | The run did not complete: bad config, unreadable input, no Questionnaires found, a rule crash, or wrong usage |
 
-Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
+Findings and the summary go to stdout; failures go to stderr as `error:` and `help:` lines. With `--format json`, a failure also writes a `status: "failed"` document to stdout; `github` writes an error annotation and `sarif` a log with no results. The [CLI contract](docs/cli.md) has the full rules and automation recipes.
 
 **Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with fifteen built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration`, `sdc/reserved-name`, `sdc/undefined-variable`, `sdc/shadowed-declaration`, `sdc/dependency-cycle`, `sdc/unused-declaration` and `sdc/unresolved-linkid`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules and select the runtime versions a compatibility plugin checks against. FSH source mapping works. The Smart Forms plugin has four rules: `smart-forms/unsupported-expression-language`, `smart-forms/expression-evaluated-as-fhirpath`, `smart-forms/questionnaire-variable-unavailable` and `smart-forms/unsupported-query-embedding`. Not built yet: the rest of the Smart Forms rules, slices P4 to P8 of the [Smart Forms rules plan](docs/smart-forms-rules.md).
 
@@ -214,6 +216,8 @@ A rule's tests are lint cases: `test/cases/<rule>/<case>.yaml` describes a form,
 npm test -- unused-declaration                       # run matching tests
 npm run demo                                         # generate a SUSHI project from a lint case, compile and lint it
 npm run demo -- <case.yaml> --smart-forms            # the same, with the Smart Forms plugin
+npm run demo:github                                  # the demo as GitHub annotations, with a job summary file
+npm run demo:sarif                                   # the demo as SARIF, saved to demo/invalid-demo/lint.sarif
 npm run example -- demo/invalid-demo                 # compile and lint a SUSHI project, here the one demo wrote
 npm run docs:dev                                     # serve the documentation site with live reload
 npm run docs:build                                   # build it into docs/.vitepress/dist; fails on a dead link
@@ -221,4 +225,4 @@ npm run docs:build                                   # build it into docs/.vitep
 
 The documentation site is built with VitePress from this README, the [glossary](GLOSSARY.md) and `docs/`. Its rules library is generated from the code: a page per rule from the rule's `meta.docs`, an example lint case compiled by SUSHI, and its other lint cases. Both commands build the packages first.
 
-`npm run demo` writes `demo/invalid-demo` from `packages/core/test/cases/demo/invalid-demo.yaml`, or another config given as its argument; `--smart-forms` also lints it with the Smart Forms plugin. `npm run example` takes any directory with a `sushi-config.yaml`, followed by `lint` flags. `npm run corpus` needs a local `corpus/`, which is gitignored and not in the repository: copy the forms listed in slice 0 of the [core rules plan](docs/core-rules.md) into `corpus/forms/` first; without them it exits with that hint. `demo`, `example` and the lint cases compile with SUSHI 3.20.1, the `fsh-sushi` dev dependency, which `npm run` puts on the PATH. [AGENTS.md](AGENTS.md) lists the other development commands.
+`npm run demo` writes `demo/invalid-demo` from `packages/core/test/cases/demo/invalid-demo.yaml`, or another config given as its argument; `--smart-forms` also lints it with the Smart Forms plugin. `--format` chooses the output format: `demo:github` passes `github` and writes the job summary to `demo/<instance>/github-step-summary.md`, and `demo:sarif` passes `sarif` and saves the report to `demo/<instance>/lint.sarif` (with `json`, to `lint-report.json`). `npm run example` takes any directory with a `sushi-config.yaml`, followed by `lint` flags. `npm run corpus` needs a local `corpus/`, which is gitignored and not in the repository: copy the forms listed in slice 0 of the [core rules plan](docs/core-rules.md) into `corpus/forms/` first; without them it exits with that hint. `demo`, `example` and the lint cases compile with SUSHI 3.20.1, the `fsh-sushi` dev dependency, which `npm run` puts on the PATH. [AGENTS.md](AGENTS.md) lists the other development commands.

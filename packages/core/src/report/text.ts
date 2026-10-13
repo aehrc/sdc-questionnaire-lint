@@ -1,42 +1,15 @@
 import { paintSeverity } from './colour.js';
+import { findingDetailLines, primaryLocation } from './locations.js';
 import { compareFindings } from './sort.js';
-import type {
-  CompletedReport,
-  ExpressionExcerpt,
-  Finding,
-  RelatedLocation,
-  ResourceIdentity,
-  SourceMapResult,
-} from './types.js';
+import type { CompletedReport, ExpressionExcerpt, Finding } from './types.js';
 
 export interface TextFindingOptions {
   showInfo: boolean;
   colour: boolean;
 }
 
-type UnmappedReason = Extract<SourceMapResult, { status: 'unmapped' }>['reason'];
-
-const unmappedReasons: Record<UnmappedReason, string> = {
-  ambiguous: 'the expression appears more than once',
-  multiline: 'the expression spans several lines',
-  'not-found': 'the expression was not found in the FSH sources',
-  'source-unavailable': 'no FSH sources are available',
-};
-
 function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${String(count)} ${count === 1 ? singular : pluralForm}`;
-}
-
-function displayPointer(pointer: string): string {
-  return pointer === '' ? '(file root)' : pointer;
-}
-
-function resourceLabel(resource: ResourceIdentity): string {
-  const name =
-    resource.id === undefined
-      ? `${resource.resourceType} without id`
-      : `${resource.resourceType}/${resource.id}`;
-  return resource.pointer === '' ? name : `${name} at ${resource.pointer}`;
 }
 
 // The line of the expression containing the range start, with a caret under the range when known.
@@ -57,44 +30,18 @@ function excerptLines({ text, range }: ExpressionExcerpt): string[] {
   return lines;
 }
 
-// A related location of a finding: its FSH line when mapped, otherwise its JSON Pointer in the
-// finding's file, or its config entry.
-function relatedPlace(related: RelatedLocation): string {
-  if (related.kind === 'config') {
-    return `${related.configLocation.file} ${displayPointer(related.configLocation.pointer)}`;
-  }
-  if (related.sourceLocation.status === 'unmapped') {
-    return displayPointer(related.jsonLocation.pointer);
-  }
-  const { file, line, column } = related.sourceLocation.location;
-  return `${file}:${String(line)}:${String(column)}`;
-}
-
 function findingLines(finding: Finding, colour: boolean): string[] {
-  let place: string;
-  if (finding.kind === 'config') place = finding.configLocation.file;
-  else if (finding.sourceLocation.status === 'mapped') {
-    const { file, line, column } = finding.sourceLocation.location;
-    place = `${file}:${String(line)}:${String(column)}`;
-  } else place = finding.jsonLocation.file;
+  const primary = primaryLocation(finding);
+  const place =
+    primary.kind === 'source'
+      ? `${primary.location.file}:${String(primary.location.line)}:${String(primary.location.column)}`
+      : primary.file;
 
   const lines = [
     `${place}: ${paintSeverity(finding.severity, colour)} ${finding.ruleId} ${finding.message}`,
   ];
   if (finding.expression) lines.push(...excerptLines(finding.expression));
-  if (finding.kind === 'config') {
-    lines.push(`  location: ${displayPointer(finding.configLocation.pointer)}`);
-  } else if (finding.sourceLocation.status === 'unmapped') {
-    const { pointer, resource } = finding.jsonLocation;
-    lines.push(`  location: compiled JSON; ${resourceLabel(resource)}; ${displayPointer(pointer)}`);
-    lines.push(`  note: FSH line not found, ${unmappedReasons[finding.sourceLocation.reason]}`);
-  }
-  for (const related of finding.relatedLocations ?? []) {
-    const message = related.message === undefined ? '' : `: ${related.message}`;
-    lines.push(`  related: ${relatedPlace(related)}${message}`);
-  }
-  if (finding.note !== undefined) lines.push(`  note: ${finding.note}`);
-  if (finding.help !== undefined) lines.push(`  help: ${finding.help}`);
+  lines.push(...findingDetailLines(finding).map((line) => `  ${line}`));
   return lines;
 }
 
@@ -147,7 +94,8 @@ export function formatTextSummary(
       `${String(summary.suppressions.stale)} stale, ` +
       `${String(summary.suppressions.notAssessed)} not assessed.`,
     `Config: ${config}. FSH sources: ${fshSources}.`,
-    `Linter: ${run.tool.version}. Plugins: ${plugins}.`,
+    `Linter: ${run.tool.version}. Plugins: ${plugins}.` +
+      (run.sushi === undefined ? '' : ` SUSHI: ${run.sushi.version}.`),
   ];
   const smartForms = run.compat['smart-forms'];
   if (smartForms) {

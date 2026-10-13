@@ -134,6 +134,17 @@ describe('applySuppressions: assessment states', () => {
     );
   });
 
+  it('gives two stale entries with the same selectors distinct fingerprints', async () => {
+    const { outcome } = await assess(
+      { [A]: fixed },
+      { suppress: [entry(), entry({ reason: 'another reason' })] },
+    );
+    expect(outcome.suppressions).toEqual(counts(0, 2, 0));
+    const [first, second] = outcome.findings.map(({ fingerprint }) => fingerprint);
+    expect(first).toBe(configFingerprint('lint/stale-suppression', entry()));
+    expect(second).not.toBe(first);
+  });
+
   it('is not assessed when the rule does not check the site', async () => {
     const { outcome } = await assess(
       { [A]: questionnaire('A', [calculated('a.where(', 'text/cql')]) },

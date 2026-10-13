@@ -3,6 +3,7 @@ import type { QuestionnaireDocument } from '../../src/analysis/expression-site.j
 import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import {
   configFingerprint,
+  distinctFingerprints,
   questionnaireFingerprint,
   siteKeys,
 } from '../../src/run/fingerprint.js';
@@ -151,7 +152,13 @@ describe('siteKeys for fragments', () => {
 });
 
 describe('questionnaireFingerprint', () => {
-  const parts = { ruleId: 'sdc/parse-error', file: 'Questionnaire-Q.json', resource, key: 'k' };
+  const parts = {
+    ruleId: 'sdc/parse-error',
+    file: 'Questionnaire-Q.json',
+    resource,
+    key: 'k',
+    span: '%foo',
+  };
 
   it('is stable for the same parts', () => {
     expect(questionnaireFingerprint({ ...parts })).toBe(questionnaireFingerprint(parts));
@@ -165,6 +172,28 @@ describe('questionnaireFingerprint', () => {
     expect(questionnaireFingerprint({ ...parts, file: 'Questionnaire-R.json' })).not.toBe(
       fingerprint,
     );
+  });
+
+  it('changes with the reported text, and tells no text from empty text', () => {
+    const fingerprint = questionnaireFingerprint(parts);
+    expect(questionnaireFingerprint({ ...parts, span: '%bar' })).not.toBe(fingerprint);
+    expect(questionnaireFingerprint({ ...parts, span: undefined })).not.toBe(
+      questionnaireFingerprint({ ...parts, span: '' }),
+    );
+  });
+});
+
+describe('distinctFingerprints', () => {
+  it('keeps the first of a fingerprint and gives each repeat its own', () => {
+    const distinct = distinctFingerprints();
+    const repeated = ['a', 'b', 'a', 'a'].map(distinct);
+    expect(repeated.slice(0, 2)).toEqual(['a', 'b']);
+    expect(new Set(repeated).size).toBe(4);
+  });
+
+  it('gives the n-th repeat the same fingerprint in every run', () => {
+    const run = () => ['a', 'a', 'a'].map(distinctFingerprints());
+    expect(run()).toEqual(run());
   });
 });
 

@@ -13,7 +13,10 @@
       }
     ],
     "compat": {},
-    "selection": "targeted"
+    "selection": "targeted",
+    "sushi": {
+      "version": "3.20.1"
+    }
   },
   "findings": [
     {

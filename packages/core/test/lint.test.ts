@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ExpressionSite, QuestionnaireDocument } from '../src/analysis/expression-site.js';
 import { findExpressionSites } from '../src/analysis/expression-sites.js';
 import { lint, type CompletedReport, type QuestionnaireFinding } from '../src/index.js';
+import { lintWithRules } from '../src/lint.js';
 import { expectValidReport } from './support/report.js';
 import { tempTree } from './support/tmp.js';
 
@@ -48,6 +49,33 @@ describe('FSH sources in the summary', () => {
   it('lists none when input/fsh is absent', async () => {
     const cwd = await tempTree(resources);
     expect((await lint({ cwd })).summary.fshSources).toEqual([]);
+  });
+});
+
+describe('the SUSHI version in the run', () => {
+  const resources = { 'fsh-generated/resources/Questionnaire-A.json': questionnaire };
+  const sushi = JSON.stringify({ name: 'fsh-sushi', version: '3.20.1' });
+
+  it('records the installed fsh-sushi', async () => {
+    const cwd = await tempTree({ ...resources, 'node_modules/fsh-sushi/package.json': sushi });
+    const report = await lint({ cwd });
+    expectValidReport(report);
+    expect(report.run.sushi).toEqual({ version: '3.20.1' });
+  });
+
+  it('leaves it out when no fsh-sushi is installed', async () => {
+    const cwd = await tempTree(resources);
+    expect((await lint({ cwd })).run).not.toHaveProperty('sushi');
+  });
+
+  it('looks for it from the directory of a config in a subdirectory', async () => {
+    const config = 'ig/sdc-questionnaire-lint.config.json';
+    const cwd = await tempTree({
+      [config]: JSON.stringify({ files: ['out'] }),
+      'ig/out/Questionnaire-A.json': questionnaire,
+      'ig/node_modules/fsh-sushi/package.json': sushi,
+    });
+    expect((await lint({ cwd, configPath: config })).run.sushi).toEqual({ version: '3.20.1' });
   });
 });
 
@@ -224,6 +252,47 @@ describe('expression findings', () => {
     expect(report.summary.expressions).toEqual({ analysed: 2, unchecked: 0 });
   });
 
+  describe('two findings of one rule in one expression', () => {
+    const calculated = (expression: string) => ({
+      item: [
+        {
+          linkId: 'q',
+          type: 'string',
+          extension: [{ url: `${sdc}calculatedExpression`, valueExpression: fhirPath(expression) }],
+        },
+      ],
+    });
+
+    // Each finding's reported text and fingerprint, in report order.
+    async function fingerprints(expression: string): Promise<[string, string][]> {
+      const { findings } = await lintQuestionnaire(calculated(expression));
+      return findings.map(({ expression: excerpt, fingerprint }) => {
+        const { startOffset = 0, endOffset = 0 } = excerpt?.range ?? {};
+        return [excerpt?.text.slice(startOffset, endOffset) ?? '', fingerprint];
+      });
+    }
+
+    it.each([
+      ['different text', '%foo & %bar'],
+      ['the same text', 'frob() | frob()'],
+    ])('get distinct fingerprints when they report %s', async (_, expression) => {
+      const found = await fingerprints(expression);
+      expect(found).toHaveLength(2);
+      expect(new Set(found.map(([, fingerprint]) => fingerprint)).size).toBe(2);
+    });
+
+    it('keep their fingerprints when the expression changes elsewhere', async () => {
+      expect(await fingerprints("%foo & ' and ' & %bar")).toEqual(
+        await fingerprints('%foo & %bar'),
+      );
+    });
+
+    it('keep the other fingerprint when one is fixed', async () => {
+      const [, bar] = await fingerprints('%foo & %bar');
+      expect(await fingerprints("'foo' & %bar")).toEqual([bar]);
+    });
+  });
+
   it.each(queryLanguages)(
     'reports a broken fragment once, as sdc/fragment-parse-error, in %s',
     async (language) => {
@@ -303,6 +372,21 @@ describe('config', () => {
     const report = await lint({ cwd });
     expect(report.findings).toMatchObject([{ ruleId: 'sdc/parse-error', severity: 'warning' }]);
     expect(report.summary).toMatchObject({ errors: 0, warnings: 1, config });
+  });
+
+  it('returns the rules of the run with the same report, including rules configured off', async () => {
+    const cwd = await tempTree({
+      [config]: JSON.stringify({ rules: { 'sdc/unknown-function': 'off' } }),
+      'fsh-generated/resources/Questionnaire-A.json': broken,
+    });
+    const { report, rules } = await lintWithRules({ cwd });
+    expect(report).toEqual(await lint({ cwd }));
+    const settings = new Map(rules.map(({ id, setting }) => [id, setting]));
+    expect(settings.get('sdc/unknown-function')).toBe('off');
+    expect(settings.get('sdc/parse-error')).toBe('error');
+    expect(settings.get('lint/stale-suppression')).toBe('warning');
+    const ids = rules.map(({ id }) => id);
+    expect(ids).toEqual([...ids].sort());
   });
 
   it('does not claim a syntax check ran when sdc/parse-error is off', async () => {

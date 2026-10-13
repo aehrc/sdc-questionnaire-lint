@@ -19,7 +19,12 @@ import type {
   QuestionnaireFinding,
   ResourceIdentity,
 } from '../report/types.js';
-import { declarationKeys, questionnaireFingerprint, siteKeys } from './fingerprint.js';
+import {
+  declarationKeys,
+  distinctFingerprints,
+  questionnaireFingerprint,
+  siteKeys,
+} from './fingerprint.js';
 
 // Until the source mapper locates a finding's expression in FSH (source/map-findings.ts).
 const unmapped = { status: 'unmapped', reason: 'source-unavailable' } as const;
@@ -226,6 +231,8 @@ export function runRules(
   const { input, document, sites, analysis } = doc;
   const keys = siteKeys(document, sites);
   const declarations = declarationKeys(analysis.declarations);
+  // Fingerprints name the file and resource, so they cannot repeat across documents.
+  const distinct = distinctFingerprints();
   const findings: QuestionnaireFinding[] = [];
   // By identity, as parseLocation checks a reported site: a copy of a site gets no analysis.
   const known: ReadonlySet<ExpressionSite> = new Set(sites);
@@ -256,6 +263,10 @@ export function runRules(
     const key =
       (site === undefined ? declarations.get(pointer) : keys.get(site)) ??
       pointer.slice(document.resourcePointer.length);
+    // A range is validated against the site's text, a fragment's own, before it is rebased.
+    const { range } = reported;
+    const span =
+      range === undefined ? undefined : site?.text?.slice(range.startOffset, range.endOffset);
     return {
       kind: 'questionnaire',
       ruleId: id,
@@ -276,12 +287,9 @@ export function runRules(
               ...(related.message === undefined ? {} : { message: related.message }),
             })),
           }),
-      fingerprint: questionnaireFingerprint({
-        ruleId: id,
-        file: input.baseRelative,
-        resource,
-        key,
-      }),
+      fingerprint: distinct(
+        questionnaireFingerprint({ ruleId: id, file: input.baseRelative, resource, key, span }),
+      ),
     };
   }
 

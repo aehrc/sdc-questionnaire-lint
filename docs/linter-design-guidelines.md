@@ -40,7 +40,7 @@ Most of what makes a linter "AI-friendly" is ordinary rigor. The agent-specific 
 Each message answers **what** is wrong, **why** it matters for the form, and **how** to fix it [2][11][12].
 
 - Write for Questionnaire/IG authors. Name the item by its text and linkId, and state the consequence in author terms ("this field will not prefill").
-- Keep implementation terms ("scope", "AST", "evaluation context") out of the main message. Put technical detail in JSON fields; SARIF and `--verbose` are deferred.
+- Keep implementation terms ("scope", "AST", "evaluation context") out of the main message. Put technical detail in JSON and SARIF fields; `--verbose` is deferred.
 - Make the first sentence a self-contained summary. GitHub and SARIF viewers truncate after it [13][14].
 - Keep the parts of a diagnostic separate [15]:
   - `message`: the problem.
@@ -50,7 +50,7 @@ Each message answers **what** is wrong, **why** it matters for the form, and **h
 - For collisions and duplicates, show **both** locations via `relatedLocations` [18].
 - Suggest a fix only when confident [19]. Don't pad messages with long explanations; research on "enhanced" messages is mixed [19][20]. Long-form help belongs in the rule docs.
 - Remediation must name an action the reader can take. For an agent, that means "edit X in file Y to Z", not "consult the SDC spec" or "run command W" [21].
-- Snapshot-test one fixture questionnaire per rule in text and JSON, so wording changes are reviewed like code [16]. Add SARIF snapshots when that format is implemented.
+- Snapshot-test one fixture questionnaire per rule in text and JSON, so wording changes are reviewed like code [16]. The GitHub and SARIF formats are tested against their examples in [cli.md](cli.md), as text is.
 
 ## 4. Machine contract (where AI-friendliness mostly lives)
 
@@ -89,7 +89,9 @@ The authoritative fields and semantic constraints are in [report-format.md](repo
 ### Output modes
 
 - `text`: has a stable first line (`file[:line:col]: severity rule-id message`) for problem matchers, followed by an excerpt and caret when known. Unmapped findings retain a compiled resource/site locator.
-- `json`: includes all severities, explicit completed/failed status, structured locations and suggestions. Other formats are deferred; keep default output economical [31][32].
+- `json`: includes all severities, explicit completed/failed status, structured locations and suggestions. Keep default output economical [31][32].
+- `github`: annotations for a GitHub Actions step, then every finding in the log, and the job summary; see [cli.md](cli.md#github).
+- `sarif`: one SARIF 2.1.0 run for code scanning; a failed run has no `results`; see [cli.md](cli.md#sarif). Other formats are deferred.
 - Always end completed text output with counts, including an explicit "0 findings" only when no unsuppressed findings remain [33], coverage and suppression counts, and the resolved Smart Forms versions behind `"latest"`. Hidden info findings remain in totals; `--show-info` reveals them without changing analysis or exit status.
 - `explain <rule-id>`: prints the rule doc offline (what it checks, why it matters, an example message, how to fix, known limitations) [11][23]. It shares config/plugin selection with `lint`; without an ID it lists registered rules, including configured-off rules, with default/effective severity and enabled status.
 

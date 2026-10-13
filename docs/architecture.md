@@ -24,9 +24,11 @@ flowchart TD
   buildSummary --> report(["CompletedReport<br/>report/types.ts"])
   report --> formatText["formatTextReport<br/>report/text.ts"]
   report --> formatJson["formatJsonReport<br/>report/json.ts"]
+  report --> formatGithub["formatGithubReport<br/>report/github.ts"]
+  report --> formatSarif["formatSarifReport<br/>report/sarif.ts"]
 ```
 
-The CLI (`cli/run.ts`) calls `lint()` and passes the report to one of the two formatters.
+The CLI (`cli/run.ts`) calls `lintWithRules()`, which is `lint()` returning the run's resolved rules as well, and passes the report to the formatter `--format` selects; SARIF also describes the rules. With `--format github`, `cli/step-summary.ts` appends `formatGithubSummary` to the job summary that `GITHUB_STEP_SUMMARY` names. A failure goes through `renderFailureOutput` in `failure.ts`: stderr in every format, and a failure document on stdout in `json`, `github` and `sarif`.
 
 ## 1. Config (`config/`)
 
@@ -113,7 +115,7 @@ A plugin rule that stays silent where a core rule reports the same root cause ch
 ## 6. Suppressions (`run/suppressions.ts`, `run/fingerprint.ts`)
 
 - `applySuppressions` matches each `suppress` entry to exactly one expression by its selectors: `file` (required), `linkId`, `extensionUrl`, `name`, `resource` and `pointer`. An entry that matches several expressions fails the run as an invalid config. An entry whose `extensionUrl` is launchContext or extractAllocateId instead matches one name on one element among the declarations, and hides the rule's findings at every declaration of that name there.
-- `fingerprint.ts`: `siteKeys` gives each site a stable key based on its item's linkId and its catalogued location, plus its name when it declares one, rather than array indexes, so keys survive reordering. `declarationKeys` does the same for a launchContext or extractAllocateId by its item, kind and name. Since core-rules slice 3, every named Expression at a catalogued location declares, so the keys, and the fingerprints, of findings at named Expressions other than variables and itemPopulationContexts changed once. `questionnaireFingerprint` and `configFingerprint` build the findings' fingerprints from them.
+- `fingerprint.ts`: `siteKeys` gives each site a stable key based on its item's linkId and its catalogued location, plus its name when it declares one, rather than array indexes, so keys survive reordering. `declarationKeys` does the same for a launchContext or extractAllocateId by its item, kind and name. Since core-rules slice 3, every named Expression at a catalogued location declares, so the keys, and the fingerprints, of findings at named Expressions other than variables and itemPopulationContexts changed once. `questionnaireFingerprint` and `configFingerprint` build the findings' fingerprints from them; a Questionnaire finding's also has the text of its range, so two findings of one rule in one expression differ. `distinctFingerprints` keeps fingerprints unique within a report: a repeat is hashed again with its occurrence number, per document in `runRules` and across stale suppressions in `applySuppressions`.
 - Every entry ends up applied, stale or not assessed. It counts as stale only when the rule could have completed its check at that site; the `completesCheck` table in `plugins/builtin.ts` decides this from the site and the document's analysis, and `completesDeclarationCheck` for a declaration that has no site. A rule missing from it, such as a plugin rule, leaves its suppressions not assessed.
 - Stale suppressions are reported as `lint/stale-suppression` warnings at the config entry. With that rule off, staleness is not assessed. `lint/` findings cannot be suppressed.
 
@@ -135,5 +137,6 @@ The FSH modules mirror SUSHI 3.20.1, so they read FSH as SUSHI does: `fsh-docume
 - `types.ts` defines the public report contract, which matches [lint-report.schema.json](schemas/lint-report.schema.json).
 - `summary.ts`: `buildSummary` computes the counts.
 - `expression-coverage.ts`: `summarizeExpressionCoverage` counts the analysed and unchecked expressions for the summary. A site where an enabled rule applies but could not complete, which `incompleteSites` in `plugins/builtin.ts` lists, is unchecked: so far, a site where `sdc/undefined-variable` meets a reference after a `defineVariable` with a computed name, a declaration from which `sdc/dependency-cycle` reaches a declaration with such a reference, a variable whose use `sdc/unused-declaration` cannot establish (`unknown`), and a site where `sdc/unresolved-linkid` meets a linkId reference whose target or linkId is uncertain. A declaration that does not parse or is in another language is not followed, so it leaves nothing unchecked; a variable that only an expression with a syntax error could reference (`blocked`) is not unchecked either.
-- `sort.ts`: `compareFindings` orders findings; both formatters use it.
-- `json.ts` and `text.ts` are the two output formats: `formatJsonReport` and `formatTextReport`.
+- `sort.ts`: `compareFindings` orders findings; every formatter uses it.
+- `locations.ts`: `primaryLocation` says where a finding or related location is (its FSH range, its compiled JSON site and the reason it is unmapped, or its config entry), and `findingDetailLines` gives the `location:`, `note:`, `related:` and `help:` lines. Text, GitHub and SARIF output share them.
+- `json.ts`, `text.ts`, `github.ts` and `sarif.ts` are the four output formats: `formatJsonReport`, `formatTextReport`, `formatGithubReport` with `formatGithubSummary`, and `formatSarifReport`. `github.ts` and `sarif.ts` also render a failed run, for `renderFailureOutput`.

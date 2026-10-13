@@ -6,12 +6,13 @@ import { resolveRunPaths } from './config/paths.js';
 import { loadInputs } from './inputs/load-inputs.js';
 import type { AnalysedDocument } from './inputs/read.js';
 import { incompleteSites } from './plugins/builtin.js';
-import { resolveRuleSet } from './plugins/rule-set.js';
+import { type ResolvedRule, resolveRuleSet } from './plugins/rule-set.js';
 import { summarizeExpressionCoverage } from './report/expression-coverage.js';
 import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
 import { runRules, type FindingOrigins } from './run/rules.js';
 import { findFshSources } from './run/sources.js';
+import { findSushiVersion } from './run/sushi-version.js';
 import { applySuppressions } from './run/suppressions.js';
 import { mapSourceLocations } from './source/map-findings.js';
 
@@ -24,9 +25,22 @@ export interface LintOptions {
   configPath?: string;
 }
 
+export interface LintRun {
+  report: CompletedReport;
+  // Every registered rule, sorted by ID, including rules configured off; for reporters that
+  // describe rules, such as SARIF. The report itself carries no rule metadata.
+  rules: readonly ResolvedRule[];
+}
+
 // One lint run. Returns the completed report, or throws a LintFailure for a run that cannot
 // complete.
 export async function lint(options: LintOptions): Promise<CompletedReport> {
+  return (await lintWithRules(options)).report;
+}
+
+// lint() with the run's resolved rules as well, so the CLI does not load the config, and run its
+// plugin code, a second time to describe them. Internal: index.ts does not export it.
+export async function lintWithRules(options: LintOptions): Promise<LintRun> {
   const { cwd } = options;
   // Loaded before inputs are read, so an invalid config fails the same way with or without them.
   const loaded = await loadConfig({
@@ -42,6 +56,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     runPaths,
   });
   const sources = await findFshSources(runPaths, cwd);
+  const sushiVersion = await findSushiVersion(runPaths.base);
   const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => {
     const sites = findExpressionSites(document);
     return {
@@ -68,7 +83,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
     cwd,
   });
 
-  return {
+  const report: CompletedReport = {
     schemaVersion: 1,
     status: 'completed',
     run: {
@@ -76,6 +91,7 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       plugins: ruleSet.pluginVersions,
       compat: ruleSet.compat,
       selection: runKind,
+      ...(sushiVersion === undefined ? {} : { sushi: { version: sushiVersion } }),
     },
     findings,
     summary: buildSummary({
@@ -93,4 +109,5 @@ export async function lint(options: LintOptions): Promise<CompletedReport> {
       fshSourceLookup: sources.fshSourceLookup,
     }),
   };
+  return { report, rules: ruleSet.rules };
 }
