@@ -23,12 +23,7 @@ export function hostVariables({ document, compat }: HostVariablesInput): string[
   return readSourceQueries(document).flatMap(({ reference, name, bundle }) => {
     if (name === undefined || name.startsWith('%') || reference === undefined) return [];
     if (reference.startsWith('#')) {
-      const bound =
-        facts.has('contained-named-by-id') &&
-        bundle !== undefined &&
-        Boolean(bundle.resource.id) &&
-        Boolean(bundle.resource.entry);
-      return bound ? [name] : [];
+      return facts.has('contained-named-by-id') && bundle?.bound === true ? [name] : [];
     }
     return facts.has('reference-named-by-index') ? [name] : [];
   });

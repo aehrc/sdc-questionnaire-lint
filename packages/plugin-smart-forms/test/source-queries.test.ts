@@ -72,7 +72,7 @@ describe('readSourceQueries', () => {
       ],
       extension: [sourceQuery({ reference: '#a' })],
     });
-    expect(record?.bundle).toEqual({ resource: first, containedIndex: 1 });
+    expect(record?.bundle).toEqual({ resource: first, containedIndex: 1, bound: false });
   });
 
   it('gives no Bundle to a #id without one, nor to another reference', () => {

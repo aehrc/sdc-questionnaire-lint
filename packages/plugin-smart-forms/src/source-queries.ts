@@ -18,8 +18,13 @@ export interface SourceQuery {
   // binds. A #%x reference is named %x.
   readonly name: string | undefined;
   // For a #id reference, the first contained resource with that id whose resourceType is Bundle,
-  // and its index in contained; population reads only that one.
-  readonly bundle?: { readonly resource: Json; readonly containedIndex: number };
+  // and its index in contained; population reads only that one. bound: it has an id and an entry
+  // element, so population binds it to the name and fetches its entries.
+  readonly bundle?: {
+    readonly resource: Json;
+    readonly containedIndex: number;
+    readonly bound: boolean;
+  };
 }
 
 export function readSourceQueries(document: QuestionnaireDocument): readonly SourceQuery[] {
@@ -51,7 +56,15 @@ export function readSourceQueries(document: QuestionnaireDocument): readonly Sou
       index,
       reference,
       name: id,
-      ...(isObject(resource) ? { bundle: { resource, containedIndex } } : {}),
+      ...(isObject(resource)
+        ? {
+            bundle: {
+              resource,
+              containedIndex,
+              bound: Boolean(resource.id) && Boolean(resource.entry),
+            },
+          }
+        : {}),
     });
   });
   return records;

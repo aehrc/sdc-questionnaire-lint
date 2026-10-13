@@ -48,7 +48,7 @@ function rootExtensions(document: QuestionnaireDocument): readonly unknown[] {
 function sourceQueryUrls(document: QuestionnaireDocument): Query[] {
   const bundles = new Map<number, Json>();
   for (const { bundle } of readSourceQueries(document)) {
-    if (bundle !== undefined && bundle.resource.id && bundle.resource.entry) {
+    if (bundle?.bound === true) {
       bundles.set(bundle.containedIndex, bundle.resource);
     }
   }

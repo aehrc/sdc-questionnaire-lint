@@ -51,7 +51,7 @@ Limits:
 
 - In the Smart Forms app, the entries of a contained sourceQueries Bundle are never filled: population stores an entry's result only from a fetch callback that returns `{ data: resource }`, and the app's returns the resource itself. The name is bound to the Bundle, so the plugin supplies it, but `%PrePopQuery.entry.resource` is empty in the app.
 - With no launch resource at run time, population also fetches a `#id` reference, which in the app is a request to the server base. The plugin does not model this.
-- The names are available at extraction sites, as config `hostVariables` are, although Smart Forms template extraction receives none of them.
+- The names are available at extraction sites, as config `hostVariables` are, although Smart Forms template extraction receives none of them. Smart Forms evaluates no expression there that core checks, but `sdc/undefined-variable` does not report a sourceQueries name in an itemExtractionContext, which an extraction engine that evaluates it would not supply.
 
 ## Names the application supplies
 
