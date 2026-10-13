@@ -149,3 +149,11 @@ Settled before building P7; the reasons are in [smart-forms-rules.md](smart-form
 - **§4.2 rule IDs (S17):** `unchecked-language-evaluated-as-fhirpath` is built as `expression-evaluated-as-fhirpath`, `x-fhir-query-embedding-shape` as `unsupported-query-embedding`, `flat-variable-context` as `variable-name-collision`, and the new D8 rule is `forward-variable-reference`.
 - **§4.2 overlap with core (S9):** `forward-variable-reference` and `repeating-group-variable` may report the same variable: reordering fixes population, while every repetition still shares one value.
 - **§5.2 core API for plugins (S5):** stage D adds `VariableReference.conditional`, true when fhirpath.js may skip evaluating the reference: an `iif` argument after the criterion, a `coalesce` argument after the first, or an argument evaluated per item of its target (`where`, `select`, `exists`, `all`, `repeat`, the first of `aggregate`, `sort`'s selectors), and every reference below one. The change is additive.
+
+## From the Smart Forms P8 review (2026-10-13)
+
+Settled before building P8; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-p8-review).
+
+- **§4.2 rule ID (S17):** `smart-forms/template-extract-context-string-only` is built as `smart-forms/unsupported-template-extract-context`.
+- **§4.2 `smart-forms/unsupported-template-extract-context` scope:** the rule reports a templateExtractContext with a `valueExpression` and no `valueString` only in a template Smart Forms extracts: a top-level contained resource referenced by the first `#id` `template` slice of an item's `templateExtract`. A template referenced only from the Questionnaire root is never extracted by template-extract 1.0.15, so it is not reported. It reports only where the Expression is an expression site, so a context with no `language` is left to the Validator, and only the first templateExtractContext in an `extension` array, outside the template resource's own `extension`.
+- **§6.3 suppressions:** unchanged. Suppression of a finding reported with only a JSON pointer, planned in P8, is deferred to an open item in smart-forms-rules.md.
