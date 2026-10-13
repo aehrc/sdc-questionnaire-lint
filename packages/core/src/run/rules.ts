@@ -304,6 +304,8 @@ export function runRules(
       const ctx: RuleContext = {
         document,
         sites,
+        // The same frozen array core uses after the rules run, never a copy.
+        declarations: analysis.declarations,
         referencesAt: (site) => (known.has(site) ? analysis.references.get(site) : undefined),
         variablesAt: (site) => (known.has(site) ? analysis.variablesAt(site) : undefined),
         compat,

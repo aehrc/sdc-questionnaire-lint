@@ -2,9 +2,9 @@
 
 Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §2.1, §2.3, §4.2, §4.3 and §5, and the [plugin follow-ups](core-rules.md#plugin-follow-ups-not-in-this-plan) of the core rules plan. Researched on 2026-10-09 against Smart Forms commit `7e64a22f` (renderer 1.4.0, sdc-populate 4.7.1, sdc-template-extract 1.0.15). Revised the same day after a review: its runtime claims were checked against the source, and the population claims were reproduced with the published `@aehrc/sdc-populate@4.7.1`.
 
-**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day; the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
+**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12; the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
-P0 to P3 are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable` and `unsupported-query-embedding`, plugin rules receive core's references and available variables, and population facts, the embedding facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`.
+P0 to P3 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable` and `unsupported-query-embedding`, plugin rules receive core's references, available variables and declarations, and population facts, the embedding facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`.
 
 ## How to work on a slice
 
@@ -25,10 +25,11 @@ One PR per slice, in this order.
 |  | `smart-forms/expression-evaluated-as-fhirpath` | error | P0 | done |
 | [P2](#p2-smart-formsquestionnaire-variable-unavailable) | API stage B (`referencesAt`, `variablesAt`), populate reproduction harness, `smart-forms/questionnaire-variable-unavailable` | error | P1 | done |
 | [P3](#p3-smart-formsunsupported-query-embedding) | `smart-forms/unsupported-query-embedding` | error | P2 | done |
-| [P4](#p4-supplied-names-hook) | Supplied-names hook; the plugin supplies sourceQueries result names | – | P0 | todo |
-| [P5](#p5-smart-formsvariable-name-collision-and-smart-formsrepeating-group-variable) | API stage C (`declarations`, `dependenciesOf`, `useOf`, `readsInput`), `smart-forms/variable-name-collision` | error | P2 | todo |
+| [H](#h-contract-hardening) | `ctx.declarations` (API stage B2), frozen `ctx.sites`; fixes in P2's silence and P3's launch names | – | P3 | done |
+| [P4](#p4-supplied-names-hook) | Supplied-names hook, `PLUGIN_CRASH`, built-in names rejected in config `hostVariables`; the plugin supplies sourceQueries result names | – | P0 | todo |
+| [P5](#p5-smart-formsvariable-name-collision-and-smart-formsrepeating-group-variable) | API stage C (`dependenciesOf`, `useOf`, `readsInput`), `smart-forms/variable-name-collision` | error | H | todo |
 |  | `smart-forms/repeating-group-variable` | warning | P5 | todo |
-| [P6](#p6-smart-formsnamed-expression-not-referenceable) | `smart-forms/named-expression-not-referenceable` | error | P1, P2, P4 | todo |
+| [P6](#p6-smart-formsnamed-expression-not-referenceable) | `smart-forms/named-expression-not-referenceable` | error | P1, P2, H, P4 | todo |
 | [P7](#p7-smart-formsforward-variable-reference) | `conditional` flag on references, `smart-forms/forward-variable-reference` (new, S12) | warning | P5 | todo |
 | [P8](#p8-smart-formstemplate-extract-context-string-only) | Template-extract reproduction harness, suppression by exact pointer, `smart-forms/template-extract-context-string-only` | error | P0 | todo |
 | [P9](#p9-renderer-reproduction-harness-optional) | Renderer reproduction harness; upgrades renderer facts from source-only | – | P1 | optional |
@@ -69,7 +70,7 @@ flowchart TD
   subgraph plugin["@sdc-questionnaire-lint/plugin-smart-forms"]
     entry["default export<br/>{ meta, compat, hostVariables, rules }"]
     versions["compat: verified versions,<br/>required components (P0)"]
-    hook["hostVariables(document)<br/>sourceQueries names (P4)"]
+    hook["hostVariables({ document, compat })<br/>sourceQueries names (P4)"]
     rules["rules: smart-forms/* (P1–P8)"]
     eligible["readBy(ctx, site)<br/>site eligibility (P1)"]
     facts["runtime facts<br/>src/facts (S4)"]
@@ -104,7 +105,7 @@ flowchart TD
 ```
 
 - **Config time.** `resolveRuleSet` checks the plugin's shape, registers its rules under `smart-forms/`, and resolves `compat` against the plugin's verified versions (S3). An invalid `compat` fails `lint` and `explain` with `CONFIG_INVALID` before any input is read.
-- **Analysis time.** For each Questionnaire, core calls the plugin's `hostVariables(document)` before `analyseDocument`, so `sdc/undefined-variable` accepts the sourceQueries names Smart Forms supplies (S6). A throw fails the run with `PLUGIN_CRASH`.
+- **Analysis time.** For each Questionnaire, core calls the plugin's `hostVariables({ document, compat })` before finding its expression sites, whether or not any of the plugin's rules is enabled, so `sdc/undefined-variable` accepts the sourceQueries names Smart Forms supplies (S6). Core drops names FHIRPath, FHIR or SDC define. A throw, a promise or an invalid result fails the run with `PLUGIN_CRASH`.
 - **Rule time.** `runRules` calls each enabled rule's `check(ctx)` once per Questionnaire, synchronously. The rule reads the context, consults its facts, and reports. Core validates each finding, attaches the rule ID, severity, location and fingerprint, and applies suppressions as for any rule (S8).
 - **Report time.** `run.compat` names the exact versions the run checked against.
 
@@ -119,7 +120,7 @@ sequenceDiagram
 
   Lint->>Runner: document, sites, analysis, resolved rules
   Runner->>Rule: check(ctx)
-  Note over Runner,Rule: ctx: document, sites, compat (P0), referencesAt and variablesAt (P2),<br/>declarations, dependenciesOf, useOf, readsInput (P5)
+  Note over Runner,Rule: ctx: document, sites, compat (P0), referencesAt and variablesAt (P2),<br/>declarations (H), dependenciesOf, useOf, readsInput (P5)
   loop each expression site
     Rule->>Facts: readBy(ctx, site)
     Facts-->>Rule: components that read the site, or none
@@ -175,18 +176,20 @@ Each fact names its evidence (S4, S10). When a harness exists, the evidence is a
 
 ### Public API stages (S5)
 
-`RuleContext` today gives a plugin `document`, the flat frozen `sites`, `compat`, `referencesAt` and `variablesAt`, `options: undefined` and `report()` with `relatedLocations`. Everything else is internal to core (`DocumentAnalysis`, `plugins/core-rule.ts`). Each stage is plumbing in `run/rules.ts` from an analysis core already computes once per document, plus exported readonly types in `index.ts` and a section in [architecture.md](architecture.md).
+`RuleContext` today gives a plugin `document`, the flat frozen `sites` and `declarations`, `compat`, `referencesAt` and `variablesAt`, `options: undefined` and `report()` with `relatedLocations`. Everything else is internal to core (`DocumentAnalysis`, `plugins/core-rule.ts`). Each stage is plumbing in `run/rules.ts` from an analysis core already computes once per document, plus exported readonly types in `index.ts` and a section in [architecture.md](architecture.md).
 
 | Stage | Slice | Adds to `RuleContext` | Exported types and functions |
 | :- | :- | :- | :- |
 | 0 | P0 | `compat: Readonly<Record<string, string>>`, the resolved versions for the rule's own namespace | – |
 | A | P1 | – | The query-language predicate, the SDC allowed-languages lookup and the six value-set codes (`isQueryLanguage`, `languagesAllowedAt`) |
 | B | P2 | `referencesAt(site)`, `variablesAt(site)`; replaces the `scopeAt` stub and `Scope` | `VariableReference { name, startOffset, endOffset, complete }`; `AvailableVariables` with `resolve(name)` giving `{ name, origin, declaration? }`; `Variable`; `Declaration { name, kind, pointer, item?, useCases, site? }` |
-| C | P5 | `declarations`, `dependenciesOf(declaration)`, `useOf(declaration)`, `readsInput(site)` | `Dependencies`, `DeclarationUse` |
+| B2 | H | `declarations`: every declaration in the document, in document order, frozen; identical to the objects `variablesAt` resolves to | – |
+| C | P5 | `dependenciesOf(declaration)`, `useOf(declaration)`, `readsInput(site)` | `Dependencies`, `DeclarationUse` |
 
 - **Empty versus unavailable.** `referencesAt` returns `undefined` when the site has no FHIRPath analysis (a non-FHIRPath site, or text that does not parse) and `[]` when it parses and references nothing. `variablesAt` returns `undefined` for an uncatalogued site. Both return `undefined` for an object that is not one of `ctx.sites`. Document both; a rule treats `undefined` as "cannot check", never as "no references".
 - Stage B is a breaking contract change (`scopeAt` goes) and lifts D15 and D18. Core and the plugin stay at 0.1.0, and the peer range at `^0.1.0`, before the first release: core is unreleased, so 0.1.0 is the version that ships stage B, and a core without `referencesAt` fails the plugin's rule with `RULE_CRASH`. The GLOSSARY rename D15 deferred is done.
-- `readsInput(site)` is in core because core owns the parser; the plugin takes no `fhirpath` dependency. Its definition is in [P5](#p5-smart-formsvariable-name-collision-and-smart-formsrepeating-group-variable).
+- `readsInput(site)` is in core because core owns the parser; the plugin takes no `fhirpath` dependency. Its definition is in [P5](#p5-smart-formsvariable-name-collision-and-smart-formsrepeating-group-variable). It returns `boolean | undefined`: `undefined` for a site with no FHIRPath analysis or not in `ctx.sites`, like `referencesAt`.
+- The arrays a rule receives, `sites` and `declarations`, are frozen, not only their elements (H).
 - P7 adds a `conditional` flag to `VariableReference`: the reference is inside an `iif` branch, so it may not be evaluated.
 - Not planned: a completion hook, rule options, an item-tree API, inline config. A plugin reads an item by resolving `site.item.pointer` against `document.resource` (strip `document.resourcePointer` first); put that helper in the plugin.
 
@@ -204,7 +207,7 @@ A private plugin helper, `readBy(ctx, site)` in `src/eligibility.ts`, returns th
 
 `readBy` answers per component: a site population does not read, such as a second initialExpression, can still be read by the renderer, which reads the first `text/fhirpath` initialExpression to repopulate a form. A rule that cares about one component filters on `component` or on the handling.
 
-A rule whose `ctx.compat` names no renderer or populate version throws, so an older core fails with `RULE_CRASH`. A selected version with no facts throws too: it is a plugin bug.
+A rule whose `ctx.compat` names no renderer or populate version throws, which a conforming core never causes: `resolveRuleSet` always selects every required component. A selected version with no facts throws too: it is a plugin bug.
 
 ### Completion and suppressions
 
@@ -250,7 +253,7 @@ P0 resolves the compatibility target; it adds no Smart Forms findings and runs n
 - Default export `{ meta: { name: 'smart-forms', version }, rules: {}, compat }`, with the version from a `package.json` JSON import.
 - Components: `renderer` and `populate` (required), `template-extract` (optional). Verified: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.
 - No runtime facts yet: each arrives with its first consumer (S4). Remove `compat` from `files` in `package.json`; nothing ships outside `dist`.
-- Peer range stays `^0.1.0`: core is unreleased, so 0.1.0 is the version that ships `compat`. From P1, a rule that receives no `ctx.compat` throws, so an older core fails with `RULE_CRASH` instead of running silently.
+- Peer range stays `^0.1.0`: core is unreleased, so 0.1.0 is the version that ships `compat`. From P1, a rule that receives no version for a required component throws rather than check nothing, which a conforming core never causes: it selects every component in `compat.required` (`contract.ts`).
 - Tests build through one shared global setup that builds core at most once per Vitest run, then the plugin, so the plugin's tests also run alone from a clean checkout.
 
 **Corpus:** `npm run corpus -- --smart-forms` builds both packages, lints with the committed `packages/plugin-smart-forms/scripts/corpus.config.mjs` (it imports `../dist/index.js`, with `compat: 'latest'`), prints the Smart Forms versions from `run.compat`, and compares with a separate snapshot, `corpus/findings.smart-forms.json`. The snapshot keeps findings of every namespace, without messages; `--smart-forms --update` writes only that snapshot. Core slices keep their snapshot and stay independent of the plugin build.
@@ -338,7 +341,7 @@ Decisions: S1, S5, S9, S10, S13. Implements core-plan §4.3.
 - Dependents of a variable whose evaluation failed fail too; the rule reports only the reference itself.
 - Help: for `%qitem` followed by `.linkId` on an item with a linkId, `use the literal value instead, such as '{linkId}'`, with any `\` or `'` in the linkId escaped; otherwise `copy the value the expression needs from the Questionnaire into the expression`.
 - Note, at every location except answerExpression: `if the application running the form supplies %{name}, suppress this finding with a reason that names the application`.
-- Host exceptions (S13): a renderer host can supply `%questionnaire` through `additionalContext`, and a direct `populate()` caller through a `context` parameter; the app does neither. A host can supply `%qitem` correctly only when every expression that uses it is on one item, because `additionalContext` is one value for the whole form. A host that does either records a suppression with a reason naming itself. `hostVariables` cannot express it: core resolves built-in names before host names. No host can supply a name to an answerExpression: the renderer builds its context from the name before the first `.` alone, and `additionalContext` never reaches it.
+- Host exceptions (S13): a renderer host can supply `%questionnaire` through `additionalContext`, and a direct `populate()` caller through a `context` parameter; the app does neither. A host can supply `%qitem` correctly only when every expression that uses it is on one item, because `additionalContext` is one value for the whole form. A host that does either records a suppression with a reason naming itself. `hostVariables` cannot express it: core resolves built-in names before host names, and from P4 config rejects them. No host can supply a name to an answerExpression: the renderer builds its context from the name before the first `.` alone, and `additionalContext` never reaches it.
 
 **What a failed evaluation leaves in the renderer** (source only until P9; every catch logs with `console.warn` and keeps the previous value):
 
@@ -353,11 +356,11 @@ Decisions: S1, S5, S9, S10, S13. Implements core-plan §4.3.
 
 Populate behaves the same way: a variable stays unset, an initialExpression leaves no answer, and an itemPopulationContext builds no group (P`createFhirPathContext.ts:257-264`; P`evaluateExpressions.ts:63-71,89-96,140-148`). _Reproduced in populate._
 
-**Tests.** Positive: root variable `%questionnaire.title`; item variable `%qitem.text`; calculatedExpression, enableWhenExpression, targetConstraint, answerOptionsToggleExpression and `_text` cqf-expression with their consequences; answerExpression with `%questionnaire` as the head and with a later `%qitem`; initialExpression `%qitem.linkId` with the linkId help; a `text/fhirpath` initialExpression after a CQL one; itemPopulationContext on a group with children; a reference inside `iif`; two references in one expression; a backticked name; a name in `hostVariables`. Negative, with the core rule off for each S9 silence: a variable named `questionnaire` using `%questionnaire`; `%qitem` at the root; a declaration `questionnaire` on an ancestor and on another branch; use inside a fragment (P3); CQL; candidateExpression; a second `text/fhirpath` initialExpression, enableWhenExpression and answerExpression; text that does not parse; a reference after a computed `defineVariable`; a suppressed finding. Reproduction: the populate cases in `test/reproduction/populate-names.test.ts`.
+**Tests.** Positive: root variable `%questionnaire.title`; item variable `%qitem.text`; calculatedExpression, enableWhenExpression, targetConstraint, answerOptionsToggleExpression and `_text` cqf-expression with their consequences; answerExpression with `%questionnaire` as the head and with a later `%qitem`; initialExpression `%qitem.linkId` with the linkId help; a `text/fhirpath` initialExpression after a CQL one; itemPopulationContext on a group with children; a reference inside `iif`; two references in one expression; a backticked name; a name in `hostVariables` (removed in P4, when config rejects built-in names). Negative, with the core rule off for each S9 silence: a variable named `questionnaire` using `%questionnaire`; `%qitem` at the root; a declaration `questionnaire` on an ancestor and on another branch; use inside a fragment (P3); CQL; candidateExpression; a second `text/fhirpath` initialExpression, enableWhenExpression and answerExpression; text that does not parse; a reference after a computed `defineVariable`; a suppressed finding. Reproduction: the populate cases in `test/reproduction/populate-names.test.ts`.
 
 **Corpus:** GP CCMP 0, Smart Forms forms 0, SDC STU4 2 (hunger-vital-signs, item variable `thisItem = %questionnaire.item.where(…)`).
 
-**Core follow-up (not in this slice):** a config error for a built-in name listed in `hostVariables`, which is a silent no-op today.
+**Core follow-up (not in this slice):** a config error for a built-in name listed in `hostVariables`. Planned in P4. It is not a silent no-op for `qitem`: the built-in is added only at item sites, so a listed `qitem` resolves `%qitem` at the root.
 
 **Upstream:** [aehrc/smart-forms#2140](https://github.com/aehrc/smart-forms/issues/2140) (`%questionnaire`) and [#2141](https://github.com/aehrc/smart-forms/issues/2141) (`%qitem`) report the missing names. When a release that supplies them is verified, its unsupplied-name facts omit the name, and the rule stays silent for that version without a rule change.
 
@@ -369,7 +372,7 @@ Decisions: S1, S9, S10. Uses the [embedding facts](#x-fhir-query-embeddings).
 
 **Rule (error).** Check in this order and report the first problem, one finding per fragment. A fragment ends at the first `}}`, as populate's non-greedy regex does.
 1. **Not recognised.** The fragment text does not match `^%[^\r\n]+$`: populate needs `%` immediately after `{{` and at least one character after it. The query is sent with the braces in it.
-2. **No launch context.** The Questionnaire declares no launchContext. Populate replaces embeddings only when a launch resource is supplied, so every embedding in the form is sent with its braces, and no other problem can occur. Report once per fragment (open item).
+2. **No launch context.** The Questionnaire declares no launchContext. Populate replaces embeddings only when a launch resource is supplied, so every embedding in the form is sent with its braces, and no other problem can occur. Report once per fragment (settled below).
 3. **Invalid regular expression.** `new RegExp('{{%' + text + '}}', 'g')` throws. Populate builds that regular expression, unescaped, so population of the whole form fails with "An unknown error occurred". The linter decides this by compiling the same pattern. Metacharacters inside string literals count.
 4. **Replacement fails or corrupts.** Simulate populate's replacement: apply the compiled pattern to the fragment's own `{{%text}}`, replacing with a sentinel.
    - The text is unchanged: the replacement never matches and the query is sent with its braces. Function calls, indexers, `+`, `*`, `?`, `^`, `$` and `\` do this.
@@ -402,28 +405,57 @@ Decisions: S1, S9, S10. Uses the [embedding facts](#x-fhir-query-embeddings).
 - Check 4 searches every query the form fetches, this one included, and the request URLs of the contained Bundles the root's sourceQueries reference. Any match that is not an identical embedding is a corruption; one finding names every corrupted query, and the other queries are related locations. So `{{%patient.id|id}}` names both its own query and `Encounter?b={{%patient.id}}`.
 - Check 5: an empty head (`{{%.id}}`) is not evaluated, so it is sent with an empty value, like a missing `.`. Launch context names are read by URL, as core reads them (S16).
 
+### H. Contract hardening
+
+Decisions: S5, S9. Found in the P4 design review (2026-10-12); a small PR before P4.
+
+- **Core API, stage B2:** `RuleContext.declarations`, the frozen array of the document's declarations that core's own rules use, in document order. Each `Variable.declaration` from `variablesAt` is one of its elements, and each `declaration.site` one of `ctx.sites`. A launchContext or extractAllocateId `Declaration.item` is a different object from `site.item` for the same item: compare items by `pointer`.
+- **Frozen arrays.** `ctx.sites` is frozen, not only its sites: a rule could otherwise add a site, which the runner then accepts as a finding location, or reorder them, which breaks "a fragment directly follows its query".
+- **P2 fix.** `questionnaire-variable-unavailable` takes the names that silence it from `ctx.declarations`, every kind, extractAllocateId included, as P2 states. It unioned `variablesAt` over the sites, so an extractAllocateId `questionnaire` silenced it only when an extraction site sat on its element or below (reproduced).
+- **P3 fix.** A launch name is read in population's order, `valueId ?? valueCoding.code` (PI`inputParameters.ts:97-121,346`). The rule read `valueCoding.code` first, so a `valueCoding` without a code beside a `valueId` gave a false check 5 (reproduced). "A launchContext of any shape counts as declared" stays: `declared` does not come from `ctx.declarations`, which holds only launchContexts whose name core can read.
+- `contract.ts` documents the `ctx.compat` guarantee: every required component, and every other verified one unless an explicit config object omits it. Core's `sdc/duplicate-declaration` names elements with `rules/describe.ts`, like every other rule.
+
 ### P4. Supplied-names hook
 
-Decisions: S6, D1, D16. Settles the core-rules follow-up "a plugin hook for supplied names".
+Decisions: S1, S4, S6, S13, D1, D16, D19. Settles the core-rules follow-up "a plugin hook for supplied names". Settled in a design review on 2026-10-12; every population claim below was reproduced against `@aehrc/sdc-populate@4.7.1`.
 
-- Add an optional `LintPlugin.hostVariables?(document: QuestionnaireDocument): readonly string[]`. It is synchronous and pure.
-- `lint.ts` calls it once per document for each listed plugin, before `analyseDocument`, and merges the names with config `hostVariables`, deduplicated. The result is validated like config entries: non-empty strings without `%`.
-- A throw or an invalid result fails the run. Add a `PLUGIN_CRASH` failure code naming the plugin (`RULE_CRASH` requires a rule ID): schema enum, report-format.md.
-- `validatePlugin` accepts and checks the new function.
-- This contradicts core-plan §5.1 ("plugins don't extend analysis"); record the amendment.
-- The Smart Forms plugin supplies the sourceQueries result names. Choosing the name and supplying a value are separate steps in the runtime:
-  - **Name.** A `#id` reference is named `id`, before any resolution. Any other reference is named `sourceQuery<i>`, where `i` counts from 0 only the sourceQueries extensions that have a `valueReference`.
-  - **Value.** A `#id` name gets a value only when a contained resource with that id is a Bundle with an `entry` element; an empty `entry: []` is bound as it is, without fetching. Otherwise the name stays unset.
-  - The hook returns a name only when it gets a value, so a `#id` without a usable contained Bundle stays `sdc/undefined-variable`. Other references are fetched at runtime and always returned.
-  The renderer sees these names only through `additionalContext`, after a successful population (S1).
+**Core:**
+- Add an optional `LintPlugin.hostVariables?({ document, compat }): readonly string[]`, synchronous and pure. `compat` is the same frozen object the plugin's rules get as `ctx.compat` (`{}` without compat). It only adds names.
+- `lint.ts` calls it for each listed plugin with a hook, in config order, once per document (a root or Bundle-entry Questionnaire), before `findExpressionSites`. It runs whether or not any of the plugin's rules is enabled: listing a plugin activates its names, rule settings control only its findings.
+- The result is checked for shape only: an array, possibly empty, whose every index holds a non-empty string that does not start with `%`. Duplicates are allowed, and so is a space (`` %`a b` ``). Core then drops a name FHIRPath, FHIR or SDC defines (`builtinNames`, or a `vs-` or `ext-` prefix), and merges the rest after config `hostVariables`. A hook name resolves with `origin: 'host'` when no declaration or assembleContext name wins.
+- A throw, a returned promise or an invalid result fails the run with a new failure code, `PLUGIN_CRASH`. It carries a required `plugin: { name, version }` and `path`, the Questionnaire's file; its message names the plugin, the file and, for a Bundle entry, the resource pointer. `RULE_CRASH` gains `path` too. Schema enum and if/then, report-format.md.
+- `validatePlugin` fails with `CONFIG_INVALID` at `/plugins/<i>/hostVariables` when the key is present and not a function. `RuleSet` keeps the hooks with their compat.
+- A config `hostVariables` entry that FHIRPath, FHIR or SDC defines is `CONFIG_INVALID` at `/hostVariables/<i>`, the P2 core follow-up. For `questionnaire` and `qitem` the help says to remove it and suppress the findings with a reason that names the application (S13); for the others, that the name is always available. Config and the hook share one per-name shape check.
+- This overrides core-plan §5.1, which says that plugins "do not subscribe to walker callbacks and do not extend the registry through this interface": a plugin now also supplies names to core's analysis. Recorded in [plan-amendments.md](plan-amendments.md) (S6).
+
+**Plugin.** The Smart Forms plugin returns the sourceQueries result names population binds under the supported integration (S1), assuming external fetches succeed. Choosing the name and binding a value are separate steps in the runtime:
+- **Read.** Only root extensions with the exact sourceQueries URL, every one of them; item-level ones are ignored. Nothing when the root `subjectType` is non-empty and lacks `Patient`: population stops before reading them.
+- **Name.** A `#id` reference is named `id`, before any resolution. Any other non-empty reference is named `sourceQuery<i>`, where `i` counts from 0 every sourceQueries extension with a truthy `valueReference`: display-only, empty and `#` ones included.
+- **Value.** A `#id` name is bound only when the first contained resource with that id and type Bundle has an `entry` element (`entry: []` included, any `Bundle.type`), to that Bundle itself. Another reference is fetched, and bound to whatever resource returns; a failed fetch or an OperationOutcome leaves it unset.
+- **Returned.** A `#id` with such a Bundle, and every `sourceQuery<i>`. Never a missing or empty reference, `#` alone, or a name starting with `%` (`#%x` is bound as `%x`, but a host variable is written without `%`). A `#id` without such a Bundle stays `sdc/undefined-variable`.
+- **Exception, not modelled.** With no launch resource supplied at run time, population also passes a `#id` to the fetch callback. In the app that is a GET to the server base, which fails or returns an unrelated resource.
+- **The app fills no contained Bundle entry.** Population stores an entry's result only from a callback that resolves to `{ data: resource }`; the app's callback returns the resource itself. So in the app the name is bound and `%id.entry.resource` is empty (reproduced). The hook still returns the name.
+- The facts live in `src/facts/source-queries.ts`, keyed by populate version and reproduced in `test/reproduction/populate-source-queries.test.ts`, whose harness callback returns the resource itself, as the app does. The hook and P3's rule share one reader of sourceQueries, `src/source-queries.ts`.
+- The renderer sees these names only through `additionalContext`, after a successful population (S1). Template-extract never sees them, though they are available at extraction sites, as config names are (D19). In P4 that hides nothing Smart Forms evaluates: templateExtract carriers are `valueString`s core does not analyse, and Smart Forms does not evaluate itemExtractionContext.
 - The app's own `additionalContext` names stay in config `hostVariables` (D1): they belong to the host, not to Smart Forms.
-- Tests: a contained Bundle supplies `%id`; an `entry: []` Bundle supplies `%id`; a Bundle without `entry` and a missing contained resource supply nothing, and the reference is still `sdc/undefined-variable`; a non-contained reference supplies `%sourceQuery<i>`, with the index skipping an extension without `valueReference`; a throwing hook fails with `PLUGIN_CRASH`. Reproduce the naming against sdc-populate 4.7.1.
+
+**Docs:** cli.md (`hostVariables`, `PLUGIN_CRASH`, and the S8 behaviour of plugin suppressions under Stale suppressions, as current behaviour), report-format.md, architecture.md, README.md, a plugin README (`packages/plugin-smart-forms/README.md`), and the `meta.docs` of `sdc/undefined-variable`, `sdc/reserved-name` and `sdc/shadowed-declaration`: a listed plugin can supply names, and listing a name the plugin does not supply asserts that the application supplies it.
+
+**Tests:** core: the hook's merge, its compat, its runs with every rule off and per Bundle entry, the dropped built-ins, each `PLUGIN_CRASH`, the config error for each built-in kind. Plugin: the hook for each case above; lint cases with a contained Bundle written as raw `fsh` lines (explicit `contained[n]` indexes); JSON tests for `entry: []` and `valueReference: {}`, which FSH cannot write; reproductions of every fact. P2's case with `questionnaire` in `hostVariables` is removed.
+
+**Corpus:** 48 `sdc/undefined-variable` findings removed from the Smart Forms snapshot, every `%PrePopQuery` reference in the six forms that declare it as a sourceQueries Bundle, and none added.
+
+**Upstream:** draft an issue for the unfilled contained Bundle entries (populate reads only `response.data` there; the app's callback returns the resource since `da912b7d`). File it after checking the newest populate release, and cite it here.
 
 ### P5. `smart-forms/variable-name-collision` and `smart-forms/repeating-group-variable`
 
 Decisions: S1, S5, S9. Uses the [variable storage facts](#variable-storage-and-order).
 
-**Core API:** stage C: `declarations`, `dependenciesOf`, `useOf` and `readsInput`.
+**Core API:** stage C: `dependenciesOf`, `useOf` and `readsInput`; `declarations` arrives in H. `dependenciesOf` and `useOf` compare declarations by identity and return `undefined` for an object that is not one of `ctx.declarations`. `readsInput` returns `undefined` where `referencesAt` does; it reuses core's input-tracking walk in `analysis/fhirpath.ts` (`focusedArguments`), and is a syntactic test, not proof that a value differs between repetitions.
+
+**Also with P5** (found in the P4 design review):
+- A pointer finding or related location at an item gets that item's linkId in the report. `jsonLocation` takes a linkId only from a site, or from a declaration at that exact pointer, so `repeating-group-variable`'s related location "this group repeats" would show none. Recognise Questionnaire item pointers only, stopping at contained resources and keeping Bundle-entry prefixes.
+- Optionally export core's `elementName` and `placeOf` (`rules/describe.ts`), which the plugin copies in `src/document.ts`. It needs an S5 amendment, because S5 keeps such helpers in the plugin.
 
 `readsInput(site)` is true when the expression's value can depend on its input: a path or `$this` evaluated against the expression's input, or `%context` anywhere. A path inside a `where`, `select`, `exists`, `all` or `repeat` argument applied to another collection reads that collection, not the input: `%resource.item.where(linkId = 'x')` does not read its input. Probes against two repetitions: `item.where(linkId='a').answer.value`, `%context.item.answer.value` and `$this.item.answer.value` differ; `linkId`, `%resource.item.where(linkId='x').answer.value` and `%resource.item.where(linkId=%context.linkId).count()` do not.
 
@@ -468,6 +500,7 @@ The consuming site and the declaration are checked separately: a reference in a 
   - Help: `declare it as a variable on this item or an ancestor and reference that`.
 - Tests. Positive: (a) for each kind; (b) root and leaf itemPopulationContext; (c); a reference with another exposed declaration of the name. Negative: a reference to a variable; a reference to an itemPopulationContext on a group with children; an unresolved name; a reference in a candidateExpression.
 - Corpus: GP CCMP 0 under S14 (1 if renderer-only hosts counted: `%PostalAddressArray.exists()`). SDC 2 (sdc-test-fhirpath-prepop-candexpr: two initialExpressions using a named candidateExpression).
+- Depends on H for `ctx.declarations`: "another exposed declaration anywhere in the form" needs the form's declarations, not those `variablesAt` reaches. Decide in P6 whether a sourceQueries name the plugin supplies (P4) counts as another exposed value of the name: in Smart Forms' flat namespace, a `#x` Bundle and a named expression `x` share one name.
 
 ### P7. `smart-forms/forward-variable-reference`
 
@@ -491,7 +524,10 @@ Runs only when `template-extract` is selected in `compat` (S3).
 
 **Reproduction harness:** `@aehrc/sdc-template-extract@1.0.15` as an exact dev dependency. Its ESM build fails in plain Node (directory import of `fhirpath/fhir-context/r4`); load the CJS build through `createRequire` and call `inAppExtract`.
 
-**Suppression by exact pointer (core).** A finding reported with only a `pointer` cannot be suppressed today: the suppression selector searches expression sites, so such a suppression matches nothing and is reported stale while the finding stays. Add: a suppression `pointer` that equals a finding's `jsonLocation.pointer` hides it when no expression site has that pointer, and the suppression is stale when the pointer no longer exists in the file. Tests: a pointer finding inside a contained resource, its suppression applied, and stale after the extension is removed. No general target registration.
+**Suppression by exact pointer (core).** A finding reported with only a `pointer` cannot be suppressed today: the suppression selector searches expression sites, so such a suppression matches nothing and is reported stale while the finding stays. Add: a suppression `pointer` that equals a finding's `jsonLocation.pointer` hides it when no expression site has that pointer, and the suppression is stale when the pointer no longer exists in the file. Tests: a pointer finding inside a contained resource, its suppression applied, and stale after the extension is removed. No general target registration. Found in the P4 design review, to settle here:
+- What `linkId`, `extensionUrl`, `name` and `resource` mean beside a pointer that matches no expression site: implement each, or reject the combination as `CONFIG_INVALID`. Silently ignoring one would widen the suppression.
+- A pointer-only finding's fingerprint key is the pointer below the resource, array indexes included, which breaks "stable site identity". Anchor it to the enclosing item's linkId plus the pointer below the item.
+- Optionally, core treats a pointer finding whose pointer is an expression site's as that site, so it gets the linkId, excerpt and FSH mapping. A query and its fragments share a pointer: pick the `expression` carrier.
 
 **Rule (error).** A `templateExtractContext` extension with `valueExpression` and no `valueString`, in a contained resource that a `templateExtract` extension on the root or an item references by `#id`. Template-extract reads only `valueString`: it returns the warning "…but no valueString found", creates no context, evaluates the values below against the item instead, never repeats per context result, and leaves the extension in the output. A named context is impossible.
 - Core does not catalogue templateExtractContext, and an Expression without `language` produces no site. So the rule walks the template JSON itself. Report with `site` when an uncatalogued site exists at that pointer, otherwise with `pointer`.
@@ -512,7 +548,7 @@ Runs only when `template-extract` is selected in `compat` (S3).
 
 ## Decisions
 
-Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day; they are recorded in [plan-amendments.md](plan-amendments.md). The others are proposals.
+Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12; they are recorded in [plan-amendments.md](plan-amendments.md). The others are proposals.
 
 ### Model
 
@@ -538,7 +574,7 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
 
 - **S5. Core publishes analysis to plugins in stages, each with the slice that first needs it and with everything that slice needs** ([table](#public-api-stages-s5)). References and name resolution go together in P2; declarations, dependencies, uses and `readsInput` in P5. Types are readonly, and "unavailable" (`undefined`) is distinct from "empty".
   _Why:_ D15 and D18 deferred publication until a plugin rule needs it. Publishing references without resolution would make plugins reconstruct core's answers.
-- **S6. A plugin can supply host names through an optional, synchronous `hostVariables(document)` hook.** Core merges them with config `hostVariables`. The Smart Forms plugin supplies only sourceQueries result names that get a value.
+- **S6. A plugin can supply host names through an optional, synchronous `hostVariables({ document, compat })` hook.** Core merges them with config `hostVariables`. The hook only adds names. `compat` is the plugin's resolved versions, as its rules get them, so the names can depend on the selected version (S4). The Smart Forms plugin supplies only sourceQueries result names that get a value. This overrides core-plan §5.1, under which a plugin only reads core's analysis.
   _Why:_ D16 left these names to config until a plugin could supply them. Host `additionalContext` names belong to the host, not to Smart Forms, so they stay in config (D1).
 - **S7. No `presets`, `languages` or rule options.** Listing a plugin already enables its rules at their defaults, none of the nine rules needs options, and deployment facts belong in `compat` or `hostVariables`. Amend core-plan §6.1 and §6.2, whose examples use `presets` and `languages`.
   _Why:_ the keys would add configuration with no consumer.
@@ -551,7 +587,7 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
   _Why:_ core-plan §2.1 asks for reproduction tests. Reproduction corrected several facts in this plan's first draft: item query variables, sourceQueries naming, the embedding replacement.
 - **S12. Add `smart-forms/forward-variable-reference` (warning) for the D8 follow-up.**
   _Why:_ it is a different failure from a collision or an unexposed name, with a different fix. Warning, because the demonstrated failure is during population; the renderer still produces a value, possibly a stale one.
-- **S13. A host-supplied `%questionnaire` or `%qitem` is handled by a suppression with a reason.** A host can supply `%qitem` correctly only when every expression that uses it is on one item. This does not apply to an answerExpression: the renderer builds its context from the name before the first `.` alone, so `additionalContext` never reaches it, and its finding has no suppression note.
+- **S13. A host-supplied `%questionnaire` or `%qitem` is handled by a suppression with a reason.** From P4, config `hostVariables` rejects both names, and its help points here. A host can supply `%qitem` correctly only when every expression that uses it is on one item. This does not apply to an answerExpression: the renderer builds its context from the name before the first `.` alone, so `additionalContext` never reaches it, and its finding has no suppression note.
   _Why:_ `hostVariables` cannot express it (built-in names resolve first) and names no component, and rule options are not built (S7).
 - **S15. No rule for the answerExpression fallback or for `%context` being `{}`.** The fallback runs only when answerValueSet produced no codings, supplies only the first `%name` found by string operations, and has one FHIRPath answerExpression in the corpus. `%context` is `{}` at most renderer and populate evaluators, but the result is a silent empty value and the corpus has no real case. Record both as facts; revisit with corpus evidence.
   _Why:_ low value now.
@@ -567,14 +603,20 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
 
 | Item | Blocks |
 | :- | :- |
-| Review and accept S6, S8, S12 and S14–S17; record the accepted overrides in plan-amendments.md. | The first slice that cites each one. |
-| Embedding check 2 (no launch context): one finding per fragment, or one per form? | P3 |
+| Review and accept S8, S12 and S14–S17; record the accepted overrides in plan-amendments.md. | The first slice that cites each one. |
 | Smart Forms-specific Expressions outside the core catalogue (binding-parameter expression, QuestionnaireItemTextAriaLabelExpression, calculatedExpression on `_text` and `_prefix`) cannot be targeted without an extension URL on uncatalogued sites. Add one, or catalogue them in the plugin? | Nothing in v1. |
 | Should P3 check embeddings in sourceQueries Bundle `request.url` through pointer findings (possible after P8)? 25 embeddings in 5 corpus forms, all fine. | Nothing in v1. |
 | Renderer-only and extraction-only targets (S1): an explicit `compat` without populate, and the findings S14 omits for such hosts. | Nothing in v1. |
 | Populate evaluates the initialExpressions of the children of a repeating group without an itemPopulationContext, but builds that group only from an itemPopulationContext, so their answers are never prefilled whatever the language. A rule for it? `expression-evaluated-as-fhirpath` still reports a non-FHIRPath one there; its consequence holds, but the language is not its cause. | Nothing in v1. |
 | itemPopulationContext on a repeating group binds only direct children, chosen by text between the first `%` and the first `.` of a child's initialExpression. A rule for consumers it does not bind? | Nothing in v1. |
 | A rule for a launchContext written type-first (S16)? | Nothing in v1. |
+| A plugin diagnostic for a sourceQueries reference population never binds: a `#id` with no first contained Bundle with `entry`, an empty or display-only reference, `#%x`. A pointer finding at the extension, so suppressible only after P8. It cannot prove every binding failure: a fetched reference can still fail at run time. | Nothing in v1. |
+| In the app, `%<sourceQueries Bundle>.entry.resource` is always empty (P4): population fills entries only from a `{ data }` callback. A finding or a note for expressions that read it, until upstream fixes it? All 48 `%PrePopQuery` references in the corpus do. | Nothing in v1. |
+| Host names, from config or a plugin, are available at extraction sites (D19), but template-extract receives none. Report them at extraction sites when template carriers become sites, or in a template-extract rule. | Nothing in v1. |
+| Fingerprints collide for two findings of one rule at one site (`%foo & %bar`). Add the reported span text and an occurrence number to the fingerprint identity, and state that a fingerprint is unique within a report ([#31 comment](https://github.com/beda-software/sdc-questionnaire-lint/issues/31)). | SARIF (#31). |
+| `run.rules` (rule metadata, effective severities, `docsUrl`) and a config-only `run.hostVariables` in the report, or SARIF renders the report plus the rule set. Copy `meta.docsUrl` into findings. | SARIF (#31). |
+| The report schema's `smartFormsVersions` hard-codes renderer and populate. Use a generic component-to-version map, and keep required components in compat resolution. | The first release. |
+| Remove `RuleContext.options`, always `undefined` under S7; show the resolved compat in `explain`. | The first release. |
 
 ## Corrections to existing docs
 
@@ -588,7 +630,7 @@ Apply with the first slice that relies on each fact.
 - **core-rules.md, Smart Forms runtime, "Variables are evaluated in array order, in one flat namespace."** True for root variables only. Item variables are evaluated in post-order of items, with integer-like linkIds first (JavaScript key order), and each repetition overwrites the name.
 - **core-rules.md, "The renderer sets every x-fhir-query variable name to `[]`".** Only `application/x-fhir-query`. A `text/x-fhir-query` variable's name is unbound, so references to it throw.
 - **core-rules.md, x-fhir-query variables.** Populate fetches `application/x-fhir-query` variables on items as well as on the root.
-- **core-rules.md, sourceQueries.** The name of a `#id` reference is chosen before resolution; a value is supplied only for a contained Bundle with an `entry` element.
+- **core-rules.md, sourceQueries.** The name of a `#id` reference is chosen before resolution; a value is supplied only for the first contained Bundle of that id with an `entry` element; `i` in `sourceQuery<i>` counts every extension with a `valueReference`. Applied in P4.
 - **core-rules.md, Plugin follow-ups, "Smart Forms ignores `text/x-fhir-query` (D11)".** Applied in P1. Only at filtering locations. At targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext it is evaluated as FHIRPath. `application/x-fhir-query` is also ignored everywhere except `variable`. D11's attribution should cover both P1 rules.
 - **core-rules.md, x-fhir-query embeddings, "reproduce one before a plugin check rejects an expression".** Applied in P3. Reproduced: populate builds an unescaped regular expression from each embedding and applies it to every query. Replace "`%context` and `%ucum` can still resolve" with the full list in P3 check 6, and note there is no model.
 - **report-format.md, "invalid rule options".** Cannot happen (S7); remove or mark as reserved.
@@ -629,7 +671,7 @@ Language checks are exact string comparisons. No `text/x-fhir-query` string appe
 - **`%questionnaire`, `%qitem`.** No component supplies either. fhirpath.js 4.10.1 throws "Attempting to access an undefined environment variable" when the reference is evaluated; `iif(false, %qitem, 1)` returns `[1]`. A host's `additionalContext` reaches every later evaluation (R`stores/questionnaireStore.ts:267,634`). _Reproduced in populate._ Reported upstream as [aehrc/smart-forms#2140](https://github.com/aehrc/smart-forms/issues/2140) and [#2141](https://github.com/aehrc/smart-forms/issues/2141).
 - **`%context`.** `{}` at renderer calculatedExpression, enableWhenExpression, answerOptionsToggleExpression, targetConstraint, parameterised value sets, and populate initialExpression, itemPopulationContext and variables. Exceptions: renderer root and item variables (R`utils/fhirpath.ts:275,326`).
 - **answerExpression fallback.** It supplies one name: the text between the first `%` and the first `.`, resolved from patient, user, encounter or fhirContext, or an x-fhir-query variable whose result was set (R`hooks/useValueSetCodings.ts:66-124`).
-- **sourceQueries.** Name: `<id>` for a `#id` reference, chosen before resolution; `sourceQuery<i>` for any other reference, `i` counting from 0 only extensions with a `valueReference` (PI`inputParameters.ts:127-141,262-269,395-429`). Value: a `#id` name is bound only when a contained resource with that id is a Bundle with an `entry` element; an `entry: []` Bundle is bound without fetching (P`createFhirPathContext.ts:78-80,391-414,559-597`). A missing or entry-less Bundle leaves the name unset. _Reproduced._ With no launch contexts, `#` references are not filtered and are passed to `fetchResourceCallback`.
+- **sourceQueries.** Read from root extensions only, every one; nothing when `subjectType` is non-empty and lacks `Patient` (PI`inputParameters.ts:127-141,209-212`). Name: `<id>` for a `#id` reference, chosen before resolution; `sourceQuery<i>` for any other reference, `i` counting from 0 every extension with a truthy `valueReference`, display-only, empty and `#` ones included (PI`:262-269,395-429`). Value: a `#id` name is bound only when the first contained resource with that id and type Bundle has an `entry` element, to that Bundle; an `entry: []` Bundle is bound without fetching (P`createFhirPathContext.ts:78-80,391-414,559-597`). A missing or entry-less Bundle leaves the name unset. Another reference is fetched and bound to the returned resource, any type, unless the fetch fails or returns an OperationOutcome (P`:291-371`). An entry's result is stored only from a callback that resolves to `{ data }` (P`:432-437`); the app's callback returns the resource, so in the app `entry.resource` stays empty. With no launch resource, `#` references are not filtered and are passed to `fetchResourceCallback` too (P`:523-550,716-721`). To be reproduced in P4 (`populate-source-queries.test.ts`); no committed test covered this fact before.
 
 ### Variable storage and order
 

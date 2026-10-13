@@ -12,10 +12,12 @@ import { findLinkIdReferencesAt, findLinkIds } from './linkids.js';
 import { type DeclarationUse, findUses } from './uses.js';
 
 // The facts core computes once per document and shares between its rules and the suppression
-// assessment (core-rules.md, Shared analysis). Internal: a plugin rule receives only references
-// and variablesAt, through RuleContext's referencesAt and variablesAt (API stage B). Everything a
-// rule can reach is frozen, because rules run before the suppression assessment reuses it.
+// assessment (core-rules.md, Shared analysis). Internal: a plugin rule receives only references,
+// variablesAt and declarations, through RuleContext's referencesAt, variablesAt (API stage B) and
+// declarations (stage B2). Everything a rule can reach is frozen, because rules run before the
+// suppression assessment reuses it.
 export interface DocumentAnalysis {
+  // In document order. RuleContext's declarations is this array.
   readonly declarations: readonly Declaration[];
   // The %name references of each FHIRPath site that parses, fragments included; a site that does
   // not parse has none (D18).
@@ -45,7 +47,7 @@ export function analyseDocument(
     if (found !== undefined)
       references.set(site, Object.freeze(found.map((reference) => Object.freeze(reference))));
   }
-  const declarations = findDeclarations(document, sites);
+  const declarations = Object.freeze(findDeclarations(document, sites));
   const variablesAt = availableVariables(
     declarations,
     findAssembleContextNames(document),

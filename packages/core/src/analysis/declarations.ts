@@ -7,8 +7,9 @@ import type {
   SiteItem,
 } from './expression-site.js';
 
-// Declaration and DeclarationKind are public: plugin rules reach declarations through the variables
-// RuleContext's variablesAt resolves (API stage B). The finders here stay internal.
+// Declaration and DeclarationKind are public: plugin rules reach declarations through
+// RuleContext's declarations (API stage B2) and the variables its variablesAt resolves (stage B).
+// The finders here stay internal.
 
 type Json = Record<string, unknown>;
 

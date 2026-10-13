@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import pkg from '../package.json' with { type: 'json' };
+import { components } from '../src/facts/versions.js';
+import smartForms from '../src/index.js';
 import { lintWithPlugin } from './support/lint.js';
 
 const files = {
@@ -60,5 +62,10 @@ describe('the smart-forms plugin', () => {
       code: 'CONFIG_INVALID',
       help: 'set renderer to a verified version: 1.4.0',
     });
+  });
+
+  // Core selects every required component, so requireCompat never throws under a conforming core.
+  it('requires every component its rules read', () => {
+    expect(smartForms.compat?.required).toEqual(expect.arrayContaining([...components]));
   });
 });

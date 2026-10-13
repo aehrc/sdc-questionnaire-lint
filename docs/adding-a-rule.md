@@ -34,7 +34,7 @@ Where a rule belongs:
 - **The Smart Forms plugin (`smart-forms/`)** reports where Smart Forms behaves differently from SDC, in the versions selected in `compat`. It states only a runtime consequence the evidence shows.
 - **Your own plugin** checks anything else, such as a house style or another runtime.
 
-A plugin rule stays silent where a core rule reports the same root cause. It checks the condition itself, with core's exported lookups (`languagesAllowedAt`, `definedLanguages`, `isQueryLanguage`, `ctx.referencesAt`, `ctx.variablesAt`), never whether the core rule ran or is enabled ([what a plugin can import](architecture.md#what-a-plugin-can-import)). For example, `smart-forms/unsupported-expression-language` skips a language outside `definedLanguages`, because `sdc/language-not-in-value-set` reports it, and it stays silent even when that core rule is off.
+A plugin rule stays silent where a core rule reports the same root cause. It checks the condition itself, with core's exported lookups (`languagesAllowedAt`, `definedLanguages`, `isQueryLanguage`, `ctx.declarations`, `ctx.referencesAt`, `ctx.variablesAt`), never whether the core rule ran or is enabled ([what a plugin can import](architecture.md#what-a-plugin-can-import)). For example, `smart-forms/unsupported-expression-language` skips a language outside `definedLanguages`, because `sdc/language-not-in-value-set` reports it, and it stays silent even when that core rule is off.
 
 ## 2. Anatomy of a rule
 
@@ -73,6 +73,7 @@ A rule has no ID of its own. Its ID is `<plugin meta.name>/<key>`, the key it is
 | :- | :- |
 | `document` | The `QuestionnaireDocument`: the input `file`, the `resource`, its `resourcePointer` in the file and, for a Bundle, its `localResources` |
 | `sites` | Every expression site in the Questionnaire, flat and frozen, in document order. A site has its `pointer`, `carrier` (`expression` or `fragment`), catalogued `location`, `item`, `language`, `text`, `reference`, `name`, `declares`, `useCases`, and `fragment` for a `{{…}}` fragment of an x-fhir-query ([`analysis/expression-site.ts`](../packages/core/src/analysis/expression-site.ts)) |
+| `declarations` | Every declaration in the Questionnaire, flat and frozen, in document order: variables, other named expressions, launchContexts and extractAllocateIds. Each has its `name`, `kind`, `pointer`, `item`, `useCases` and, for an Expression, its `site`, one of `sites`. Compare items by `pointer`: a launchContext's or extractAllocateId's `item` is not the same object as a site's |
 | `referencesAt(site)` | The `%name` references in a site's FHIRPath, fragments included; `[]` when the text parses and references nothing |
 | `variablesAt(site)` | The names an expression can reference at a site, and `resolve(name)`, the variable a name resolves to |
 | `compat` | The component versions the run selected for the rule's namespace, such as `{ renderer: '1.4.0', populate: '4.7.1' }`; `{}` for a plugin without `compat` |
@@ -84,7 +85,7 @@ A rule has no ID of its own. Its ID is `<plugin meta.name>/<key>`, the key it is
 Rules are pure:
 
 - `check` is synchronous. It must not return a promise.
-- It reads its input and never changes it: `document`, `sites` and the analysis are shared with every other rule.
+- It reads its input and never changes it: `document`, `sites`, `declarations` and the analysis are shared with every other rule.
 - It does not access the network or the file system, or format output. Logging goes to stderr, but a rule has no reason to log.
 
 A throw, a returned promise or an invalid finding fails the whole run with exit 2 and the failure code `RULE_CRASH`, which names the rule. Built-in and plugin rules are treated alike.

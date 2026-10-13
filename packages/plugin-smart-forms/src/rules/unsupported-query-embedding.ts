@@ -81,9 +81,11 @@ function sourceQueryUrls(document: QuestionnaireDocument): Query[] {
   });
 }
 
-// The root launchContexts: whether any is declared, and the names they declare, from the name
-// sub-extension's valueCoding.code or valueId. Population supplies only some of them at run time,
-// which the rule does not check.
+// The root launchContexts: whether any is declared, of any shape, and the names they declare, read
+// as population reads them: the name sub-extension's valueId, else its valueCoding.code
+// (inputParameters.ts:97-121,346). Not ctx.declarations: core reads valueCoding.code first, and
+// declares only launchContexts whose name it can read. Population supplies only some of them at
+// run time, which the rule does not check.
 function launchContexts(document: QuestionnaireDocument): {
   declared: boolean;
   names: readonly string[];
@@ -96,7 +98,7 @@ function launchContexts(document: QuestionnaireDocument): {
       isObject(extension) && Array.isArray(extension.extension) ? extension.extension : [];
     const name: unknown = parts.find((part: unknown) => isObject(part) && part.url === 'name');
     if (!isObject(name)) return [];
-    const code = isObject(name.valueCoding) ? name.valueCoding.code : name.valueId;
+    const code = name.valueId ?? (isObject(name.valueCoding) ? name.valueCoding.code : undefined);
     return typeof code === 'string' && code !== '' ? [code] : [];
   });
   return { declared: declared.length > 0, names };

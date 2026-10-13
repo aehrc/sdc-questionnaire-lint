@@ -83,20 +83,6 @@ function linkIdHelp(
     : undefined;
 }
 
-// Every name a declaration in the form has. A declaration is among the available variables of its
-// own site, and a launchContext among those of every catalogued site, so the union over the sites
-// covers every declaration except an extractAllocateId no extraction site can see; Smart Forms
-// gives that name only to template extraction anyway.
-function declaredNames(ctx: Pick<RuleContext, 'sites' | 'variablesAt'>): ReadonlySet<string> {
-  const names = new Set<string>();
-  for (const site of ctx.sites) {
-    for (const variable of ctx.variablesAt(site)?.variables ?? []) {
-      if (variable.origin === 'declaration') names.add(variable.name);
-    }
-  }
-  return names;
-}
-
 export const questionnaireVariableUnavailable: LintRule = {
   meta: {
     description:
@@ -152,9 +138,9 @@ export const questionnaireVariableUnavailable: LintRule = {
           !readers.some(({ component }) => unsuppliedAt(component, versions[component]).has(name))
         )
           continue;
-        // Silent for a name the form declares anywhere: sdc/reserved-name reports the declaration
-        // (S9).
-        declared ??= declaredNames(ctx);
+        // Silent for a name any declaration in the form has, of any kind and wherever it is:
+        // sdc/reserved-name reports the declaration (S9).
+        declared ??= new Set(ctx.declarations.map(({ name }) => name));
         if (declared.has(name)) continue;
         const element = elementName(ctx.document, site.item);
         const answer = site.location.url === ANSWER_EXPRESSION;

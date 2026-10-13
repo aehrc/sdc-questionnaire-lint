@@ -533,6 +533,111 @@ describe('RuleContext name analysis (API stage B)', () => {
   });
 });
 
+describe('RuleContext sites and declarations (API stage B2)', () => {
+  const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
+  const variable = (name: string, text: string) => ({
+    url: 'http://hl7.org/fhir/StructureDefinition/variable',
+    valueExpression: { name, language: 'text/fhirpath', expression: text },
+  });
+  const document: QuestionnaireDocument = {
+    file: 'Q.json',
+    resource: {
+      resourceType: 'Questionnaire',
+      extension: [
+        {
+          url: `${sdc}launchContext`,
+          extension: [
+            { url: 'name', valueCoding: { code: 'patient' } },
+            { url: 'type', valueCode: 'Patient' },
+          ],
+        },
+        variable('title', "'T'"),
+      ],
+      item: [
+        {
+          linkId: 'g',
+          type: 'group',
+          extension: [
+            variable('x', '%title'),
+            { url: `${sdc}extractAllocateId`, valueString: 'newId' },
+          ],
+          item: [{ linkId: 'a', type: 'string', extension: [variable('y', '%x & %patient.id')] }],
+        },
+      ],
+    },
+    resourcePointer: '',
+    localResources: [],
+  };
+  const sites = findExpressionSites(document);
+  const analysed = {
+    input: doc.input,
+    document,
+    sites,
+    analysis: analyseDocument(document, sites),
+  };
+
+  function received<T>(read: (ctx: RuleContext) => T): T {
+    let result: T | undefined;
+    const rule = {
+      meta: { description: 'Records what it receives.', defaultSeverity: 'error' },
+      check: (ctx: RuleContext) => {
+        result = read(ctx);
+      },
+    } as LintRule;
+    runRules(analysed, [
+      { id: 'test/rule', namespace: 'test', rule, setting: 'error', compat: {} },
+    ]);
+    return result as T;
+  }
+
+  it('freezes the sites and declarations arrays', () => {
+    const [sitesFrozen, declarationsFrozen] = received((ctx) => [
+      Object.isFrozen(ctx.sites),
+      Object.isFrozen(ctx.declarations),
+    ]);
+    expect(sitesFrozen).toBe(true);
+    expect(declarationsFrozen).toBe(true);
+  });
+
+  it("gives every declaration in document order, as the array core's rules use", () => {
+    const declarations = received((ctx) => ctx.declarations);
+    expect(declarations).toBe(analysed.analysis.declarations);
+    expect(declarations.map(({ name, kind }) => [name, kind])).toEqual([
+      ['patient', 'launchContext'],
+      ['title', 'variable'],
+      ['x', 'variable'],
+      ['newId', 'allocateId'],
+      ['y', 'variable'],
+    ]);
+  });
+
+  it('shares declarations with variablesAt, and sites with declarations, by identity', () => {
+    const [resolved, declarations, ctxSites] = received((ctx) => [
+      ctx.sites.flatMap((site) => ctx.variablesAt(site)?.variables ?? []),
+      ctx.declarations,
+      ctx.sites,
+    ]);
+    const viaVariables = resolved.flatMap(({ declaration }) => declaration ?? []);
+    expect(viaVariables.length).toBeGreaterThan(0);
+    for (const declaration of viaVariables) expect(declarations).toContain(declaration);
+    for (const { site } of declarations) if (site !== undefined) expect(ctxSites).toContain(site);
+  });
+
+  it('gives RULE_CRASH to a plugin rule that adds a site', () => {
+    const rule = {
+      meta: { description: 'Adds a site.', defaultSeverity: 'error' },
+      check: (ctx: RuleContext) => {
+        (ctx.sites as ExpressionSite[]).push(Object.freeze({ ...site }));
+      },
+    } as LintRule;
+    expect(() =>
+      runRules(analysed, [
+        { id: 'test/rule', namespace: 'test', rule, setting: 'error', compat: {} },
+      ]),
+    ).toThrow(expect.objectContaining({ code: 'RULE_CRASH', ruleId: 'test/rule' }));
+  });
+});
+
 describe('plugin findings in a report', () => {
   it('produce a valid report for each accepted shape', async () => {
     const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';

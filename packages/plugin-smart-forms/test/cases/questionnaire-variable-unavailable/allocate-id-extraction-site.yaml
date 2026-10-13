@@ -1,0 +1,21 @@
+# The same extractAllocateId questionnaire, with an itemExtractionContext on a child that can see
+# it, with sdc/reserved-name off: silent too.
+rules:
+  sdc/reserved-name: 'off'
+items:
+  - linkId: g
+    type: group
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-extractAllocateId"'
+      - 'extension[=].valueString = "questionnaire"'
+    items:
+      - linkId: age
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%questionnaire.title'
+      - linkId: c
+        type: group
+        extensions:
+          - url: http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemExtractionContext
+            expression: "'Observation'"
