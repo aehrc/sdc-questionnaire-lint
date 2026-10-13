@@ -29,6 +29,14 @@ export const builtinNames: ReadonlyMap<string, BuiltinDefiner> = new Map([
 // FHIR defines every name with these prefixes, such as %vs-conditions and %ext-birthPlace.
 export const builtinPrefixes: readonly string[] = ['vs-', 'ext-'];
 
+// The specification that defines a name, or undefined when none does: the classification
+// sdc/reserved-name reports declarations by, and config hostVariables and plugin hooks are checked
+// against.
+export function definerOf(name: string): BuiltinDefiner | undefined {
+  if (builtinPrefixes.some((prefix) => name.startsWith(prefix))) return 'FHIR';
+  return builtinNames.get(name);
+}
+
 // A name an expression can reference at its site.
 export interface Variable {
   readonly name: string;

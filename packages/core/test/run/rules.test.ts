@@ -120,15 +120,18 @@ describe('runRules on what a rule reports', () => {
     ruleThat((ctx) => {
       ctx.report(finding as RuleFinding);
     });
+  // The file and the Bundle entry the rule crashed on.
+  const on = 'Q.json at /entry/0/resource';
   const crash = (message: string): unknown =>
     expect.objectContaining({
       code: 'RULE_CRASH',
       ruleId: 'test/rule',
+      path: 'Q.json',
       message,
       help: 'this is a bug in the test plugin; report it to its maintainers',
     });
   const invalid = (problem: string): unknown =>
-    crash(`rule test/rule reported an invalid finding: ${problem}`);
+    crash(`rule test/rule reported an invalid finding on ${on}: ${problem}`);
 
   it.each<[string, (sites: typeof inBundle.sites) => unknown, string]>([
     ['an empty message', ([site]) => ({ site, message: '' }), 'message is not a non-empty string'],
@@ -266,7 +269,7 @@ describe('runRules on what a rule reports', () => {
           await Promise.resolve();
         }),
       ]),
-    ).toThrow(crash('rule test/rule returned a promise; check must be synchronous'));
+    ).toThrow(crash(`rule test/rule returned a promise on ${on}; check must be synchronous`));
   });
 
   it('gives RULE_CRASH for an async rule that rejects, leaving no unhandled rejection', async () => {
@@ -283,7 +286,7 @@ describe('runRules on what a rule reports', () => {
       throw new Error('late');
     });
     expect(() => runRules(inBundle, [rejects])).toThrow(
-      crash('rule test/rule returned a promise; check must be synchronous'),
+      crash(`rule test/rule returned a promise on ${on}; check must be synchronous`),
     );
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(unhandled).toBeUndefined();
@@ -295,7 +298,9 @@ describe('runRules on what a rule reports', () => {
         throw new Error('boom');
       },
     }));
-    expect(() => runRules(inBundle, [thenable])).toThrow(crash('rule test/rule crashed: boom'));
+    expect(() => runRules(inBundle, [thenable])).toThrow(
+      crash(`rule test/rule crashed on ${on}: boom`),
+    );
   });
 
   it('gives RULE_CRASH for a thrown value that cannot be described', () => {
@@ -308,7 +313,7 @@ describe('runRules on what a rule reports', () => {
       };
     });
     expect(() => runRules(inBundle, [throwing])).toThrow(
-      crash('rule test/rule crashed: a value that cannot be described'),
+      crash(`rule test/rule crashed on ${on}: a value that cannot be described`),
     );
   });
 
@@ -326,7 +331,9 @@ describe('runRules on what a rule reports', () => {
     const throwing = ruleThat(() => {
       throw new Error('boom');
     });
-    expect(() => runRules(inBundle, [throwing])).toThrow(crash('rule test/rule crashed: boom'));
+    expect(() => runRules(inBundle, [throwing])).toThrow(
+      crash(`rule test/rule crashed on ${on}: boom`),
+    );
   });
 
   it('maps related sites and pointers to locations in the report', () => {

@@ -102,6 +102,14 @@ export interface PluginCompat {
   required: readonly string[];
 }
 
+// What a plugin's hostVariables receives for one Questionnaire. An object, so that fields can be
+// added without breaking the hook.
+export interface HostVariablesInput {
+  readonly document: QuestionnaireDocument;
+  // The same frozen object the plugin's rules get as ctx.compat; {} without compat.
+  readonly compat: Readonly<Record<string, string>>;
+}
+
 // A plugin: listed in plugins in an .mjs config, it registers its rules under its namespace.
 export interface LintPlugin {
   // name is the rule namespace: smart-forms plus variable-name-collision gives
@@ -110,4 +118,14 @@ export interface LintPlugin {
   rules: Readonly<Record<string, LintRule>>;
   // Declared by a plugin that checks forms against runtime versions selected in config compat.
   compat?: PluginCompat;
+  // The names, without %, that the runtime the plugin describes supplies to a Questionnaire's
+  // expressions, such as the results of its sourceQueries. Core adds them to the host variables
+  // after config hostVariables, so a declaration or an assembleContext name of the same name still
+  // wins. It only adds names. Called as a method, once per Questionnaire in a file or a Bundle entry,
+  // in plugins order, before the Questionnaire is analysed, whenever the plugin is listed, even with
+  // all its rules off. Runs synchronously and is pure: it must not mutate input or access the
+  // network. Duplicates and a name with a space are allowed; a name FHIRPath, FHIR or SDC defines is
+  // dropped. A throw, a returned promise, or a result that is not an array of non-empty strings
+  // without % fails the run with PLUGIN_CRASH.
+  hostVariables?(input: HostVariablesInput): readonly string[];
 }

@@ -72,8 +72,8 @@ export const shadowedDeclaration: CoreRule = {
       limitations:
         'Two declarations of one name on the same element are reported by ' +
         'sdc/duplicate-declaration instead. Contained resources and uncatalogued expressions ' +
-        'declare nothing, and the names a module lists in assembleContext, or in hostVariables, ' +
-        'are not declarations.',
+        'declare nothing, and the names a module lists in assembleContext, the names listed in ' +
+        'hostVariables and the names a listed plugin supplies are not declarations.',
     },
   },
   check(ctx, { declarations }) {

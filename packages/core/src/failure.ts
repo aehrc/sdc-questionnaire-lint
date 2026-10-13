@@ -2,7 +2,7 @@ import pkg from '../package.json' with { type: 'json' };
 import { formatGithubFailure, formatGithubFailureSummary } from './report/github.js';
 import { formatJsonReport } from './report/json.js';
 import { formatSarifFailure } from './report/sarif.js';
-import type { FailedReport, FailureRecord } from './report/types.js';
+import type { FailedReport, FailureRecord, PackageVersion } from './report/types.js';
 
 // The formats lint writes to stdout.
 export type OutputFormat = 'text' | 'json' | 'github' | 'sarif';
@@ -17,18 +17,23 @@ export type FailureCode =
   | 'INPUT_INVALID_JSON'
   | 'NO_QUESTIONNAIRES'
   | 'RULE_CRASH'
+  | 'PLUGIN_CRASH'
   | 'INTERNAL_ERROR';
 
 interface FailureFields {
   message: string;
   help: string;
   path?: string;
+  ruleId?: string;
+  plugin?: PackageVersion;
 }
 
-// A rule crash must name its rule, so the type requires ruleId for that code only.
+// A rule crash must name its rule, and a plugin crash its plugin and file, so the type requires
+// them for those codes only.
 export type LintFailureInit =
-  | (FailureFields & { code: Exclude<FailureCode, 'RULE_CRASH'>; ruleId?: string })
-  | (FailureFields & { code: 'RULE_CRASH'; ruleId: string });
+  | (FailureFields & { code: Exclude<FailureCode, 'RULE_CRASH' | 'PLUGIN_CRASH'> })
+  | (FailureFields & { code: 'RULE_CRASH'; ruleId: string })
+  | (FailureFields & { code: 'PLUGIN_CRASH'; plugin: PackageVersion; path: string });
 
 // A handled failure: the run stops, exits 2 and reports no findings.
 export class LintFailure extends Error {
@@ -37,16 +42,22 @@ export class LintFailure extends Error {
   readonly help: string;
   readonly path?: string;
   readonly ruleId?: string;
+  readonly plugin?: PackageVersion;
 
   constructor(init: LintFailureInit) {
     if (init.code === 'RULE_CRASH' && !init.ruleId) {
       throw new TypeError('A RULE_CRASH failure requires a ruleId');
+    }
+    // Typed as required, but an untyped caller may still omit them.
+    if (init.code === 'PLUGIN_CRASH' && (!(init.plugin as unknown) || !init.path)) {
+      throw new TypeError('A PLUGIN_CRASH failure requires a plugin and a path');
     }
     super(init.message);
     this.code = init.code;
     this.help = init.help;
     if (init.path !== undefined) this.path = init.path;
     if (init.ruleId !== undefined) this.ruleId = init.ruleId;
+    if (init.plugin !== undefined) this.plugin = { ...init.plugin };
   }
 }
 
@@ -74,6 +85,7 @@ function failureRecord(failure: LintFailure): FailureRecord {
     code: failure.code,
     ...(failure.path === undefined ? {} : { path: failure.path }),
     ...(failure.ruleId === undefined ? {} : { ruleId: failure.ruleId }),
+    ...(failure.plugin === undefined ? {} : { plugin: failure.plugin }),
     message: failure.message,
     help: failure.help,
   };

@@ -12,11 +12,14 @@ flowchart TD
   resolveRuleSet --> resolveRunPaths["resolveRunPaths<br/>config/paths.ts"]
   resolveRunPaths --> loadInputs["loadInputs<br/>inputs/load-inputs.ts"]
   loadInputs --> findFshSources["findFshSources<br/>run/sources.ts"]
-  findFshSources --> findExpressionSites
+  findFshSources --> suppliedHostVariables
 
   subgraph perDocument["once per Questionnaire"]
-    findExpressionSites["findExpressionSites<br/>analysis/expression-sites.ts"] --> runRules["runRules<br/>run/rules.ts"]
+    suppliedHostVariables["suppliedHostVariables<br/>run/host-variables.ts"] --> findExpressionSites["findExpressionSites<br/>analysis/expression-sites.ts"]
+    findExpressionSites --> analyseDocument["analyseDocument<br/>analysis/document-analysis.ts"]
   end
+
+  analyseDocument --> runRules["runRules<br/>run/rules.ts<br/>once per Questionnaire"]
 
   runRules --> applySuppressions["applySuppressions<br/>run/suppressions.ts"]
   applySuppressions --> mapSourceLocations["mapSourceLocations<br/>source/map-findings.ts"]
@@ -33,7 +36,7 @@ The CLI (`cli/run.ts`) calls `lintWithRules()`, which is `lint()` returning the 
 ## 1. Config (`config/`)
 
 - `load.ts`: `loadConfig` uses `--config` when given; otherwise it looks in the working directory only for `sdc-questionnaire-lint.config.json` or `sdc-questionnaire-lint.config.mjs`, and fails if both exist. It returns `null` when no config is used.
-- `validate.ts`: `validateConfig` checks the config's shape. Plugins can be listed only in an `.mjs` config.
+- `validate.ts`: `validateConfig` checks the config's shape. Plugins can be listed only in an `.mjs` config. A `hostVariables` entry must be a name (`hostVariableProblem`, which a plugin's hook results are checked with too), listed once, that FHIRPath, FHIR or SDC does not define.
 - `paths.ts`: `resolveRunPaths` resolves `files`, `source.fsh` and the defaults against the config's directory, or the working directory when there is no config.
 
 ## 2. Rule set (`plugins/`)
@@ -48,6 +51,8 @@ It validates each plugin's shape against the plugin contract (`contract.ts`), re
 
 It then resolves the config's `compat` against the versions each plugin declares in `LintPlugin.compat`: `"latest"`, the default, takes the last, newest, verified version of every component, and an explicit object must name exact verified versions of the required components. Core treats versions as opaque strings. The result becomes the report's `run.compat`, and each rule's `compat`, frozen, the versions of its own namespace. All of this happens before any input is read, so `lint` and `explain` fail the same way.
 
+Last, it keeps, in config order, each listed plugin that has a `hostVariables` hook, with the same frozen compat its rules get (`hostVariableHooks`).
+
 ## 3. Inputs (`inputs/`)
 
 `loadInputs` in `load-inputs.ts` runs these steps and fails with `NO_QUESTIONNAIRES` when none are found:
@@ -58,6 +63,8 @@ It then resolves the config's `compat` against the versions each plugin declares
 - `read.ts`: `readInputs` parses each file into `QuestionnaireDocument`s, standalone or from inside a Bundle. Every resource of a Bundle is kept as a `localResources` entry. Other JSON is skipped.
 
 `findFshSources` in `run/sources.ts` then records which FSH directories exist, for the summary and for source mapping (section 7).
+
+Every document is then analysed, before any rule runs. For each one, `suppliedHostVariables` in `run/host-variables.ts` calls each plugin hook with the document and the plugin's compat, whether or not the plugin's rules are on. A throw, a promise or a result that is not an array of names fails the run with `PLUGIN_CRASH`, naming the plugin and the file; the names FHIRPath, FHIR or SDC define are dropped. The config's `hostVariables`, followed by the hooks' names, are the document's host variables.
 
 ## 4. Expression discovery (`analysis/`)
 
@@ -71,11 +78,11 @@ This is the heart of the linter.
   - An x-fhir-query site with text is directly followed by one fragment site per `{{…}}` fragment: carrier `fragment`, language `text/fhirpath`, with offsets into the query.
   - A catalogued Expression with a `name` has `declares` set: it declares that name for other expressions.
 - `declarations.ts`: `findDeclarations` lists a document's declarations in document order: the declaring sites (`variable`, `itemPopulationContext` and other named expressions), `launchContext` names on the root, and `extractAllocateId` names on the root and items. Each records its name, kind, pointer, declaring item (none for the root), use cases and, when it is an Expression, its site. Contained resources declare nothing; sourceQueries results are host variables, not declarations.
-- `available-variables.ts`: `availableVariables` answers, for each catalogued site, which names its expressions can reference: the declarations on its element, its ancestor items and the root, the innermost of a name winning; the built-in names FHIRPath, FHIR and SDC define (`builtinNames`, plus the `vs-` and `ext-` prefixes); the names the root's `assembleContext` lists, which the Questionnaire that includes the module supplies (`findAssembleContextNames` in `declarations.ts`; they are not declarations); and the configured `hostVariables`. An extraction site sees only extractAllocateId names and named extraction contexts among the declarations; any other site sees every declaration except extractAllocateId names, whatever the declaring expression's use cases. An uncatalogued site gets none, because name analysis cannot run there. At a declaring site, and in the fragments of its query, the declaration's own name resolves to the next binding outward, and to the declaration itself only when nothing else supplies the name (core-rules D25).
+- `available-variables.ts`: `availableVariables` answers, for each catalogued site, which names its expressions can reference: the declarations on its element, its ancestor items and the root, the innermost of a name winning; the built-in names FHIRPath, FHIR and SDC define (`builtinNames`, plus the `vs-` and `ext-` prefixes); the names the root's `assembleContext` lists, which the Questionnaire that includes the module supplies (`findAssembleContextNames` in `declarations.ts`; they are not declarations); and the host variables: the configured `hostVariables` and the names plugin hooks supply. An extraction site sees only extractAllocateId names and named extraction contexts among the declarations; any other site sees every declaration except extractAllocateId names, whatever the declaring expression's use cases. An uncatalogued site gets none, because name analysis cannot run there. At a declaring site, and in the fragments of its query, the declaration's own name resolves to the next binding outward, and to the declaration itself only when nothing else supplies the name (core-rules D25).
 - `dependencies.ts`: `findDependencies` records, for each declaration, the declarations its expression references, resolved at the expression's site or at each fragment of its query, and whether that list is known: the expression parses and no reference follows a `defineVariable` with a computed name. A reference that may be bound locally is left out.
 - `uses.ts`: `findUses` records, for each declaration, whether the expressions of others reference it: `referenced` when a reference resolves to it, `unreferenced` when none does and every expression that could see it was analysed, and otherwise `blocked` or `unknown`. An expression that could see it but was not analysed is CQL or another language, an Expression with only a reference, FHIRPath that does not parse, an uncatalogued expression that names it, a reference after a `defineVariable` with a computed name, a `questionnaire-constraint`, or a `subQuestionnaire`. `blocked` means only expressions with a syntax error were among them. A reference from a declaration's own expression is not a use of it, and a duplicate on the same element shares the uses of the other.
 - `linkids.ts`: `findLinkIds` lists the linkIds of a Questionnaire's items at any depth, not those of contained resources. `findLinkIdReferencesAt` gives the linkId references of each FHIRPath site that parses, with what the site establishes as items of this form: at a catalogued site, `%questionnaire`, `%resource`, `%context` and the expression's input, plus `%qitem` at an item site. Nothing is established at an uncatalogued site or in a modular Questionnaire, one that includes a `subQuestionnaire` or is a module (it has `assembleContext`, or an `assemble-expectation` that allows a child), because the assembled form has other items.
-- `document-analysis.ts`: `analyseDocument` computes core's internal analysis of a document once per run, from the document, its sites and the configured `hostVariables`: its declarations, the variable references of each FHIRPath site that parses, the available variables at each site (`variablesAt`), the dependencies of each declaration, their uses, the Questionnaire's linkIds and the linkId references of each FHIRPath site that parses. `lint.ts` keeps it on each analysed document. It is not exported. A plugin rule receives only its references, `variablesAt` and declarations, through `RuleContext`, frozen: rules run before the suppression assessment reuses the analysis.
+- `document-analysis.ts`: `analyseDocument` computes core's internal analysis of a document once per run, from the document, its sites and its host variables: its declarations, the variable references of each FHIRPath site that parses, the available variables at each site (`variablesAt`), the dependencies of each declaration, their uses, the Questionnaire's linkIds and the linkId references of each FHIRPath site that parses. `lint.ts` keeps it on each analysed document. It is not exported. A plugin rule receives only its references, `variablesAt` and declarations, through `RuleContext`, frozen: rules run before the suppression assessment reuses the analysis.
 
 The analysis helpers:
 
@@ -89,13 +96,13 @@ The analysis helpers:
 
 `rules/describe.ts` names the element a finding is on, by the item's text and linkId, and places a finding about a declaration at its Expression or its extension.
 
-The runner validates every finding. A bad site, pointer or range, a throw, or a returned promise fails the run with `RULE_CRASH`; built-in and plugin rules are treated alike. It then turns each finding into a report `Finding` with its JSON location, an expression excerpt, its related locations and a fingerprint. A finding in a fragment is shown within its whole query. Every finding starts with `sourceLocation` unmapped as `source-unavailable`; `runRules` also records each finding's document and site as a `FindingOrigin` in a side table keyed by the finding object, which the source mapper reads; the stages in between pass findings on as they are. Related locations stay unmapped.
+The runner validates every finding. A bad site, pointer or range, a throw, or a returned promise fails the run with `RULE_CRASH`, naming the rule and the file; built-in and plugin rules are treated alike. It then turns each finding into a report `Finding` with its JSON location, an expression excerpt, its related locations and a fingerprint. A finding in a fragment is shown within its whole query. Every finding starts with `sourceLocation` unmapped as `source-unavailable`; `runRules` also records each finding's document and site as a `FindingOrigin` in a side table keyed by the finding object, which the source mapper reads; the stages in between pass findings on as they are. Related locations stay unmapped.
 
 ### What a plugin can import
 
 A plugin imports from the `sdc-questionnaire-lint` package only; everything under `packages/core/src` that `index.ts` does not export is internal. Besides `lint`, `defineConfig` and the report and config types, `index.ts` exports:
 
-- the plugin contract: `LintPlugin`, `LintRule`, `RuleContext`, `RuleFinding`, `RuleRelatedLocation`, `RuleDocs` and `PluginCompat` (`plugins/contract.ts`);
+- the plugin contract: `LintPlugin`, `LintRule`, `RuleContext`, `RuleFinding`, `RuleRelatedLocation`, `RuleDocs`, `PluginCompat` and `HostVariablesInput` (`plugins/contract.ts`). Besides its rules, a plugin can supply host variables through `LintPlugin.hostVariables({ document, compat })`: synchronous and pure, it only adds names, which resolve with `origin: 'host'` where no declaration or assembleContext name wins (S6);
 - the expression-site model: `QuestionnaireDocument`, `ExpressionSite`, `CataloguedLocation`, `SiteItem` and the other types in `analysis/expression-site.ts`;
 - the language lookups (API stage A, [smart-forms-rules.md](smart-forms-rules.md#public-api-stages-s5)):
   - `definedLanguages`: the six codes FHIR R4 and R5 define, frozen. A language outside them is `sdc/language-not-in-value-set`'s.

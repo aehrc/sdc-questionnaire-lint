@@ -53,6 +53,7 @@ export type { AvailableVariables, Variable } from './analysis/available-variable
 export type { Declaration, DeclarationKind } from './analysis/declarations.js';
 export type { VariableReference } from './analysis/fhirpath.js';
 export type {
+  HostVariablesInput,
   LintPlugin,
   LintRule,
   PluginCompat,

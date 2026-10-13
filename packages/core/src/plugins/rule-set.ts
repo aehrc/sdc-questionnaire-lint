@@ -20,6 +20,13 @@ export interface ResolvedRule {
   compat: Readonly<Record<string, string>>;
 }
 
+// A listed plugin with a hostVariables hook, and the compat its rules get.
+export interface HostVariableHook {
+  plugin: LintPlugin & Required<Pick<LintPlugin, 'hostVariables'>>;
+  // The same frozen object as each of its rules' compat.
+  compat: Readonly<Record<string, string>>;
+}
+
 export interface RuleSet {
   // For run.plugins: sorted by name, sdc included, lint excluded.
   pluginVersions: PackageVersion[];
@@ -27,6 +34,8 @@ export interface RuleSet {
   rules: ResolvedRule[];
   // For run.compat: the versions selected for each plugin that declares compat, by namespace.
   compat: Record<string, Readonly<Record<string, string>>>;
+  // In config order.
+  hostVariableHooks: HostVariableHook[];
 }
 
 // The two halves of the report schema's rule ID pattern.
@@ -135,6 +144,13 @@ function validatePlugin(value: unknown, index: number, display: string): LintPlu
     }
   }
   if (plugin.compat !== undefined) validatePluginCompat(plugin.compat, fail);
+  if (plugin.hostVariables !== undefined && typeof plugin.hostVariables !== 'function') {
+    fail(
+      ['hostVariables'],
+      'hostVariables is not a function',
+      'give the plugin a hostVariables({ document, compat }) that returns the names it supplies',
+    );
+  }
   return value as LintPlugin;
 }
 
@@ -316,6 +332,16 @@ export function resolveRuleSet(loaded: LoadedConfig | null): RuleSet {
       )
       .sort((a, b) => compareStrings(a.id, b.id)),
     compat,
+    hostVariableHooks: plugins.flatMap((plugin) =>
+      plugin.hostVariables === undefined
+        ? []
+        : [
+            {
+              plugin: plugin as HostVariableHook['plugin'],
+              compat: compat[plugin.meta.name] ?? noCompat,
+            },
+          ],
+    ),
   };
 
   const ruleIds: string[] = ruleSet.rules.map(({ id }) => id);

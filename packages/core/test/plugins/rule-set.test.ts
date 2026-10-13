@@ -237,6 +237,11 @@ describe('resolveRuleSet', () => {
       `${at}/meta/docs/fix`,
     ],
     ['a missing check', plugin({ 'no-today': rule({}, { check: undefined }) }), `${at}/check`],
+    [
+      'a hostVariables that is not a function',
+      { ...demoPlugin(), hostVariables: ['PrePopQuery'] },
+      '/plugins/0/hostVariables',
+    ],
   ])('rejects %s, at its pointer', (_, value, pointer) => {
     expect(() => resolveRuleSet(loaded({ plugins: [value as LintPlugin] }))).toThrow(
       expect.objectContaining({
@@ -364,6 +369,22 @@ describe('resolveRuleSet compat', () => {
     expect(Object.isFrozen(stackRule?.compat)).toBe(true);
     expect(rules.find(({ id }) => id === 'demo/no-today')?.compat).toEqual({});
     expect(rules.find(({ id }) => id === 'sdc/parse-error')?.compat).toEqual({});
+  });
+
+  it("keeps the plugins with a hostVariables hook in config order, with their rules' compat", () => {
+    const hostVariables = () => [];
+    const rule = { meta: { description: 'd', defaultSeverity: 'info' }, check: () => undefined };
+    const stack = { ...stackPlugin(), rules: { r: rule }, hostVariables } as LintPlugin;
+    const other = { ...demoPlugin(), meta: { name: 'other', version: '1.0.0' }, hostVariables };
+    const ruleSet = resolveRuleSet(loaded({ plugins: [other, demoPlugin(), stack] }));
+    expect(ruleSet.hostVariableHooks.map(({ plugin }) => plugin)).toEqual([other, stack]);
+    const [otherHook, stackHook] = ruleSet.hostVariableHooks;
+    expect(stackHook?.compat).toBe(ruleSet.rules.find(({ id }) => id === 'stack/r')?.compat);
+    expect(stackHook?.compat).toEqual(latest);
+    expect(otherHook?.compat).toBe(ruleSet.rules.find(({ id }) => id === 'other/no-today')?.compat);
+    expect(otherHook?.compat).toEqual({});
+    expect(Object.isFrozen(otherHook?.compat)).toBe(true);
+    expect(resolveRuleSet(null).hostVariableHooks).toEqual([]);
   });
 
   it('reads only own properties, whatever the plugin and component names', () => {

@@ -90,7 +90,7 @@ function isOffset(value: unknown): value is number {
   return Number.isInteger(value);
 }
 
-function isThenable(value: unknown): value is PromiseLike<unknown> {
+export function isThenable(value: unknown): value is PromiseLike<unknown> {
   return (
     (typeof value === 'object' || typeof value === 'function') &&
     value !== null &&
@@ -98,8 +98,8 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
   );
 }
 
-// The message of a value a rule threw, which may itself throw when read.
-function describeThrown(error: unknown): string {
+// The message of a value a rule or a plugin threw, which may itself throw when read.
+export function describeThrown(error: unknown): string {
   try {
     return describeError(error);
   } catch {
@@ -200,10 +200,22 @@ function parseReportedFinding(
   };
 }
 
-function ruleCrashFailure({ id, namespace }: ResolvedRule, what: string): LintFailure {
+// The Questionnaire a crash happened on, in a message: its file, and for a Bundle entry the
+// resource's pointer, which text output does not otherwise show.
+export function describeDocument({ file, resourcePointer }: QuestionnaireDocument): string {
+  return resourcePointer === '' ? file : `${file} at ${resourcePointer}`;
+}
+
+// path is the file of the Questionnaire the rule crashed on.
+function ruleCrashFailure(
+  { id, namespace }: ResolvedRule,
+  path: string,
+  what: string,
+): LintFailure {
   return new LintFailure({
     code: 'RULE_CRASH',
     ruleId: id,
+    path,
     message: `rule ${id} ${what}`,
     help: `this is a bug in the ${namespace} plugin; report it to its maintainers`,
   });
@@ -236,6 +248,8 @@ export function runRules(
   const findings: QuestionnaireFinding[] = [];
   // By identity, as parseLocation checks a reported site: a copy of a site gets no analysis.
   const known: ReadonlySet<ExpressionSite> = new Set(sites);
+  // The document in a crash message.
+  const on = describeDocument(document);
 
   // A site's location, or else the pointer's, or else the resource's. The linkId is the site's
   // item's, or the item of a declaration at the pointer.
@@ -343,13 +357,21 @@ export function runRules(
         returned.then(undefined, () => undefined);
       }
     } catch (error) {
-      throw ruleCrashFailure(resolved, `crashed: ${describeThrown(error)}`);
+      throw ruleCrashFailure(resolved, document.file, `crashed on ${on}: ${describeThrown(error)}`);
     }
     if (promised) {
-      throw ruleCrashFailure(resolved, 'returned a promise; check must be synchronous');
+      throw ruleCrashFailure(
+        resolved,
+        document.file,
+        `returned a promise on ${on}; check must be synchronous`,
+      );
     }
     if (problem !== undefined) {
-      throw ruleCrashFailure(resolved, `reported an invalid finding: ${problem}`);
+      throw ruleCrashFailure(
+        resolved,
+        document.file,
+        `reported an invalid finding on ${on}: ${problem}`,
+      );
     }
   }
   return findings;

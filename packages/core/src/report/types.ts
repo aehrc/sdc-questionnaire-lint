@@ -161,6 +161,8 @@ export interface FailureRecord {
   help: string;
   path?: string;
   ruleId?: string;
+  // The plugin whose hostVariables crashed; set only for PLUGIN_CRASH.
+  plugin?: PackageVersion;
 }
 
 export interface FailedReport {

@@ -198,6 +198,100 @@ describe('sdc-lint lint', () => {
     expect(result.stderr).not.toMatch(/\n\s+at /);
   });
 
+  describe('with a plugin hostVariables hook', () => {
+    const questionnaire = (id: string) =>
+      JSON.stringify({ resourceType: 'Questionnaire', id, status: 'draft' });
+    const crashHelp = 'this is a bug in the demo plugin; report it to its maintainers';
+    // An .mjs config listing a demo plugin whose hook runs body as hostVariables({ document }),
+    // and whose rule runs check as check(ctx).
+    function hookIg(body: string, check = '') {
+      return tempTree({
+        'sdc-questionnaire-lint.config.mjs': `export default {
+          plugins: [{
+            meta: { name: 'demo', version: '0.0.0' },
+            rules: {
+              crash: {
+                meta: { description: 'Crashes.', defaultSeverity: 'error' },
+                check(ctx) { ${check} },
+              },
+            },
+            hostVariables({ document }) { ${body} },
+          }],
+        };`,
+        'fsh-generated/resources/Questionnaire-A.json': questionnaire('A'),
+        'fsh-generated/resources/Bundle-B.json': JSON.stringify({
+          resourceType: 'Bundle',
+          type: 'collection',
+          entry: [{ resource: JSON.parse(questionnaire('B')) as unknown }],
+        }),
+      });
+    }
+
+    it.each([
+      [
+        'a throw',
+        "throw new Error('boom');",
+        'crashed in hostVariables on fsh-generated/resources/Bundle-B.json at /entry/0/resource: boom',
+      ],
+      [
+        'a promise',
+        "return Promise.reject(new Error('late'));",
+        'returned a promise from hostVariables on fsh-generated/resources/Bundle-B.json at ' +
+          '/entry/0/resource; hostVariables must be synchronous',
+      ],
+      [
+        'a result that is not an array',
+        "return 'PrePopQuery';",
+        'returned invalid host variables on fsh-generated/resources/Bundle-B.json at ' +
+          '/entry/0/resource: expected an array of names',
+      ],
+      [
+        'an empty name',
+        "return ['a', ''];",
+        'returned invalid host variables on fsh-generated/resources/Bundle-B.json at ' +
+          '/entry/0/resource: entry 1: expected a non-empty string, got a string',
+      ],
+      [
+        'a name with %',
+        "return ['%a'];",
+        'returned invalid host variables on fsh-generated/resources/Bundle-B.json at ' +
+          '/entry/0/resource: entry 0: %a is written with %',
+      ],
+      [
+        'a sparse array',
+        'return [, "a"];',
+        'returned invalid host variables on fsh-generated/resources/Bundle-B.json at ' +
+          '/entry/0/resource: entry 0 is missing',
+      ],
+    ])('exits 2 with PLUGIN_CRASH for %s', async (_, body, what) => {
+      const result = runBinary(['lint', '--format', 'json'], { cwd: await hookIg(body) });
+      expect(result.code).toBe(2);
+      expect(failed(result.stdout).failure).toEqual({
+        code: 'PLUGIN_CRASH',
+        path: 'fsh-generated/resources/Bundle-B.json',
+        plugin: { name: 'demo', version: '0.0.0' },
+        message: `plugin demo@0.0.0 ${what}`,
+        help: crashHelp,
+      });
+      expect(result.stderr).toBe(`error: plugin demo@0.0.0 ${what}\nhelp: ${crashHelp}\n`);
+    });
+
+    it("fails on a later document's hook before an earlier document's rule runs", async () => {
+      const cwd = await hookIg(
+        "if (document.resource.id === 'A') throw new Error('boom'); return [];",
+        "throw new Error('rule boom');",
+      );
+      const result = runBinary(['lint', '--format', 'json'], { cwd });
+      expect(result.code).toBe(2);
+      expect(failed(result.stdout).failure).toMatchObject({
+        code: 'PLUGIN_CRASH',
+        path: 'fsh-generated/resources/Questionnaire-A.json',
+        message:
+          'plugin demo@0.0.0 crashed in hostVariables on fsh-generated/resources/Questionnaire-A.json: boom',
+      });
+    });
+  });
+
   describe('with a plugin', () => {
     // An .mjs config listing an inline demo plugin whose one rule runs body as check(ctx).
     function pluginIg(body: string, severity = 'warning', preamble = '') {
@@ -232,6 +326,7 @@ describe('sdc-lint lint', () => {
         }),
       });
     }
+    const questionnaireA = 'fsh-generated/resources/Questionnaire-A.json';
     const reportToday = `
       for (const site of ctx.sites) {
         if (site.text?.includes('today()')) ctx.report({ site, message: 'This expression uses today().' });
@@ -260,12 +355,13 @@ describe('sdc-lint lint', () => {
       expect(result.code).toBe(2);
       expect(failed(result.stdout).failure).toEqual({
         code: 'RULE_CRASH',
+        path: 'fsh-generated/resources/Questionnaire-A.json',
         ruleId: 'demo/no-today',
-        message: 'rule demo/no-today crashed: boom',
+        message: `rule demo/no-today crashed on ${questionnaireA}: boom`,
         help: 'this is a bug in the demo plugin; report it to its maintainers',
       });
       expect(result.stderr).toBe(
-        'error: rule demo/no-today crashed: boom\n' +
+        `error: rule demo/no-today crashed on ${questionnaireA}: boom\n` +
           'help: this is a bug in the demo plugin; report it to its maintainers\n',
       );
     });
@@ -339,7 +435,7 @@ describe('sdc-lint lint', () => {
         ],
       });
       expect(result.stderr).toBe(
-        'error: rule demo/no-today crashed: boom\n' +
+        `error: rule demo/no-today crashed on ${questionnaireA}: boom\n` +
           'help: this is a bug in the demo plugin; report it to its maintainers\n',
       );
     });
@@ -350,7 +446,8 @@ describe('sdc-lint lint', () => {
       const result = runBinary(['lint', '--format', 'github'], { cwd, env });
       expect(result.code).toBe(2);
       expect(result.stdout).toBe(
-        '::error title=sdc-lint failed%3A RULE_CRASH::rule demo/no-today crashed: boom' +
+        `::error file=${questionnaireA},title=sdc-lint failed%3A RULE_CRASH::` +
+          `rule demo/no-today crashed on ${questionnaireA}: boom` +
           '%0Arule: demo/no-today' +
           '%0Ahelp: this is a bug in the demo plugin; report it to its maintainers\n',
       );

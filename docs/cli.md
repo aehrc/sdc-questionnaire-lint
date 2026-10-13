@@ -40,7 +40,7 @@ Without a config, the built-in `sdc` rules run at their default severities and t
 | Implicit input directory, FSH directories and SUSHI index | Directory containing the selected config, or the working directory when no config is used |
 | Paths rendered in reports | Current working directory |
 
-Absolute input and config paths are accepted. Report paths use `/` separators. Config `files` is a non-empty array of file, directory or glob strings; an empty array is a config failure. `source.fsh` is an array of directories, defaulting to `["input/fsh"]`; `[]` explicitly omits FSH source lookup. `hostVariables` is a non-empty array of unique, non-empty names written without `%`: the names the application running the form supplies, available to every expression (core-rules.md D1). An empty array, a repeated name or a name that starts with `%` is a config failure. The SUSHI index defaults to `fsh-generated/data/fsh-index.json` beneath the same base as the implicit inputs.
+Absolute input and config paths are accepted. Report paths use `/` separators. Config `files` is a non-empty array of file, directory or glob strings; an empty array is a config failure. `source.fsh` is an array of directories, defaulting to `["input/fsh"]`; `[]` explicitly omits FSH source lookup. `hostVariables` is a non-empty array of unique, non-empty names written without `%`: the names the application running the form supplies, available to every expression (core-rules.md D1). An empty array, a repeated name, a name that starts with `%` or a name FHIRPath, FHIR or SDC defines (such as `questionnaire`, `qitem`, `resource`, or any name that starts with `vs-` or `ext-`) is a config failure. A host that supplies `%questionnaire` or `%qitem` itself suppresses the findings about them, with a reason that names the host. A plugin the config lists can supply names too, such as the sourceQueries results the Smart Forms plugin supplies; they are added after the config's, whether or not the plugin's rules are on. The SUSHI index defaults to `fsh-generated/data/fsh-index.json` beneath the same base as the implicit inputs.
 
 `compat` selects the runtime versions a compatibility plugin checks forms against, by plugin namespace: `"latest"`, or exact versions by component. For the Smart Forms plugin, `"latest"` (the default when `compat` has no `smart-forms` entry) selects the newest versions the installed plugin has verified, not the newest on npm. An explicit object names `renderer` and `populate`, and names `template-extract` only when template extraction is checked:
 
@@ -99,11 +99,11 @@ Completed runs write findings and the summary to stdout before exiting. Human-re
 | :- | :- |
 | 0 | Analysis completed with no unsuppressed errors; warnings and info may remain |
 | 1 | Analysis completed with one or more unsuppressed errors |
-| 2 | The run did not complete: bad config, unreadable input, no Questionnaires found, a rule crash, or wrong usage |
+| 2 | The run did not complete: bad config, unreadable input, no Questionnaires found, a rule or plugin crash, or wrong usage |
 
 In text mode, stdout stays empty on failure. Once a valid `lint --format json`, `github` or `sarif` selection is recognized, handled failures also write that format's failure output to stdout, including subsequent argument-validation failures: the failed report for `json`, one error annotation for `github`, and a SARIF log with no results for `sarif`. Unknown commands or an invalid/ambiguous format selection use stderr only. Process termination and failures before the CLI can start cannot guarantee a failure document.
 
-Buffer the report until analysis completes; a handled failure discards partial findings and does not emit a success-shaped summary. Config and plugin logging must not contaminate report stdout. A rule crash identifies its rule ID in both the failure record and stderr.
+Buffer the report until analysis completes; a handled failure discards partial findings and does not emit a success-shaped summary. Config and plugin logging must not contaminate report stdout. A rule crash identifies its rule ID, and a plugin crash its plugin, in both the failure record and stderr; both name the input file, and the Bundle entry when the Questionnaire is in one.
 
 Findings are sorted identically in every format: by displayed file, then known line and column (unknown positions last), then rule ID, then resource pointer and site/config pointer. Ties use the fingerprint. String comparisons are locale-independent. Counts are computed before text visibility filtering.
 
@@ -345,6 +345,8 @@ Assess matches against findings before suppression. A suppression is applied whe
 - A suppression whose `extensionUrl` is launchContext or extractAllocateId targets a declared name on an element rather than an expression site: the item its `linkId` or its item `pointer` selects, or the root without either. It hides the rule's findings at every declaration of that name on that element. It is stale when the name is no longer declared there, or when its rule completed its check there with no finding; a rule that does not check declarations leaves it not assessed. Selectors that match declarations of several names, or on several elements, are a config failure.
 
 For example, `lint A.json` does not report a suppression for `B.json` as stale. A full run can report that suppression when B has been deleted, provided the run otherwise completes. Input or execution failures still produce a failed report, including when no Questionnaires remain.
+
+A suppression of a plugin rule's finding follows the same rules where they need no completion evidence: it is applied when it hides a finding, and stale when its file, resource, expression site or declaration is gone. When its target exists and the plugin rule reported nothing there, it is not assessed, because only built-in rules record whether they completed a check. A plugin rule never makes an expression unchecked.
 
 The summary counts applied, stale and not-assessed suppression entries separately. These states do not turn a rule off and do not create findings for unassessed targets. Missing reasons, unknown rule IDs and selectors that ambiguously match several sites remain config failures.
 

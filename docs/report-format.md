@@ -92,18 +92,19 @@ Prefer FSH source edits when FSH is the maintained source. A JSON-string target 
 
 ## Failures
 
-`failure` requires `code`, `message` and `help`. `path` identifies a relevant file, directory or unmatched pattern when known. `ruleId` is required for a rule crash. Paths and patterns are rendered relative to the working directory after resolving their input/config base.
+`failure` requires `code`, `message` and `help`. `path` identifies a relevant file, directory or unmatched pattern when known; for a rule or plugin crash, the input file of the Questionnaire it crashed on. `ruleId` is required for a rule crash, and `plugin` and `path` for a plugin crash; `plugin` has the plugin's `name` and `version`, as in `run.plugins`. Paths and patterns are rendered relative to the working directory after resolving their input/config base.
 
 | Code | Meaning |
 | :- | :- |
 | `USAGE_ERROR` | Invalid arguments after a valid JSON-format selection |
-| `CONFIG_INVALID` | Missing, unreadable, ambiguous or invalid config, including a `compat` entry for an unlisted plugin or a plugin without compatibility versions, an unknown or missing required component, and an unverified version; plugin loading failure. Invalid rule options are reserved: the config cannot pass rule options yet |
+| `CONFIG_INVALID` | Missing, unreadable, ambiguous or invalid config, including a `hostVariables` entry that FHIRPath, FHIR or SDC defines, a `compat` entry for an unlisted plugin or a plugin without compatibility versions, an unknown or missing required component, and an unverified version; plugin loading failure. Invalid rule options are reserved: the config cannot pass rule options yet |
 | `INPUT_NOT_FOUND` | Selected literal input does not exist |
 | `INPUT_PATTERN_UNMATCHED` | Selected glob or directory yields no files after exclusions |
 | `INPUT_UNREADABLE` | Selected input cannot be read, or required input existence/traversal checks cannot complete |
 | `INPUT_INVALID_JSON` | Selected input is not valid JSON |
 | `NO_QUESTIONNAIRES` | Parsed selection contains no Questionnaires |
-| `RULE_CRASH` | Unexpected rule exception; `ruleId` names that rule |
+| `RULE_CRASH` | A rule threw, returned a promise or reported an invalid finding; `ruleId` names that rule, and `path` the file |
+| `PLUGIN_CRASH` | A plugin's `hostVariables` threw, returned a promise or returned something other than an array of names; `plugin` names that plugin, and `path` the file |
 | `INTERNAL_ERROR` | Other unexpected execution failure |
 
 The message explains this occurrence; the help gives a concrete next step. Codes are stable and never reused for another cause. Stack traces are not part of the machine contract. Consumers branch on `status` and `code`, not message text.

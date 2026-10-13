@@ -755,6 +755,7 @@
             "INPUT_INVALID_JSON",
             "NO_QUESTIONNAIRES",
             "RULE_CRASH",
+            "PLUGIN_CRASH",
             "INTERNAL_ERROR"
           ]
         },
@@ -769,6 +770,9 @@
         },
         "ruleId": {
           "$ref": "#/$defs/ruleId"
+        },
+        "plugin": {
+          "$ref": "#/$defs/packageVersion"
         }
       },
       "required": [
@@ -776,18 +780,37 @@
         "message",
         "help"
       ],
-      "if": {
-        "properties": {
-          "code": {
-            "const": "RULE_CRASH"
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "RULE_CRASH"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "ruleId"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "PLUGIN_CRASH"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "plugin",
+              "path"
+            ]
           }
         }
-      },
-      "then": {
-        "required": [
-          "ruleId"
-        ]
-      }
+      ]
     },
     "completedReport": {
       "type": "object",

@@ -99,6 +99,35 @@ describe('validateConfig', () => {
     );
   });
 
+  describe('a name FHIRPath, FHIR or SDC defines in hostVariables', () => {
+    const suppress = (name: string) =>
+      `remove ${name}; if the application running the form supplies %${name}, suppress the ` +
+      'findings about it with a reason that names the application';
+    const always = (name: string) => `remove ${name}: %${name} is always available`;
+
+    it.each([
+      ['questionnaire', 'SDC', suppress('questionnaire')],
+      ['qitem', 'SDC', suppress('qitem')],
+      ['resource', 'FHIR', always('resource')],
+      ['context', 'FHIRPath', always('context')],
+      ['vs-x', 'FHIR', always('vs-x')],
+      ['ext-x', 'FHIR', always('ext-x')],
+    ])('rejects %s at its index', (name, definer, help) => {
+      expect(() => validateConfig({ hostVariables: ['PrePopQuery', name] }, json)).toThrow(
+        expect.objectContaining({
+          code: 'CONFIG_INVALID',
+          message: `config ${display} is invalid at /hostVariables/1: ${name} is defined by ${definer}, so it is not a host variable`,
+          help,
+        }),
+      );
+    });
+
+    it('accepts a name that only contains one', () => {
+      const config = { hostVariables: ['myqitem', 'a vs-x', 'resources'] };
+      expect(validateConfig(config, json)).toEqual(config);
+    });
+  });
+
   it('accepts latest and exact versions in compat', () => {
     const compat = { a: 'latest', b: { renderer: '1.4.0', populate: '4.7.1' } } as const;
     expect(validateConfig({ compat }, json)).toEqual({ compat });
