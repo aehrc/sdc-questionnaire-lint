@@ -1,19 +1,32 @@
+/// <reference types="vite/client" />
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { embeddingFacts } from '../src/facts/embeddings.js';
 import { type Evidence, sourceBase } from '../src/facts/evidence.js';
-import { languageFacts } from '../src/facts/languages.js';
-import { unsuppliedNames } from '../src/facts/names.js';
-import { prerequisites } from '../src/facts/prerequisites.js';
 import { type Component, components, type FactTable } from '../src/facts/versions.js';
 import smartForms from '../src/index.js';
 
-const tables: FactTable<readonly { evidence: readonly Evidence[] }[]>[] = [
-  languageFacts,
-  prerequisites,
-  unsuppliedNames,
-  embeddingFacts,
-];
+type Table = FactTable<readonly { evidence: readonly Evidence[] }[]>;
+
+// Whether an export is a table of facts: facts by version for every component.
+function isTable(value: unknown): value is Table {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    components.every((component) => {
+      const versions: unknown = (value as Record<string, unknown>)[component];
+      return (
+        typeof versions === 'object' &&
+        versions !== null &&
+        Object.values(versions).every(Array.isArray)
+      );
+    })
+  );
+}
+
+// Every table every fact module exports, so that a new table cannot escape these checks.
+const tables: Table[] = Object.values(
+  import.meta.glob<Record<string, unknown>>('../src/facts/*.ts', { eager: true }),
+).flatMap((module) => Object.values(module).filter(isTable));
 
 function* factsOf(component: Component): Generator<{ evidence: readonly Evidence[] }> {
   for (const table of tables) {
@@ -28,6 +41,10 @@ function* allEvidence(): Generator<Evidence> {
 }
 
 describe('runtime facts', () => {
+  it('are collected from every table', () => {
+    expect(tables).toHaveLength(5);
+  });
+
   it.each(components)('cover every verified %s version', (component) => {
     const verified = smartForms.compat?.verified[component] ?? [];
     expect(verified.length).toBeGreaterThan(0);

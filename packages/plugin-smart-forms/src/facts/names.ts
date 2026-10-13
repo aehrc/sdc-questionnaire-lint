@@ -10,7 +10,7 @@ import { type Component, type FactTable, factsAt } from './versions.js';
 
 // A name a component does not supply to the expressions it evaluates, although SDC defines it.
 // fhirpath.js fails on a reference to it when the reference is evaluated, and the component
-// catches the failure. P4 adds the sourceQueries names population supplies to this file.
+// catches the failure. The sourceQueries names population supplies are in source-queries.ts.
 export interface NameFact {
   readonly name: string;
   readonly evidence: readonly Evidence[];

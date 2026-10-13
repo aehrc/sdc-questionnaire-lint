@@ -34,3 +34,4 @@ export const populateLanguages = 'test/reproduction/populate-languages.test.ts';
 export const populatePrerequisites = 'test/reproduction/populate-prerequisites.test.ts';
 export const populateNames = 'test/reproduction/populate-names.test.ts';
 export const populateEmbeddings = 'test/reproduction/populate-embeddings.test.ts';
+export const populateSourceQueries = 'test/reproduction/populate-source-queries.test.ts';
