@@ -1,0 +1,27 @@
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-two-other-declarations.fsh:14:54
+  message: '%x refers to the initialExpression on item "A" (a), which Smart Forms does not make available to other expressions; Smart Forms keeps one value for each name, so the reference can get the value of another %x instead.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%x'
+    range:
+      startOffset: 0
+      endOffset: 2
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is declared here'
+    - at: /item/1/extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is also declared here'
+    - at: /item/2/extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is also declared here'
+- ruleId: smart-forms/variable-name-collision
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-two-other-declarations.fsh:26:51
+  message: "%x is also declared on item b; Smart Forms keeps one value for each name, so expressions on either element can get the other's value."
+  help: rename one of the declarations so the name is declared on one element only
+  expression:
+    text: "'c'"
+  related:
+    - at: /item/1/extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is also declared here'

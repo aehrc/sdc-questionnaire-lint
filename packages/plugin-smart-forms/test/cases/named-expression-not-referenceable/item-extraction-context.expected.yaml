@@ -1,0 +1,13 @@
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-item-extraction-context.fsh:16:59
+  message: '%observation refers to the itemExtractionContext on item "Observation" (g), which Smart Forms does not make available to other expressions, so the reference never gets its value.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%observation'
+    range:
+      startOffset: 0
+      endOffset: 12
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%observation is declared here'

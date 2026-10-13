@@ -1,0 +1,20 @@
+# A variable %x on a sibling item stores the name, so the reference to the named
+# calculatedExpression can get its value instead; the variable is a further related location.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    text: A
+    extensions:
+      - url: calculatedExpression
+        name: x
+        expression: "'a'"
+      - url: enableWhenExpression
+        expression: "%x = 'a'"
+  - linkId: b
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'b'"

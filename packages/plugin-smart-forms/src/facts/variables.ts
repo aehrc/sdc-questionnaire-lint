@@ -1,6 +1,7 @@
 import {
   type Evidence,
   inAppPopulateSource,
+  populatePrerequisites,
   populateSource,
   populateVariableStorage,
   rendererSource,
@@ -27,12 +28,29 @@ import { type Component, type FactTable, factsAt } from './versions.js';
 //   its item's linkId, in document order, and keeps the last value, so a variable on or below a
 //   repeating group keeps one repetition's value.
 // - item-variable-once: an item variable is evaluated once, with an empty input.
+// - named-expression-not-stored: a named Expression other than a variable or an
+//   itemPopulationContext, such as a named calculatedExpression, stores no name, so a reference to
+//   it fails unless another declaration or a sourceQueries result supplies the name.
+// - item-fhirpath-variable-needs-root-extensions: item text/fhirpath variables are evaluated only
+//   when the root has extensions.
+// - additional-context-reaches-expressions: the names a host passes as additionalContext, which the
+//   app fills with population's context, reach every expression the renderer evaluates except an
+//   answerExpression (S14).
+// - answer-expression-head-only: an answerExpression is evaluated with one name, the text between
+//   its first % and its first ., and only when that names a launch context the SMART launch
+//   supplies or an application/x-fhir-query variable whose ValueSet expanded; with no other name.
+//   Of two such variables with one ValueSet URL, only the later one, root variables first and an
+//   item's after its child items', gets the expansion.
 export type VariableBehaviour =
   | 'one-value-per-name'
   | 'population-context-stored-by-name'
   | 'launch-context-named-by-position'
   | 'item-variable-per-response-item'
-  | 'item-variable-once';
+  | 'item-variable-once'
+  | 'named-expression-not-stored'
+  | 'item-fhirpath-variable-needs-root-extensions'
+  | 'additional-context-reaches-expressions'
+  | 'answer-expression-head-only';
 
 export interface VariableFact {
   readonly behaviour: VariableBehaviour;
@@ -58,6 +76,26 @@ const renderer140: readonly VariableFact[] = Object.freeze([
     source(fhirpathUtils, 217, 236),
     source(fhirpathUtils, 268, 289),
   ),
+  // Only variables are collected; no other named Expression and no itemPopulationContext.
+  fact(
+    'named-expression-not-stored',
+    source(`${rendererSource}utils/questionnaireStoreUtils/extractVariables.ts`, 48, 77),
+    source(`${rendererSource}utils/questionnaireStoreUtils/extractOtherExtensions.ts`, 318, 329),
+  ),
+  fact(
+    'additional-context-reaches-expressions',
+    source(`${rendererSource}stores/questionnaireStore.ts`, 244, 267),
+  ),
+  fact(
+    'answer-expression-head-only',
+    source(`${rendererSource}hooks/useValueSetCodings.ts`, 66, 112),
+    source(`${rendererSource}utils/questionnaireStoreUtils/extractLaunchContext.ts`, 5, 20),
+    source(`${rendererSource}utils/questionnaireStoreUtils/extractVariables.ts`, 22, 38),
+    source(`${rendererSource}utils/questionnaireStoreUtils/extractOtherExtensions.ts`, 190, 201),
+    source(`${rendererSource}utils/valueSet.ts`, 39, 40),
+    source(`${rendererSource}utils/valueSet.ts`, 184, 213),
+    source(`${rendererSource}utils/questionnaireStoreUtils/resolveValueSets.ts`, 37, 66),
+  ),
 ]);
 
 const context = `${populateSource}createFhirPathContext.ts`;
@@ -65,6 +103,11 @@ const suite = 'populate 4.7.1 variable storage > ';
 const test = (name: string): Evidence => reproduced(populateVariableStorage, `${suite}${name}`);
 const launchTest = (name: string): Evidence =>
   reproduced(populateVariableStorage, `populate 4.7.1 launchContext names > ${name}`);
+const unavailableTest = (name: string): Evidence =>
+  reproduced(
+    populateVariableStorage,
+    `populate 4.7.1 names a form does not make available > ${name}`,
+  );
 
 const populate471: readonly VariableFact[] = Object.freeze([
   fact(
@@ -82,6 +125,15 @@ const populate471: readonly VariableFact[] = Object.freeze([
     ),
     test('replaces an application/x-fhir-query variable with a FHIRPath variable of the same name'),
     test('replaces a contained sourceQueries Bundle with a FHIRPath variable of the same name'),
+    test(
+      'keeps one value for a name declared on two sibling items, the later linkId in document order winning when neither is integer-like',
+    ),
+    unavailableTest(
+      'gives a reference to a named expression the value of a contained sourceQueries Bundle of its name',
+    ),
+    unavailableTest(
+      'binds a variable beside a named calculatedExpression of the same name on one item',
+    ),
   ),
   fact(
     'population-context-stored-by-name',
@@ -90,6 +142,13 @@ const populate471: readonly VariableFact[] = Object.freeze([
     test(
       'builds both groups of two itemPopulationContexts with one name from the values of the last one',
     ),
+    unavailableTest('stores no name for an itemPopulationContext on the root'),
+    unavailableTest('stores no name for an itemPopulationContext on an item with no child items'),
+    unavailableTest(
+      'stores no name for an itemPopulationContext on a group with an empty item array',
+    ),
+    unavailableTest('stores no name for an itemPopulationContext after another on its item'),
+    unavailableTest('stores no name for an itemPopulationContext without expression text'),
   ),
   fact(
     'launch-context-named-by-position',
@@ -108,6 +167,21 @@ const populate471: readonly VariableFact[] = Object.freeze([
     'item-variable-once',
     source(context, 141, 153),
     test('evaluates an item variable on a repeating group once, against an empty input'),
+  ),
+  fact(
+    'named-expression-not-stored',
+    source(context, 68, 153),
+    unavailableTest('stores no name for a named initialExpression'),
+    unavailableTest('stores no name for a named calculatedExpression'),
+    unavailableTest('stores no name for a named itemExtractionContext'),
+  ),
+  fact(
+    'item-fhirpath-variable-needs-root-extensions',
+    source(context, 126, 128),
+    reproduced(
+      populatePrerequisites,
+      'populate 4.7.1 environment > skips item FHIRPath variables when the root has no extensions',
+    ),
   ),
 ]);
 

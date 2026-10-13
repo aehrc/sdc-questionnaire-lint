@@ -1,0 +1,14 @@
+# A configured host variable %x does not change the finding or its message: the reference resolves
+# to the named expression, and the rule does not claim which value it gets (decision G).
+hostVariables:
+  - x
+items:
+  - linkId: a
+    type: string
+    text: A
+    extensions:
+      - url: calculatedExpression
+        name: x
+        expression: "'a'"
+      - url: enableWhenExpression
+        expression: "%x = 'a'"

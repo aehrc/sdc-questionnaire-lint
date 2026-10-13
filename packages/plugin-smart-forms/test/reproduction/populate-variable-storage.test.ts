@@ -4,13 +4,22 @@
 // the app passes on as additionalContext.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { expression, ext, questionnaire, sdc, VARIABLE } from '../support/sites.js';
-import { answersOf, patient, populate, responseItems, withPatientLaunch } from './populate.js';
+import {
+  answersOf,
+  patient,
+  populate,
+  responseItems,
+  undefinedVariable,
+  withPatientLaunch,
+} from './populate.js';
 
 type Json = Record<string, unknown>;
 
 const INITIAL_EXPRESSION = `${sdc}initialExpression`;
 const ITEM_POPULATION_CONTEXT = `${sdc}itemPopulationContext`;
 const LAUNCH_CONTEXT = `${sdc}launchContext`;
+const CALCULATED_EXPRESSION = `${sdc}calculatedExpression`;
+const ITEM_EXTRACTION_CONTEXT = `${sdc}itemExtractionContext`;
 
 const fhirPathVariable = (name: string, text: string): Json =>
   ext(VARIABLE, expression('text/fhirpath', text, name));
@@ -69,6 +78,20 @@ describe('populate 4.7.1 variable storage', () => {
       ),
     );
     expect(context?.x).toEqual(['from a']);
+  });
+
+  it('keeps one value for a name declared on two sibling items, the later linkId in document order winning when neither is integer-like', async () => {
+    const { context } = await populate(
+      withPatientLaunch(
+        questionnaire({
+          item: [
+            group('b', [fhirPathVariable('x', "'from b'")], [{ linkId: 'b1', type: 'string' }]),
+            group('c', [fhirPathVariable('x', "'from c'")], [{ linkId: 'c1', type: 'string' }]),
+          ],
+        }),
+      ),
+    );
+    expect(context?.x).toEqual(['from c']);
   });
 
   it('gives the expressions of an inner item the value of an outer item that declares the same name', async () => {
@@ -250,5 +273,115 @@ describe('populate 4.7.1 launchContext names', () => {
       }),
     );
     expect(context).not.toHaveProperty('patient');
+  });
+});
+
+// What population does not store: a reference to the name fails with "undefined environment
+// variable", or gets the value of another declaration of the name.
+describe('populate 4.7.1 names a form does not make available', () => {
+  // An initialExpression that reads %x, beside the declarations under test.
+  async function populateWith(fields: Json, root: Json[] = []) {
+    return populate(
+      withPatientLaunch(
+        questionnaire({
+          ...fields,
+          extension: [...root, ...((fields.extension as Json[] | undefined) ?? [])],
+          item: [...((fields.item as Json[] | undefined) ?? []), question('q', '%x')],
+        }),
+      ),
+    );
+  }
+
+  // A form whose only declaration of %x is the given one: the reference fails and x is absent.
+  async function expectUnavailable(fields: Json) {
+    const { issues, context, response } = await populateWith(fields);
+    expect(issues).toEqual([undefinedVariable('x')]);
+    expect(context).not.toHaveProperty('x');
+    expect(answersOf(response, 'q')).toEqual([]);
+  }
+
+  const onItem = (extension: Json): Json => ({
+    item: [{ linkId: 'a', type: 'string', extension: [extension] }],
+  });
+  const named = (url: string): Json => ext(url, expression('text/fhirpath', "'named'", 'x'));
+  const child = [{ linkId: 'a', type: 'string' }];
+
+  it('stores no name for a named initialExpression', async () => {
+    await expectUnavailable(onItem(named(INITIAL_EXPRESSION)));
+  });
+
+  it('stores no name for a named calculatedExpression', async () => {
+    await expectUnavailable(onItem(named(CALCULATED_EXPRESSION)));
+  });
+
+  it('stores no name for a named itemExtractionContext', async () => {
+    await expectUnavailable(onItem(named(ITEM_EXTRACTION_CONTEXT)));
+  });
+
+  it('stores no name for an itemPopulationContext on the root', async () => {
+    await expectUnavailable({ extension: [populationContext('x', "'context'")] });
+  });
+
+  it('stores no name for an itemPopulationContext on an item with no child items', async () => {
+    await expectUnavailable(onItem(populationContext('x', "'context'")));
+  });
+
+  it('stores no name for an itemPopulationContext on a group with an empty item array', async () => {
+    await expectUnavailable({ item: [group('g', [populationContext('x', "'context'")], [])] });
+  });
+
+  it('stores no name for an itemPopulationContext after another on its item', async () => {
+    await expectUnavailable({
+      item: [
+        group(
+          'g',
+          [populationContext('first', "'first'"), populationContext('x', "'context'")],
+          child,
+        ),
+      ],
+    });
+  });
+
+  it('stores no name for an itemPopulationContext without expression text', async () => {
+    await expectUnavailable({
+      item: [
+        group('g', [ext(ITEM_POPULATION_CONTEXT, { language: 'text/fhirpath', name: 'x' })], child),
+      ],
+    });
+  });
+
+  it('gives a reference to a named expression the value of a contained sourceQueries Bundle of its name', async () => {
+    const { context, response } = await populateWith(
+      {
+        contained: [{ resourceType: 'Bundle', id: 'x', type: 'batch', entry: [] }],
+        item: [
+          {
+            linkId: 'a',
+            type: 'string',
+            extension: [ext(INITIAL_EXPRESSION, expression('text/fhirpath', "'named'", 'x'))],
+          },
+        ],
+      },
+      [{ url: `${sdc}sourceQueries`, valueReference: { reference: '#x' } }],
+    );
+    expect(context?.x).toMatchObject({ resourceType: 'Bundle', id: 'x' });
+    expect(responseItems(response, 'q')).toHaveLength(1);
+    expect(answersOf(response, 'q')).not.toEqual([]);
+  });
+
+  it('binds a variable beside a named calculatedExpression of the same name on one item', async () => {
+    const { context } = await populateWith({
+      item: [
+        {
+          linkId: 'a',
+          type: 'string',
+          extension: [
+            ext(CALCULATED_EXPRESSION, expression('text/fhirpath', "'named'", 'x')),
+            fhirPathVariable('x', "'variable'"),
+          ],
+        },
+      ],
+    });
+    expect(context?.x).toEqual(['variable']);
   });
 });

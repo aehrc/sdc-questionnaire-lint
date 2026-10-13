@@ -1,0 +1,15 @@
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-another-declaration.fsh:14:54
+  message: '%x refers to the calculatedExpression on item "A" (a), which Smart Forms does not make available to other expressions; Smart Forms keeps one value for each name, so the reference can get the value of another %x instead.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: "%x = 'a'"
+    range:
+      startOffset: 0
+      endOffset: 2
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is declared here'
+    - at: /item/1/extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is also declared here'

@@ -1,0 +1,51 @@
+# Of two application/x-fhir-query variables with one ValueSet URL, the renderer gives the expansion
+# only to the later one: root variables come first, and an item's after its child items'. So
+# %first and %inner are reported as heads, and %first after the head %later.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: first
+    language: application/x-fhir-query
+    expression: 'https://tx.example.org/fhir/ValueSet/conditions/$expand'
+  - url: variable
+    name: later
+    language: application/x-fhir-query
+    expression: 'https://tx.example.org/fhir/ValueSet/conditions/$expand'
+items:
+  - linkId: first-head
+    type: coding
+    extensions:
+      - url: answerExpression
+        expression: '%first.expansion.contains'
+  - linkId: later-head
+    type: coding
+    extensions:
+      - url: answerExpression
+        expression: '%later.expansion.contains.where(code != %first.id)'
+  - linkId: outer
+    type: group
+    extensions:
+      - url: variable
+        name: outer
+        language: application/x-fhir-query
+        expression: 'https://tx.example.org/fhir/ValueSet/drugs/$expand'
+    items:
+      - linkId: inner
+        type: group
+        extensions:
+          - url: variable
+            name: inner
+            language: application/x-fhir-query
+            expression: 'https://tx.example.org/fhir/ValueSet/drugs/$expand'
+        items:
+          - linkId: inner-head
+            type: coding
+            extensions:
+              - url: answerExpression
+                expression: '%inner.expansion.contains'
+      - linkId: outer-head
+        type: coding
+        extensions:
+          - url: answerExpression
+            expression: '%outer.expansion.contains'

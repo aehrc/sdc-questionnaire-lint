@@ -1,0 +1,51 @@
+# An itemPopulationContext population does not read stores no name, for each reason: on the root,
+# on an item with no child items, after another itemPopulationContext on its item, and without
+# expression text. A group with item: [] is in test/named-expression-not-referenceable.test.ts.
+extensions:
+  - url: itemPopulationContext
+    name: rootContext
+    expression: '%resource'
+items:
+  - linkId: root-reader
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '%rootContext.id'
+  - linkId: leaf
+    type: string
+    text: Leaf
+    extensions:
+      - url: itemPopulationContext
+        name: leafContext
+        expression: '%resource'
+      - url: calculatedExpression
+        expression: '%leafContext.id'
+  - linkId: second
+    type: group
+    text: Second
+    extensions:
+      - url: itemPopulationContext
+        name: firstContext
+        expression: '%resource'
+      - url: itemPopulationContext
+        name: secondContext
+        expression: '%resource'
+    items:
+      - linkId: second-reader
+        type: string
+        extensions:
+          - url: initialExpression
+            expression: '%secondContext.id'
+  - linkId: no-text
+    type: group
+    text: No text
+    extensions:
+      - url: itemPopulationContext
+        name: referenceContext
+        reference: 'Library/contexts'
+    items:
+      - linkId: no-text-reader
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%referenceContext.id'
