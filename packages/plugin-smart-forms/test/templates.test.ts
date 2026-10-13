@@ -2,14 +2,10 @@
 // against template-extract 1.0.15: each case here mirrors one there.
 import { describe, expect, it } from 'vitest';
 import { extractedTemplates } from '../src/templates.js';
-import { documentOf, questionnaire, sdc } from './support/sites.js';
+import { documentOf, questionnaire, sdc, templateExtract } from './support/sites.js';
 
 type Json = Record<string, unknown>;
 
-const templateExtract = (...references: string[]): Json => ({
-  url: `${sdc}templateExtract`,
-  extension: references.map((reference) => ({ url: 'template', valueReference: { reference } })),
-});
 const group = (linkId: string, extension: readonly Json[], item: readonly Json[] = []): Json => ({
   linkId,
   type: 'group',

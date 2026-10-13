@@ -3,15 +3,8 @@
 // never on the template root, and each warning is matched with its logical path: a
 // templateExtractValue without valueString gets the same text.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { questionnaire } from '../support/sites.js';
-import {
-  component,
-  context,
-  extract,
-  observation,
-  responseTo,
-  templateExtract,
-} from './extract.js';
+import { questionnaire, templateExtract } from '../support/sites.js';
+import { component, context, extract, observation, responseTo } from './extract.js';
 
 type Json = Record<string, unknown>;
 

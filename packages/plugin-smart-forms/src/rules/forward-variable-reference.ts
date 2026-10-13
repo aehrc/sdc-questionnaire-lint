@@ -5,7 +5,7 @@ import {
   type LintRule,
   type QuestionnaireDocument,
 } from 'sdc-questionnaire-lint';
-import { elementName, extensionOf, isObject, type Json } from '../document.js';
+import { arrayOf, elementName, extensionOf, isObject, itemsOf, type Json } from '../document.js';
 import { readBy, requireCompat } from '../eligibility.js';
 import { prerequisitesHold } from '../facts/prerequisites.js';
 import { variableFactsAt } from '../facts/variables.js';
@@ -33,30 +33,13 @@ type Evaluation = Position | 'never' | 'unknown';
 
 const compare = (a: Position, b: Position): number => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
 
-const array = (value: unknown): readonly unknown[] => (Array.isArray(value) ? value : []);
-
-// The items of the Questionnaire, at any depth, in pre-order, as population walks them: through
-// item only.
-function itemsOf(document: QuestionnaireDocument): Json[] {
-  const found: Json[] = [];
-  const visit = (items: unknown): void => {
-    for (const item of array(items)) {
-      if (!isObject(item)) continue;
-      found.push(item);
-      visit(item.item);
-    }
-  };
-  visit(document.resource.item);
-  return found;
-}
-
 // A launchContext population reads as an input: a name sub-extension with a valueId or a
 // valueCoding.code and a type sub-extension with a valueCode, found by URL in any order
 // (inputParameters.ts:96-121). It binds a resource only when its first two sub-extensions are the
 // name and the type, but makes population run either way.
 const isLaunchInput = (extension: unknown): boolean => {
   if (!isObject(extension) || extension.url !== LAUNCH_CONTEXT) return false;
-  const parts = array(extension.extension).filter(isObject);
+  const parts = arrayOf(extension.extension).filter(isObject);
   return (
     parts.some(
       (part) =>
@@ -83,15 +66,15 @@ const isQueryInput = (extension: unknown): boolean => {
 // allows Patient.
 function populationRuns(document: QuestionnaireDocument, items: readonly Json[]): boolean {
   const { subjectType, extension } = document.resource;
-  const subjects = array(subjectType);
+  const subjects = arrayOf(subjectType);
   if (subjects.length > 0 && !subjects.includes('Patient')) return false;
-  const root = array(extension);
+  const root = arrayOf(extension);
   return (
     root.some(isLaunchInput) ||
     root.some(
       (each) => isObject(each) && each.url === SOURCE_QUERIES && Boolean(each.valueReference),
     ) ||
-    [root, ...items.map((item) => array(item.extension))].some((each) => each.some(isQueryInput))
+    [root, ...items.map((item) => arrayOf(item.extension))].some((each) => each.some(isQueryInput))
   );
 }
 
@@ -101,7 +84,7 @@ function populationRuns(document: QuestionnaireDocument, items: readonly Json[])
 function keyOrder(document: QuestionnaireDocument): ReadonlyMap<string, number> {
   const keys: Record<string, true> = {};
   const visit = (items: unknown): void => {
-    for (const item of array(items)) {
+    for (const item of arrayOf(items)) {
       if (!isObject(item)) continue;
       visit(item.item);
       if (item.extension) keys[String(item.linkId)] = true;
@@ -191,7 +174,7 @@ export const forwardVariableReference: LintRule = {
     const facts = variableFactsAt('populate', versions.populate);
     if (!facts.has('population-evaluation-order') || !facts.has('population-needs-input')) return;
     const { document, declarations } = ctx;
-    const items = itemsOf(document);
+    const items = itemsOf(document.resource);
     if (!populationRuns(document, items)) return;
 
     // A linkId population's order cannot be read from: absent, or with the key of another item,

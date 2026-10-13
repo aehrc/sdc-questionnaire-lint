@@ -3,7 +3,7 @@
 // which SUSHI does not write; and an explicit compat, which a case config cannot set.
 import { describe, expect, it } from 'vitest';
 import { lintWithPlugin } from './support/lint.js';
-import { questionnaire, sdc } from './support/sites.js';
+import { questionnaire, sdc, templateExtract } from './support/sites.js';
 
 type Json = Record<string, unknown>;
 
@@ -30,12 +30,7 @@ const form = (context: Json): string =>
         {
           linkId: 'bp',
           type: 'group',
-          extension: [
-            {
-              url: `${sdc}templateExtract`,
-              extension: [{ url: 'template', valueReference: { reference: '#obs' } }],
-            },
-          ],
+          extension: [templateExtract('#obs')],
           item: [{ linkId: 'systolic', type: 'decimal' }],
         },
       ],

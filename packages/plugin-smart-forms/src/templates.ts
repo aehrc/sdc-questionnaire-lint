@@ -1,5 +1,5 @@
 import type { QuestionnaireDocument } from 'sdc-questionnaire-lint';
-import { isObject, type Json } from './document.js';
+import { arrayOf, isObject, itemsOf, type Json } from './document.js';
 import { TEMPLATE_EXTRACT } from './urls.js';
 
 // The contained resources Smart Forms template extraction uses as templates
@@ -9,8 +9,6 @@ import { TEMPLATE_EXTRACT } from './urls.js';
 // The key template-extract files the root's references under. It names no item unless an item
 // has it as its linkId.
 const QUESTIONNAIRE_LEVEL = 'QuestionnaireLevel';
-
-const arrayOf = (value: unknown): readonly unknown[] => (Array.isArray(value) ? value : []);
 
 // Step 1: the template id of a templateExtract, from the first template slice whose reference
 // starts with #, without the #. None for a full URL, a missing slice, or # alone, which is still
@@ -37,25 +35,17 @@ function referencesOf(owner: Json): string[] {
   });
 }
 
-// The items in pre-order.
-function* itemsOf(owner: Json): Generator<Json> {
-  for (const item of arrayOf(owner.item)) {
-    if (!isObject(item)) continue;
-    yield item;
-    yield* itemsOf(item);
-  }
-}
-
 // The index in contained of each template extraction uses, in contained order.
 export function extractedTemplates(document: QuestionnaireDocument): readonly number[] {
   const questionnaire = document.resource;
+  const items = itemsOf(questionnaire);
   // Step 2: the references keyed by owner, the root first; a later owner with the same key
   // replaces the earlier one's references, and keeps the key's place in the map. An item's key is
   // its linkId, whatever it is.
   const byKey = new Map<unknown, string[]>();
   const rootReferences = referencesOf(questionnaire);
   if (rootReferences.length > 0) byKey.set(QUESTIONNAIRE_LEVEL, rootReferences);
-  for (const item of itemsOf(questionnaire)) {
+  for (const item of items) {
     const references = referencesOf(item);
     if (references.length > 0) byKey.set(item.linkId, references);
   }
@@ -66,7 +56,6 @@ export function extractedTemplates(document: QuestionnaireDocument): readonly nu
   }
   // Step 4: a contained resource with a mapped id, the last one when ids repeat, whose key is the
   // linkId of an item.
-  const items = [...itemsOf(questionnaire)];
   const templates = new Map<string, number>();
   arrayOf(questionnaire.contained).forEach((resource, index) => {
     if (!isObject(resource) || typeof resource.id !== 'string' || !keyOf.has(resource.id)) return;

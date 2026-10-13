@@ -73,3 +73,11 @@ export function toggle(
     extension: Object.values(all).filter((part) => part !== undefined),
   };
 }
+
+// A templateExtract extension with a template slice for each reference, in order.
+export function templateExtract(...references: string[]): Record<string, unknown> {
+  return {
+    url: `${sdc}templateExtract`,
+    extension: references.map((reference) => ({ url: 'template', valueReference: { reference } })),
+  };
+}

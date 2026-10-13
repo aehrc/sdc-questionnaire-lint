@@ -2,8 +2,8 @@
 // uses as templates (src/facts/extraction.ts). Each test asserts the code.text of the extracted
 // resources, which observation() sets to the template's id.
 import { describe, expect, it } from 'vitest';
-import { questionnaire, sdc } from '../support/sites.js';
-import { extract, observation, responseTo, templateExtract } from './extract.js';
+import { questionnaire, sdc, templateExtract } from '../support/sites.js';
+import { extract, observation, responseTo } from './extract.js';
 
 type Json = Record<string, unknown>;
 

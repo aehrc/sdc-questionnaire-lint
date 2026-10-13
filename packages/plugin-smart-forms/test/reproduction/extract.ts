@@ -52,14 +52,6 @@ export function responseTo(item: readonly Json[]): Json {
   };
 }
 
-// A templateExtract extension with a template slice for each reference, in order.
-export function templateExtract(...references: string[]): Json {
-  return {
-    url: `${sdc}templateExtract`,
-    extension: references.map((reference) => ({ url: 'template', valueReference: { reference } })),
-  };
-}
-
 export function context(value: Json): Json {
   return { url: `${sdc}templateExtractContext`, ...value };
 }
