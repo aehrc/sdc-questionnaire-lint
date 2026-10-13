@@ -1,0 +1,27 @@
+# A suppressed finding is not reported.
+rules:
+  sdc/unused-declaration: 'off'
+suppress:
+  - rule: smart-forms/forward-variable-reference
+    file: fsh-generated/resources/Questionnaire-forward-variable-reference-suppressed.json
+    name: x
+    reason: The form is never prefilled.
+extensions:
+  - url: variable
+    name: x
+    expression: '%y'
+  - url: variable
+    name: y
+    expression: '1'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: initialExpression
+        expression: '%x'

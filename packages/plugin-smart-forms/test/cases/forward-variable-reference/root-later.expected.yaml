@@ -1,0 +1,15 @@
+- ruleId: smart-forms/forward-variable-reference
+  severity: warning
+  at: input/fsh/forward-variable-reference-root-later.fsh:8:46
+  message: '%bmi references %weight on the Questionnaire root, which Smart Forms evaluates after %bmi when it prefills the form, so %bmi has no value while the form is prefilled.'
+  help: move %weight before %bmi on the Questionnaire root
+  expression:
+    text: '%weight / 2'
+    range:
+      startOffset: 0
+      endOffset: 7
+  related:
+    - at: /extension/1/valueExpression/expression (source-unavailable)
+      message: '%weight is declared here'
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: this prefill expression uses %bmi

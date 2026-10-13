@@ -1,0 +1,23 @@
+# The referenced name is reserved: the silence holds with sdc/reserved-name off.
+rules:
+  sdc/reserved-name: 'off'
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    expression: '%sct'
+  - url: variable
+    name: sct
+    expression: '1'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: initialExpression
+        expression: '%x'

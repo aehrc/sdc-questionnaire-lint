@@ -2,6 +2,7 @@ import type { LintPlugin } from 'sdc-questionnaire-lint';
 import pkg from '../package.json' with { type: 'json' };
 import { hostVariables } from './host-variables.js';
 import { expressionEvaluatedAsFhirpath } from './rules/expression-evaluated-as-fhirpath.js';
+import { forwardVariableReference } from './rules/forward-variable-reference.js';
 import { namedExpressionNotReferenceable } from './rules/named-expression-not-referenceable.js';
 import { questionnaireVariableUnavailable } from './rules/questionnaire-variable-unavailable.js';
 import { repeatingGroupVariable } from './rules/repeating-group-variable.js';
@@ -21,6 +22,7 @@ const smartForms: LintPlugin = {
     'variable-name-collision': variableNameCollision,
     'repeating-group-variable': repeatingGroupVariable,
     'named-expression-not-referenceable': namedExpressionNotReferenceable,
+    'forward-variable-reference': forwardVariableReference,
   },
   compat: {
     // Oldest to newest: "latest" selects the last. Each version is verified on its own (S3).

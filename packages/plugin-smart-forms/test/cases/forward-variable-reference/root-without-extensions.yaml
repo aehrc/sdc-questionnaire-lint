@@ -1,0 +1,23 @@
+# Population skips item variables when the root has no extensions; an item query variable makes it run.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: g
+    type: group
+    extensions:
+      - url: variable
+        name: obs
+        language: application/x-fhir-query
+        expression: 'Observation?code=1'
+      - url: variable
+        name: x
+        expression: '%y'
+      - url: variable
+        name: y
+        expression: '1'
+    items:
+      - linkId: q
+        type: string
+        extensions:
+          - url: initialExpression
+            expression: '%x'
