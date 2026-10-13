@@ -122,7 +122,7 @@ describe('findVariableReferences', () => {
 
   it('gives the name and offsets of a reference', () => {
     expect(findVariableReferences('1 + %weight')).toEqual([
-      { name: 'weight', startOffset: 4, endOffset: 11, complete: true },
+      { name: 'weight', startOffset: 4, endOffset: 11, complete: true, conditional: false },
     ]);
   });
 
@@ -134,7 +134,7 @@ describe('findVariableReferences', () => {
     ["%'a\\u0062'", 'ab'],
   ])('reduces %s to the name fhirpath.js looks up, %s', (text, name) => {
     expect(findVariableReferences(text)).toEqual([
-      { name, startOffset: 0, endOffset: text.length, complete: true },
+      { name, startOffset: 0, endOffset: text.length, complete: true, conditional: false },
     ]);
   });
 
@@ -155,15 +155,15 @@ describe('findVariableReferences', () => {
     ["% /* c */ 'a\\'' // 'a'", "a'", 15],
   ])('covers whitespace and comments after the %% of %j', (text, name, endOffset) => {
     expect(findVariableReferences(text)).toEqual([
-      { name, startOffset: 0, endOffset, complete: true },
+      { name, startOffset: 0, endOffset, complete: true, conditional: false },
     ]);
   });
 
   it('gives offsets across lines, counting from the start of the text, with CRLF line endings', () => {
     // Line 2 starts at offset 5, after "1 +\r\n"; line 3 at 10, after "  %\r\n".
     expect(findVariableReferences("1 +\r\n  %\r\n  'a' + %b")).toEqual([
-      { name: 'a', startOffset: 7, endOffset: 15, complete: true },
-      { name: 'b', startOffset: 18, endOffset: 20, complete: true },
+      { name: 'a', startOffset: 7, endOffset: 15, complete: true, conditional: false },
+      { name: 'b', startOffset: 18, endOffset: 20, complete: true, conditional: false },
     ]);
   });
 
@@ -181,7 +181,7 @@ describe('findVariableReferences', () => {
 
   it('keeps a reference in the initializer of defineVariable, which does not see its own name', () => {
     expect(findVariableReferences("defineVariable('y', %y).select(%y)")).toEqual([
-      { name: 'y', startOffset: 20, endOffset: 22, complete: true },
+      { name: 'y', startOffset: 20, endOffset: 22, complete: true, conditional: false },
     ]);
   });
 
@@ -195,15 +195,15 @@ describe('findVariableReferences', () => {
 
   it('marks references after a defineVariable with a computed name incomplete', () => {
     expect(findVariableReferences('defineVariable(%n, 1).select(%y) | %z')).toEqual([
-      { name: 'n', startOffset: 15, endOffset: 17, complete: true },
-      { name: 'y', startOffset: 29, endOffset: 31, complete: false },
-      { name: 'z', startOffset: 35, endOffset: 37, complete: true },
+      { name: 'n', startOffset: 15, endOffset: 17, complete: true, conditional: false },
+      { name: 'y', startOffset: 29, endOffset: 31, complete: false, conditional: true },
+      { name: 'z', startOffset: 35, endOffset: 37, complete: true, conditional: false },
     ]);
   });
 
   it('marks references after a call whose name has an escape sequence incomplete, since it may be defineVariable', () => {
     expect(findVariableReferences("`defineV\\u0061riable`('a', 1).select(%a)")).toEqual([
-      { name: 'a', startOffset: 37, endOffset: 39, complete: false },
+      { name: 'a', startOffset: 37, endOffset: 39, complete: false, conditional: true },
     ]);
   });
 
@@ -225,6 +225,137 @@ describe('findVariableReferences', () => {
   it('returns undefined for text that does not parse', () => {
     expect(findVariableReferences('%a.where(')).toBeUndefined();
     expect(findVariableReferences('%div')).toBeUndefined();
+  });
+
+  describe('conditional', () => {
+    // Each reference's name and whether fhirpath.js may skip evaluating it.
+    const conditional = (text: string) =>
+      findVariableReferences(text)?.map(({ name, conditional }) => [name, conditional]);
+
+    it.each([
+      [
+        'iif(%c, %a, %b)',
+        [
+          ['c', false],
+          ['a', true],
+          ['b', true],
+        ],
+      ],
+      [
+        'x.iif(%c, %a, %b)',
+        [
+          ['c', false],
+          ['a', true],
+          ['b', true],
+        ],
+      ],
+      [
+        'coalesce(%a, %b, %c)',
+        [
+          ['a', false],
+          ['b', true],
+          ['c', true],
+        ],
+      ],
+      [
+        'x.coalesce(%a, %b)',
+        [
+          ['a', false],
+          ['b', true],
+        ],
+      ],
+      ['x.where(%a)', [['a', true]]],
+      ['x.select(%a)', [['a', true]]],
+      ['x.exists(%a)', [['a', true]]],
+      ['x.all(%a)', [['a', true]]],
+      ['x.repeat(%a)', [['a', true]]],
+      [
+        'x.aggregate(%a, %b)',
+        [
+          ['a', true],
+          ['b', false],
+        ],
+      ],
+      [
+        'x.sort(%a, %b desc)',
+        [
+          ['a', true],
+          ['b', true],
+        ],
+      ],
+    ])(
+      'marks a reference fhirpath.js may skip, after an iif criterion, a first coalesce argument or in an argument evaluated per item: %s',
+      (text, expected) => {
+        expect(conditional(text)).toEqual(expected);
+      },
+    );
+
+    it.each([
+      ['iif(true, iif(%c, 1), 0)', [['c', true]]],
+      ['iif(true, (%a + 1).toString(), 0)', [['a', true]]],
+      [
+        'x.where(y.select(%a) | %b).first()',
+        [
+          ['a', true],
+          ['b', true],
+        ],
+      ],
+      ["iif(true, defineVariable('z', %a), 0)", [['a', true]]],
+      [
+        'x.where(true).select(%a) | %b',
+        [
+          ['a', true],
+          ['b', false],
+        ],
+      ],
+    ])('passes the flag down to every reference below such an argument: %s', (text, expected) => {
+      expect(conditional(text)).toEqual(expected);
+    });
+
+    it('marks the arguments of a call whose name has an escape sequence, which may be any function', () => {
+      expect(conditional('x.`wh\\u0065re`(%a)')).toEqual([['a', true]]);
+    });
+
+    it.each([
+      ['false and %a', [['a', false]]],
+      ['true or %a', [['a', false]]],
+      [
+        '%a xor %b',
+        [
+          ['a', false],
+          ['b', false],
+        ],
+      ],
+      [
+        '%a implies %b',
+        [
+          ['a', false],
+          ['b', false],
+        ],
+      ],
+      [
+        '1 + %a = %b',
+        [
+          ['a', false],
+          ['b', false],
+        ],
+      ],
+      ['x | %a', [['a', false]]],
+      ['x.combine(%a)', [['a', false]]],
+      ['x.union(%a)', [['a', false]]],
+      ["x.trace('t', %a)", [['a', false]]],
+      ["defineVariable('z', %a)", [['a', false]]],
+      ['%a.where(true).first()', [['a', false]]],
+      [
+        'x.substring(%a, %b)',
+        [
+          ['a', false],
+          ['b', false],
+        ],
+      ],
+    ])('leaves a reference fhirpath.js always evaluates unmarked: %s', (text, expected) => {
+      expect(conditional(text)).toEqual(expected);
+    });
   });
 });
 

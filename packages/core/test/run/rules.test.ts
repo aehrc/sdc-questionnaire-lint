@@ -500,15 +500,15 @@ describe('RuleContext name analysis (API stage B)', () => {
   const references = (...of: ExpressionSite[]) =>
     received((ctx, site) => ctx.referencesAt(site), of);
 
-  it('gives the references of a FHIRPath site, with offsets and complete', () => {
+  it('gives the references of a FHIRPath site, with offsets, complete and conditional', () => {
     expect(references(at('expression', '%title & %qitem.linkId'))).toEqual([
       [
-        { name: 'title', startOffset: 0, endOffset: 6, complete: true },
-        { name: 'qitem', startOffset: 9, endOffset: 15, complete: true },
+        { name: 'title', startOffset: 0, endOffset: 6, complete: true, conditional: false },
+        { name: 'qitem', startOffset: 9, endOffset: 15, complete: true, conditional: false },
       ],
     ]);
     expect(references(at('expression', "defineVariable('v' + 'w', 1).select(%v)"))).toEqual([
-      [{ name: 'v', startOffset: 36, endOffset: 38, complete: false }],
+      [{ name: 'v', startOffset: 36, endOffset: 38, complete: false, conditional: true }],
     ]);
   });
 
@@ -536,7 +536,7 @@ describe('RuleContext name analysis (API stage B)', () => {
 
   it('gives the references of a fragment site', () => {
     expect(references(at('fragment', '%patient.id'))).toEqual([
-      [{ name: 'patient', startOffset: 0, endOffset: 8, complete: true }],
+      [{ name: 'patient', startOffset: 0, endOffset: 8, complete: true, conditional: false }],
     ]);
   });
 

@@ -50,10 +50,11 @@ export interface RuleContext {
   // compare items by pointer.
   readonly declarations: readonly Declaration[];
   // The %name references in a site's FHIRPath text, in source order, fragments included; [] when
-  // the text parses and references nothing. undefined when the site has no FHIRPath analysis: its
-  // language is not text/fhirpath, it has no text, or the text does not parse. A rule treats
-  // undefined as "cannot check", never as "no references". The array and its references are
-  // frozen.
+  // the text parses and references nothing. Each says whether it is complete, and whether it is
+  // conditional: fhirpath.js may skip evaluating it, as in an iif branch. undefined when the site
+  // has no FHIRPath analysis: its language is not text/fhirpath, it has no text, or the text does
+  // not parse. A rule treats undefined as "cannot check", never as "no references". The array and
+  // its references are frozen.
   referencesAt(site: ExpressionSite): readonly VariableReference[] | undefined;
   // The names an expression can reference at a site, and the variable each name resolves to;
   // undefined at an uncatalogued site, where name analysis cannot run.

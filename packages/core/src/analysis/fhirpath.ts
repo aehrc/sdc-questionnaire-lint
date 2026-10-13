@@ -166,6 +166,10 @@ export interface VariableReference {
   // False when an earlier step of its chain is a defineVariable with a computed name, which may
   // bind it.
   readonly complete: boolean;
+  // True when fhirpath.js 4.10.1 may skip evaluating it, so a failure there is not certain: it is
+  // in an iif argument after the criterion, a coalesce argument after the first, or an argument
+  // evaluated once per item of the function's target, or below one of these.
+  readonly conditional: boolean;
 }
 
 // A string literal's value, decoded as fhirpath.js decodes it; anything without both quotes is
@@ -199,7 +203,10 @@ function skipString(text: string, offset: number): number {
 
 // The reference an ExternalConstantTerm makes. Its length does not give the end: it excludes the %
 // and backticks, and anything between the % and the name.
-function toReference(text: string, term: ParseNode): Omit<VariableReference, 'complete'> {
+function toReference(
+  text: string,
+  term: ParseNode,
+): Omit<VariableReference, 'complete' | 'conditional'> {
   const name = term.delimitedText === undefined ? term.text : stringValue(term.delimitedText);
   const startOffset =
     term.start === undefined ? undefined : toOffset(text, term.start.line, term.start.column - 1);
@@ -249,29 +256,60 @@ function literalString(argument: ParseNode | undefined): string | undefined {
     : undefined;
 }
 
+// The arguments fhirpath.js 4.10.1 may skip evaluating, by function: iif's after the criterion;
+// coalesce's after the first, since it stops at the first non-empty one; and those it evaluates
+// once per item of the target, so never on an empty one: the Expr arguments of where, select,
+// exists, all and repeat, aggregate's first, and sort's selectors, skipped on a single item and
+// after the first unless there are ties (fhirpath.js:79-120,191; filtering.js:171). trace's and
+// defineVariable's Expr arguments are evaluated once on the whole target, so always.
+// A Map, so that a function named like an Object property, such as __proto__, is not one.
+const skippableArguments: ReadonlyMap<string, (index: number) => boolean> = new Map<
+  string,
+  (index: number) => boolean
+>([
+  ['iif', (index) => index > 0],
+  ['coalesce', (index) => index > 0],
+  ['where', () => true],
+  ['select', () => true],
+  ['exists', () => true],
+  ['all', () => true],
+  ['repeat', () => true],
+  ['aggregate', (index) => index === 0],
+  ['sort', () => true],
+]);
+
 // The %name references in text, in source order, or undefined when it does not parse. A name that
 // defineVariable binds for the reference is left out (core-rules.md, slice 4a).
 export function findVariableReferences(text: string): VariableReference[] | undefined {
   const parsed = parse(text);
   if (!('tree' in parsed)) return undefined;
   const references: VariableReference[] = [];
-  const visit = (node: ParseNode, local: LocalNames): void => {
+  // Conditional: whether node is below an argument fhirpath.js may skip.
+  const visit = (node: ParseNode, local: LocalNames, conditional: boolean): void => {
     if (node.type === 'ExternalConstantTerm') {
       const reference = toReference(text, node);
       if (!local.names.has(reference.name))
-        references.push({ ...reference, complete: !local.computed });
+        references.push({ ...reference, complete: !local.computed, conditional });
       return;
     }
     if (node.type !== 'FunctionInvocation') {
       const shared = sharedContext.has(node.type);
-      for (const next of node.children ?? []) visit(next, shared ? local : copy(local));
+      for (const next of node.children ?? []) {
+        visit(next, shared ? local : copy(local), conditional);
+      }
       return;
     }
+    // A call whose name has an escape sequence may be any function, so its arguments count as
+    // skippable.
+    const call = toCall(text, node);
+    const skippable =
+      call === undefined ? () => true : (skippableArguments.get(call.name) ?? (() => false));
     const args = argumentsOf(node);
-    for (const argument of args) visit(argument, copy(local));
+    args.forEach((argument, index) => {
+      visit(argument, copy(local), conditional || skippable(index));
+    });
     // fhirpath.js accepts one or two arguments, and binds the name after evaluating them. A call
     // whose name has an escape sequence may be defineVariable, so it counts as a computed name.
-    const call = toCall(text, node);
     if (
       (call !== undefined && call.name !== 'defineVariable') ||
       args.length < 1 ||
@@ -283,7 +321,7 @@ export function findVariableReferences(text: string): VariableReference[] | unde
     if (name === undefined) local.computed = true;
     else local.names.add(name);
   };
-  visit(parsed.tree, { names: new Set(), computed: false });
+  visit(parsed.tree, { names: new Set(), computed: false }, false);
   return references;
 }
 
