@@ -194,12 +194,14 @@ export const forwardVariableReference: LintRule = {
     const items = itemsOf(document);
     if (!populationRuns(document, items)) return;
 
-    // A linkId population's order cannot be read from: absent, on more than one item, or
-    // __proto__, which sets the prototype of population's object instead of adding a key.
-    const linkIdCounts = new Map<unknown, number>();
-    for (const { linkId } of items) linkIdCounts.set(linkId, (linkIdCounts.get(linkId) ?? 0) + 1);
+    // A linkId population's order cannot be read from: absent, or with the key of another item,
+    // since population keys items by String(linkId).
+    const linkIdCounts = new Map<string, number>();
+    for (const { linkId } of items) {
+      linkIdCounts.set(String(linkId), (linkIdCounts.get(String(linkId)) ?? 0) + 1);
+    }
     const reliable = (linkId: string | undefined): linkId is string =>
-      linkId !== undefined && linkId !== '__proto__' && linkIdCounts.get(linkId) === 1;
+      linkId !== undefined && linkIdCounts.get(linkId) === 1;
     const keys = keyOrder(document);
     // Whether a declaration is in the extension array of the root or an item of this
     // Questionnaire, where population reads variables: not in a modifierExtension, and not in a
@@ -236,6 +238,9 @@ export const forwardVariableReference: LintRule = {
       if (site === undefined) return 'never';
       // A query variable is fetched first, but only with expression text.
       if (site.language === X_FHIR_QUERY) return site.text ? [1, 0, 0] : 'never';
+      // A linkId __proto__ sets the prototype of population's object instead of adding a key, so
+      // population never evaluates the item's variables.
+      if (kind === 'variable' && item?.linkId === '__proto__') return 'never';
       const key =
         item === undefined ? 0 : reliable(item.linkId) ? keys.get(item.linkId) : undefined;
       if (key === undefined) return 'unknown';

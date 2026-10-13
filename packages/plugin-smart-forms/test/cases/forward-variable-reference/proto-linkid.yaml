@@ -1,5 +1,5 @@
-# Population never evaluates the variables of an item whose linkId is __proto__, so its order there
-# is unknown.
+# Population never evaluates the variables of an item whose linkId is __proto__, so their
+# references are not reported.
 rules:
   sdc/unused-declaration: 'off'
 fsh:

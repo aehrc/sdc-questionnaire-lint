@@ -88,4 +88,29 @@ describe('smart-forms/forward-variable-reference', () => {
     );
     expect(await findings(content)).toEqual([]);
   });
+
+  // Population keys items by String(linkId), so a later item without a linkId replaces the
+  // variables of the item 'undefined'.
+  it("stays silent when an item without a linkId shares the key of the item 'undefined'", async () => {
+    const content = (others: Json[]): string =>
+      JSON.stringify(
+        questionnaire({
+          extension: [launch],
+          item: [
+            {
+              linkId: 'undefined',
+              type: 'group',
+              extension: [variable('x', '%y'), variable('y', "'1'")],
+              item: [{ linkId: 'q', type: 'string', extension: [initial('%x')] }],
+            },
+            ...others,
+          ],
+        }),
+      );
+    expect(await findings(content([]))).toEqual([
+      '%x references %y on item undefined, which Smart Forms evaluates after %x when it ' +
+        'prefills the form, so %x has no value while the form is prefilled.',
+    ]);
+    expect(await findings(content([{ type: 'display', extension: [] }]))).toEqual([]);
+  });
 });
