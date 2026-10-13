@@ -246,6 +246,77 @@ describe('populate 4.7.1 environment', () => {
     expect(urls).toEqual(['Observation']);
   });
 
+  it('populates a form whose only input is a sourceQueries reference', async () => {
+    const { success } = await populate(
+      questionnaire({
+        extension: [{ url: `${sdc}sourceQueries`, valueReference: { reference: 'Observation' } }],
+        item: [question('q1', "'x'")],
+      }),
+    );
+    expect(success).toBe(true);
+  });
+
+  it('populates a form whose only input is an item query variable', async () => {
+    const { success } = await populate(
+      questionnaire({
+        item: [
+          {
+            ...question('q1', "'x'"),
+            extension: [
+              ext(VARIABLE, expression('application/x-fhir-query', 'Observation', 'obs')),
+            ],
+          },
+        ],
+      }),
+    );
+    expect(success).toBe(true);
+  });
+
+  it('populates a form whose launchContext has its name and type found by URL, whatever their order', async () => {
+    const typeFirst = {
+      url: `${sdc}launchContext`,
+      extension: [
+        { url: 'type', valueCode: 'Patient' },
+        { url: 'name', valueCoding: { code: 'patient' } },
+      ],
+    };
+    const { success, context } = await populate(
+      questionnaire({ extension: [typeFirst], item: [question('q1', "'x'")] }),
+    );
+    expect(success).toBe(true);
+    expect(context).not.toHaveProperty('patient');
+  });
+
+  it('does not populate a form with a query variable without text, or a launchContext without a type', async () => {
+    const noText = await populate(
+      questionnaire({
+        extension: [ext(VARIABLE, { language: 'application/x-fhir-query', name: 'obs' })],
+        item: [question('q1', "'x'")],
+      }),
+    );
+    expect(noText.success).toBe(false);
+    const noType = await populate(
+      questionnaire({
+        extension: [
+          {
+            url: `${sdc}launchContext`,
+            extension: [{ url: 'name', valueCoding: { code: 'patient' } }],
+          },
+        ],
+        item: [question('q1', "'x'")],
+      }),
+    );
+    expect(noType.success).toBe(false);
+  });
+
+  it('does not populate a form whose subjectType lacks Patient', async () => {
+    const { success, response } = await populate(
+      withPatientLaunch(questionnaire({ subjectType: ['Group'], item: [question('q1', "'x'")] })),
+    );
+    expect(success).toBe(false);
+    expect(response).toBeUndefined();
+  });
+
   it('skips item FHIRPath variables when the root has no extensions', async () => {
     const item = {
       linkId: 'g',

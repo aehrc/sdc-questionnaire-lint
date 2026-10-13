@@ -36,3 +36,4 @@ export const populateNames = 'test/reproduction/populate-names.test.ts';
 export const populateEmbeddings = 'test/reproduction/populate-embeddings.test.ts';
 export const populateSourceQueries = 'test/reproduction/populate-source-queries.test.ts';
 export const populateVariableStorage = 'test/reproduction/populate-variable-storage.test.ts';
+export const populateEvaluationOrder = 'test/reproduction/populate-evaluation-order.test.ts';
