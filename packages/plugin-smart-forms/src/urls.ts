@@ -8,6 +8,8 @@ export const ANSWER_EXPRESSION = `${sdc}answerExpression`;
 export const INITIAL_EXPRESSION = `${sdc}initialExpression`;
 export const ITEM_POPULATION_CONTEXT = `${sdc}itemPopulationContext`;
 export const ANSWER_OPTIONS_TOGGLE_EXPRESSION = `${sdc}answerOptionsToggleExpression`;
+export const LAUNCH_CONTEXT = `${sdc}launchContext`;
+export const SOURCE_QUERIES = `${sdc}sourceQueries`;
 export const TARGET_CONSTRAINT = 'http://hl7.org/fhir/StructureDefinition/targetConstraint';
 export const CQF_EXPRESSION = 'http://hl7.org/fhir/StructureDefinition/cqf-expression';
 

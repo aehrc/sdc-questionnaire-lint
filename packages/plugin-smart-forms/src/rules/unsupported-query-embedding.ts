@@ -6,14 +6,11 @@ import type {
   RuleFinding,
   RuleRelatedLocation,
 } from 'sdc-questionnaire-lint';
-import { isObject } from '../document.js';
+import { isObject, type Json } from '../document.js';
 import { readBy, requireCompat } from '../eligibility.js';
 import { embeddingsAt } from '../facts/embeddings.js';
-import { VARIABLE, X_FHIR_QUERY } from '../urls.js';
-
-const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
-const LAUNCH_CONTEXT = `${sdc}launchContext`;
-const SOURCE_QUERIES = `${sdc}sourceQueries`;
+import { readSourceQueries } from '../source-queries.js';
+import { LAUNCH_CONTEXT, VARIABLE, X_FHIR_QUERY } from '../urls.js';
 
 // A query population fetches and replaces embeddings in: an application/x-fhir-query variable with
 // a name, or a request URL in a contained sourceQueries Bundle.
@@ -44,41 +41,36 @@ function rootExtensions(document: QuestionnaireDocument): readonly unknown[] {
   return Array.isArray(extensions) ? extensions : [];
 }
 
-// The request URLs of the contained Bundles the root's sourceQueries reference by #id. Population
-// replaces embeddings in them too, but only those with an id and entries
+// The request URLs of the contained Bundles the root's sourceQueries reference by #id, in contained
+// order, each Bundle once. Population replaces embeddings in them too, but only in the first
+// contained Bundle with the id, and only when it has an id and entries
 // (createFhirPathContext.ts:559-597).
 function sourceQueryUrls(document: QuestionnaireDocument): Query[] {
-  const ids = new Set(
-    rootExtensions(document).flatMap((extension) => {
-      const reference =
-        isObject(extension) &&
-        extension.url === SOURCE_QUERIES &&
-        isObject(extension.valueReference)
-          ? extension.valueReference.reference
-          : undefined;
-      return typeof reference === 'string' && reference.startsWith('#') ? [reference.slice(1)] : [];
-    }),
-  );
-  const contained = Array.isArray(document.resource.contained) ? document.resource.contained : [];
-  return contained.flatMap((resource: unknown, index) => {
-    if (!isObject(resource) || resource.resourceType !== 'Bundle') return [];
-    if (typeof resource.id !== 'string' || !ids.has(resource.id)) return [];
-    const entries = Array.isArray(resource.entry) ? resource.entry : [];
-    return entries.flatMap((entry: unknown, entryIndex): Query[] => {
-      const url = isObject(entry) && isObject(entry.request) ? entry.request.url : undefined;
-      return typeof url === 'string'
-        ? [
-            {
-              text: url,
-              at: {
-                pointer: `${document.resourcePointer}/contained/${String(index)}/entry/${String(entryIndex)}/request/url`,
+  const bundles = new Map<number, Json>();
+  for (const { bundle } of readSourceQueries(document)) {
+    if (bundle !== undefined && bundle.resource.id && bundle.resource.entry) {
+      bundles.set(bundle.containedIndex, bundle.resource);
+    }
+  }
+  return [...bundles]
+    .sort(([a], [b]) => a - b)
+    .flatMap(([index, resource]) => {
+      const entries = Array.isArray(resource.entry) ? resource.entry : [];
+      return entries.flatMap((entry: unknown, entryIndex): Query[] => {
+        const url = isObject(entry) && isObject(entry.request) ? entry.request.url : undefined;
+        return typeof url === 'string'
+          ? [
+              {
+                text: url,
+                at: {
+                  pointer: `${document.resourcePointer}/contained/${String(index)}/entry/${String(entryIndex)}/request/url`,
+                },
+                label: `a request URL in the sourceQueries Bundle ${String(resource.id)}`,
               },
-              label: `a request URL in the sourceQueries Bundle ${String(resource.id)}`,
-            },
-          ]
-        : [];
+            ]
+          : [];
+      });
     });
-  });
 }
 
 // The root launchContexts: whether any is declared, of any shape, and the names they declare, read
