@@ -24,8 +24,9 @@ interface StoredName {
 
 // The name a launchContext stores its resource under in population: its first sub-extension's
 // valueId, else its valueCoding.code, when it has a name sub-extension with either and a type
-// sub-extension with a valueCode (inputParameters.ts:97-121,338-374). Not Declaration.name, which
-// core finds by URL and reads valueCoding.code first.
+// sub-extension with a valueCode, and its second sub-extension has a valueCode, the resource type
+// population reads (inputParameters.ts:97-121,338-374). Not Declaration.name, which core finds by
+// URL and reads valueCoding.code first.
 function launchContextName(
   document: QuestionnaireDocument,
   declaration: Declaration,
@@ -40,11 +41,14 @@ function launchContextName(
     (part) => part.valueId || (isObject(part.valueCoding) && part.valueCoding.code),
   );
   const typed = hasPart('type', (part) => part.valueCode);
-  const [first] = parts;
+  const [first, second] = parts;
   const name = isObject(first)
     ? (first.valueId ?? (isObject(first.valueCoding) ? first.valueCoding.code : undefined))
     : undefined;
-  return named && typed && typeof name === 'string' && name !== '' ? name : undefined;
+  const resourceType = isObject(second) ? second.valueCode : undefined;
+  return named && typed && Boolean(resourceType) && typeof name === 'string' && name !== ''
+    ? name
+    : undefined;
 }
 
 // Whether a component that handles a variable's language so stores its name.
@@ -67,9 +71,13 @@ function storedName(
       ? launchContextName(ctx.document, declaration)
       : undefined;
   }
-  if (site === undefined || site.text === undefined || site.text === '') return undefined;
+  if (site === undefined) return undefined;
   if (kind === 'variable') {
-    return readBy(ctx, site).some(({ handling }) => binds(handling, site.language))
+    // The renderer sets an application/x-fhir-query variable's name to [] even without text, such
+    // as one with only a reference; a FHIRPath variable without text is never evaluated.
+    const evaluated =
+      (site.text !== undefined && site.text !== '') || site.language === X_FHIR_QUERY;
+    return evaluated && readBy(ctx, site).some(({ handling }) => binds(handling, site.language))
       ? declaration.name
       : undefined;
   }

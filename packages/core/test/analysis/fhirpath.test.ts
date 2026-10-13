@@ -394,6 +394,23 @@ describe('readsInput', () => {
     }
   });
 
+  it('is true for a path in a sort argument that reads the input', () => {
+    expect(
+      readsInput('%resource.item.sort(iif(linkId = %context.item.answer.valueString, 0, 1))'),
+    ).toBe(true);
+    expect(readsInput('%resource.item.sort(linkId desc, text)')).toBe(false);
+  });
+
+  it('is true for %context written as a string literal with an escape', () => {
+    expect(readsInput("%'cont\\u0065xt'.item")).toBe(true);
+    expect(readsInput('%`context`.item')).toBe(true);
+  });
+
+  it('does not take a function named like an Object property for a known one', () => {
+    expect(readsInput('__proto__(1)')).toBe(true);
+    expect(readsInput("%resource.constructor('x')")).toBe(false);
+  });
+
   it('is true for $this in a coalesce argument, which keeps the enclosing $this', () => {
     expect(readsInput('%resource.coalesce($this.item)')).toBe(true);
   });
@@ -470,6 +487,8 @@ describe('readsInput', () => {
       ['linkId', false],
       ["%resource.item.where(linkId='x').answer.value", false],
       ['%resource.item.where(linkId=%context.linkId).count()', false],
+      ["%'cont\\u0065xt'.item.answer.value", true],
+      ['%resource.item.sort(iif(linkId = %context.linkId, 0, 1)).first().linkId', false],
     ])('%s', (text, differs) => {
       const [first, second] = repetitions.map((input) => valueAt(text, input));
       expect(first).not.toBe('[]');

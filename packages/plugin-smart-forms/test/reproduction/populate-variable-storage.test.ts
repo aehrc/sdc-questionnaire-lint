@@ -235,4 +235,20 @@ describe('populate 4.7.1 launchContext names', () => {
     expect(context).toHaveProperty('patient');
     expect(context).not.toHaveProperty('subject');
   });
+
+  it('reads the resource type from the second sub-extension, so a description before the type binds nothing', async () => {
+    const { context } = await populate(
+      questionnaire({
+        extension: [
+          launchContext(
+            patientName,
+            { url: 'description', valueString: 'The patient' },
+            patientType,
+          ),
+        ],
+        item: [{ linkId: 'a', type: 'string' }],
+      }),
+    );
+    expect(context).not.toHaveProperty('patient');
+  });
 });

@@ -485,18 +485,22 @@ export function findLinkIdReferences(
 // ExprAtCurrent arguments are evaluated against its target with the enclosing $this. Every other
 // argument, and every operand of an operator, is evaluated against the enclosing $this, or else
 // the input (fhirpath.js:753-754).
-const itemArguments: Readonly<Record<string, (index: number) => boolean>> = {
-  where: () => true,
-  select: () => true,
-  exists: () => true,
-  all: () => true,
-  repeat: () => true,
-  iif: () => true,
-  sort: () => true,
-  aggregate: (index) => index === 0,
-  trace: (index) => index === 1,
-  defineVariable: (index) => index === 1,
-};
+// A Map, so that a function named like an Object property, such as __proto__, is not one.
+const itemArguments: ReadonlyMap<string, (index: number) => boolean> = new Map<
+  string,
+  (index: number) => boolean
+>([
+  ['where', () => true],
+  ['select', () => true],
+  ['exists', () => true],
+  ['all', () => true],
+  ['repeat', () => true],
+  ['iif', () => true],
+  ['sort', () => true],
+  ['aggregate', (index) => index === 0],
+  ['trace', (index) => index === 1],
+  ['defineVariable', (index) => index === 1],
+]);
 
 // The functions that read their target only through their arguments, or not at all.
 const targetUnread: ReadonlySet<string> = new Set(['iif', 'select', 'today', 'now', 'timeOfDay']);
@@ -544,9 +548,16 @@ export function readsInput(text: string): boolean | undefined {
     }
     if (invocation.type !== 'FunctionInvocation') return false;
     const functn = child(invocation, 'Functn');
-    const name = identifierName(functn) ?? '';
-    const args = typeArguments.has(name) ? [] : (child(functn, 'ParamList')?.children ?? []);
-    const onItems = itemArguments[name];
+    // fhirpath.js parses a sort call as a Functn with the text sort, no Identifier and a
+    // SortDirectionArgument child for each argument (fhirpath.js:613-617).
+    const sort = functn !== undefined && child(functn, 'Identifier') === undefined;
+    const name = sort ? 'sort' : (identifierName(functn) ?? '');
+    const args = sort
+      ? (functn.children ?? [])
+      : typeArguments.has(name)
+        ? []
+        : (child(functn, 'ParamList')?.children ?? []);
+    const onItems = itemArguments.get(name);
     args.forEach((argument, index) => {
       const argumentFocus: Focus =
         onItems?.(index) === true
@@ -571,7 +582,11 @@ export function readsInput(text: string): boolean | undefined {
     }
     switch (node.type) {
       case 'TermExpression': {
-        if (first?.type === 'ExternalConstantTerm') return constantName(node) === 'context';
+        if (first?.type === 'ExternalConstantTerm') {
+          // The name as fhirpath.js looks it up, with a string literal's escapes decoded.
+          const { text: written, delimitedText } = first;
+          return (delimitedText === undefined ? written : stringValue(delimitedText)) === 'context';
+        }
         if (first?.type === 'InvocationTerm') {
           const invocation = first.children?.[0];
           return invocation === undefined ? false : invoke(invocation, focus.current, focus);

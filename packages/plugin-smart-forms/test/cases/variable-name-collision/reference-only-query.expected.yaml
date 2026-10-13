@@ -1,0 +1,24 @@
+- ruleId: sdc/external-expression
+  severity: info
+  at: /extension/0/valueExpression (not-found)
+  message: This expression has no text, only the reference Library/query, so it was not checked.
+- ruleId: sdc/shadowed-declaration
+  severity: info
+  at: input/fsh/variable-name-collision-reference-only-query.fsh:14:51
+  message: The name %x on item a is also declared on the Questionnaire root, so other expressions on item a and its descendant items get this declaration's value.
+  help: rename one of the declarations of %x, unless this item should override it
+  expression:
+    text: "'item'"
+  related:
+    - at: /extension/0/valueExpression (source-unavailable)
+      message: '%x is also declared here'
+- ruleId: smart-forms/variable-name-collision
+  severity: error
+  at: input/fsh/variable-name-collision-reference-only-query.fsh:14:51
+  message: "%x is also declared on the Questionnaire root; Smart Forms keeps one value for each name, so expressions on either element can get the other's value."
+  help: rename one of the declarations so the name is declared on one element only
+  expression:
+    text: "'item'"
+  related:
+    - at: /extension/0/valueExpression (source-unavailable)
+      message: '%x is also declared here'
