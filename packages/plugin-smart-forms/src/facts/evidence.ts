@@ -37,3 +37,7 @@ export const populateEmbeddings = 'test/reproduction/populate-embeddings.test.ts
 export const populateSourceQueries = 'test/reproduction/populate-source-queries.test.ts';
 export const populateVariableStorage = 'test/reproduction/populate-variable-storage.test.ts';
 export const populateEvaluationOrder = 'test/reproduction/populate-evaluation-order.test.ts';
+
+// The reproduction tests of template-extract 1.0.15, by file.
+export const extractContexts = 'test/reproduction/extract-contexts.test.ts';
+export const extractTemplates = 'test/reproduction/extract-templates.test.ts';

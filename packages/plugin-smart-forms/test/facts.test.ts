@@ -2,6 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { type Evidence, sourceBase } from '../src/facts/evidence.js';
+import { extractionAt, extractionFacts } from '../src/facts/extraction.js';
 import { type Component, components, type FactTable } from '../src/facts/versions.js';
 import smartForms from '../src/index.js';
 
@@ -34,10 +35,14 @@ function* factsOf(component: Component): Generator<{ evidence: readonly Evidence
   }
 }
 
+// The template-extract facts, in their own table: extraction is checked only when selected.
+const extraction = Object.values(extractionFacts).flat();
+
 function* allEvidence(): Generator<Evidence> {
   for (const component of components) {
     for (const fact of factsOf(component)) yield* fact.evidence;
   }
+  for (const fact of extraction) yield* fact.evidence;
 }
 
 describe('runtime facts', () => {
@@ -53,10 +58,24 @@ describe('runtime facts', () => {
     }
   });
 
+  it('cover every verified template-extract version', () => {
+    const verified = smartForms.compat?.verified['template-extract'] ?? [];
+    expect(verified.length).toBeGreaterThan(0);
+    expect(Object.keys(extractionFacts)).toEqual(verified);
+    for (const version of verified) expect(extractionAt(version).size).toBeGreaterThan(0);
+  });
+
+  it('have no extraction facts for a version that is not verified', () => {
+    expect(() => extractionAt('0.0.0')).toThrow(
+      'the plugin has no extraction facts for Smart Forms template-extract 0.0.0',
+    );
+  });
+
   it('give every fact evidence', () => {
     for (const component of components) {
       for (const fact of factsOf(component)) expect(fact.evidence.length).toBeGreaterThan(0);
     }
+    for (const fact of extraction) expect(fact.evidence.length).toBeGreaterThan(0);
   });
 
   it('cite the source at the release commit', () => {
@@ -75,6 +94,12 @@ describe('runtime facts', () => {
   it('every populate fact has reproduced evidence', () => {
     for (const fact of factsOf('populate')) {
       expect(fact.evidence.map(({ kind }) => kind)).toContain('reproduced');
+    }
+  });
+
+  it('every template-extract fact is reproduced', () => {
+    for (const fact of extraction) {
+      for (const evidence of fact.evidence) expect(evidence.kind).toBe('reproduced');
     }
   });
 
