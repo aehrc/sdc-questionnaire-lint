@@ -23,7 +23,7 @@ export default defineConfig({
 });
 ```
 
-`compat` selects the Smart Forms versions the plugin checks against. It is optional: without it, the plugin checks against `"latest"`, the newest versions this release of the plugin has verified, not the newest on npm. This release verifies renderer 1.4.0, populate 4.7.1 and template-extract 1.0.15. An explicit object names `renderer` and `populate`, and `template-extract` only when template extraction should be checked. An unverified version, or an unknown or missing component, fails the run with `CONFIG_INVALID`. The report names the selected versions in `run.compat`.
+`compat` selects the Smart Forms versions the plugin checks against. It is optional: without it, the plugin checks against `"latest"`, the newest versions this release of the plugin has verified, not the newest on npm. This release verifies renderer 1.4.0, populate 4.7.1 and template-extract 1.0.15. An explicit object names `renderer` and `populate`, and `template-extract` only when template extraction should be checked: `smart-forms/unsupported-template-extract-context` runs only when template-extract is selected, as `"latest"` selects it. An unverified version, or an unknown or missing component, fails the run with `CONFIG_INVALID`. The report names the selected versions in `run.compat`.
 
 ## Rules
 
@@ -37,6 +37,7 @@ export default defineConfig({
 | `smart-forms/repeating-group-variable` | warning | A variable on or below a repeating group whose value differs between repetitions, of which Smart Forms keeps one |
 | `smart-forms/named-expression-not-referenceable` | error | A reference to a named expression that Smart Forms does not make available to other expressions, or a name an answerExpression cannot get |
 | `smart-forms/forward-variable-reference` | warning | A variable that references a variable or itemPopulationContext Smart Forms population evaluates after it |
+| `smart-forms/unsupported-template-extract-context` | error | A templateExtractContext written as a valueExpression, which Smart Forms template extraction ignores because it reads only valueString |
 
 `sdc-lint explain smart-forms/<rule>` prints what a rule checks, why, an example message and the fix. The [rules library](https://github.com/beda-software/sdc-questionnaire-lint/blob/main/docs/rules/index.md) has the same documentation with example forms, and the [Smart Forms rules plan](https://github.com/beda-software/sdc-questionnaire-lint/blob/main/docs/smart-forms-rules.md) the runtime facts behind each rule.
 

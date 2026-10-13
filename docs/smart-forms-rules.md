@@ -4,7 +4,7 @@ Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §
 
 **Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6, and S12 and S17 for P7, on 2026-10-13; P5's design questions were settled on 2026-10-13 ([P5](#settled-in-the-p5-review)), two of P6's the same day ([P6](#settled-in-the-p6-review)), six of P7's ([P7](#settled-in-the-p7-review)), and four of P8's ([P8](#settled-in-the-p8-review)); the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
-P0 to P7 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable`, `unsupported-query-embedding`, `variable-name-collision`, `repeating-group-variable`, `named-expression-not-referenceable` and `forward-variable-reference`, plugin rules receive core's references, each marked conditional where fhirpath.js may skip it, available variables, declarations, dependencies, uses and input reads, the plugin supplies the sourceQueries result names population binds through core's `hostVariables` hook, and population facts, the embedding, sourceQueries, variable storage and evaluation order facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`.
+P0 to P8 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable`, `unsupported-query-embedding`, `variable-name-collision`, `repeating-group-variable`, `named-expression-not-referenceable`, `forward-variable-reference` and `unsupported-template-extract-context`, plugin rules receive core's references, each marked conditional where fhirpath.js may skip it, available variables, declarations, dependencies, uses and input reads, the plugin supplies the sourceQueries result names population binds through core's `hostVariables` hook, and population facts, the embedding, sourceQueries, variable storage and evaluation order facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`, and the template extraction facts against `@aehrc/sdc-template-extract@1.0.15`. Only the optional renderer harness, P9, is left.
 
 ## How to work on a slice
 
@@ -31,7 +31,7 @@ One PR per slice, in this order.
 |  | `smart-forms/repeating-group-variable` | warning | P5 | done |
 | [P6](#p6-smart-formsnamed-expression-not-referenceable) | `smart-forms/named-expression-not-referenceable` | error | H, P4, P5 | done |
 | [P7](#p7-smart-formsforward-variable-reference) | API stage D (`conditional` flag on references), the `sort(…)` crash fix, `smart-forms/forward-variable-reference` (new, S12) | warning | P5, P6 | done |
-| [P8](#p8-smart-formsunsupported-template-extract-context) | Template-extract reproduction harness, `smart-forms/unsupported-template-extract-context` | error | P0 | todo |
+| [P8](#p8-smart-formsunsupported-template-extract-context) | Template-extract reproduction harness, `smart-forms/unsupported-template-extract-context` | error | P0 | done |
 | [P9](#p9-renderer-reproduction-harness-optional) | Renderer reproduction harness; upgrades renderer facts from source-only | – | P1 | optional |
 
 P1 is the tracer bullet: it exercises the plugin package, the compat resolution, the report and the corpus run, and needs only small exports from core. P2 is the first slice that publishes analysis.
@@ -746,6 +746,13 @@ Extraction also skips a template, with a warning, when the response has no item 
 
 **Corpus:** 0. All 28 templateExtractContexts (SDC 19, Smart Forms 9, GP CCMP 0) use `valueString`; 21 item `templateExtract`s, all with a `#id`; 1 root `templateExtract`, with no `template` slice; 1 `templateExtractBundle`, whose contexts no `templateExtract` references. Synthetic fixtures only.
 
+**Settled while building it** (2026-10-13):
+- A `template` slice whose reference is `#` alone is the first `#` slice: template-extract takes the empty id from it and reads no later slice of that extension, so the extension gives no template (reproduced). The reader in `src/templates.ts` copies this with the other selection steps, and `test/templates.test.ts` mirrors each reproduced selection case.
+- Facts: five behaviours in `src/facts/extraction.ts`, keyed by template-extract version (`context-read-only-from-value-string`, `first-context-only`, `template-selection`, `no-context-name`, `template-extract-bundle-unread`), each with reproduced evidence only; the source lines are cited in the module's comments, since the evidence permalinks point at the renderer's and populate's release commit. `templateExtractVersion` in `src/eligibility.ts` is the lookup.
+- A lint case can give a contained resource a `resourceType`, so a template is an inline instance mapped to its FSH line; each case's template has its own id: with one id shared by every case's template, no finding in a template was mapped. A resource contained in the template is written by path, so its finding is not mapped.
+- SUSHI does not write both `valueString` and `valueExpression` on one extension, an Expression with no `language` or with neither `expression` nor `reference`, and a case config cannot set `compat`; those cases are in `test/unsupported-template-extract-context.test.ts`.
+- Corpus: the rule adds no finding in the 66 forms and removes none.
+
 #### Settled in the P8 review
 
 2026-10-13, with a second opinion from Codex.
@@ -920,11 +927,11 @@ All _reproduced_ with `populateQuestionnaire`, a `patient` launchContext and an 
 
 ### Template extraction
 
-Cited at template-extract's release commit `0fca4c36` (S11), where these files are identical to `7e64a22f`. Reproduced against `@aehrc/sdc-template-extract@1.0.15` in the P8 review; P8 adds the reproduction tests.
+Cited at template-extract's release commit `0fca4c36` (S11), where these files are identical to `7e64a22f`. Reproduced against `@aehrc/sdc-template-extract@1.0.15` in `test/reproduction/extract-contexts.test.ts` and `extract-templates.test.ts` (P8).
 
 - templateExtractContext is read only from a truthy `valueString`, and only the first one in each `extension` array (T`walkTemplate.ts:89-111`); otherwise the warning `Template <id>: TemplateExtractContext extension found on <path> but no valueString found.` is returned (T`populateIntoTemplates.ts:46-50,158-161`) and extraction goes on. The values below are evaluated against an enclosing context, or else against the response item of the item that references the template, once per repetition (T`templateExtractPath.ts:50-81`; T`evaluateTemplateExtractPath.ts:35-70`), and the extension is not removed (T`removeTemplateArtifacts.ts:29-35`). `valueString` wins when both are present. No context binds a name: the only names are `%resource`, `%rootResource` and the extractAllocateId names (T`createFhirPathContext.ts:10-19`).
 - templateExtractValue is read only from `valueString` too; a `valueExpression` value is dropped with the same warning text (T`walkTemplate.ts:216-241,358-372`).
-- Templates are found by the first `#id` `template` slice of a `templateExtract` on an item, in the Questionnaire's top-level `contained` (T`templateExtractRef.ts:131-186,228-240`; T`templateMap.ts:43-110`). A root `templateExtract` is keyed `QuestionnaireLevel`, which names no item, so its template is never extracted, without a warning. A template referenced from several items is extracted for the last; a `#id` matching nothing is ignored. `templateExtractBundle` has no reader.
+- Templates are found by the first `#id` `template` slice of a `templateExtract` on an item (a `#` alone is such a slice, and gives no template), in the Questionnaire's top-level `contained` (T`templateExtractRef.ts:131-186,228-240`; T`templateMap.ts:43-110`). A root `templateExtract` is keyed `QuestionnaireLevel`, which names no item, so its template is never extracted, without a warning. A template referenced from several items is extracted for the last; a `#id` matching nothing is ignored. `templateExtractBundle` has no reader.
 
 ### Packages for reproduction
 

@@ -60,6 +60,9 @@ const examples: Readonly<Record<string, { case: string } | { tests: readonly str
     case: 'named-expression-not-referenceable/calculated-expression',
   },
   'smart-forms/forward-variable-reference': { case: 'forward-variable-reference/root-later' },
+  'smart-forms/unsupported-template-extract-context': {
+    case: 'unsupported-template-extract-context/fhirpath-context',
+  },
 };
 
 interface RuleGroup {
