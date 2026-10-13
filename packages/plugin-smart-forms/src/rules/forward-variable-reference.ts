@@ -27,6 +27,10 @@ import {
 // text/fhirpath variables; step 3 the item ones; step 4 the itemPopulationContexts.
 type Position = readonly [step: number, key: number, index: number];
 
+// A Position, 'never' when population does not bind the name, or 'unknown' when an item's linkId
+// makes the order unreliable.
+type Evaluation = Position | 'never' | 'unknown';
+
 const compare = (a: Position, b: Position): number => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
 
 const array = (value: unknown): readonly unknown[] => (Array.isArray(value) ? value : []);
@@ -107,10 +111,10 @@ function keyOrder(document: QuestionnaireDocument): ReadonlyMap<string, number> 
   return new Map(Object.keys(keys).map((key, index) => [key, index]));
 }
 
-// The case a forward reference is, which chooses its message and help.
-type Case = 'same-element' | 'ancestor' | 'population-context';
+// The kind of forward reference, which chooses its message and help.
+type ForwardKind = 'same-element' | 'ancestor' | 'population-context';
 
-const message = (variable: string, name: string, element: string, kind: Case): string =>
+const message = (variable: string, name: string, element: string, kind: ForwardKind): string =>
   kind === 'population-context'
     ? `%${variable} references the itemPopulationContext %${name} on ${element}, which Smart ` +
       `Forms evaluates only after every variable when it prefills the form, so %${variable} has ` +
@@ -123,7 +127,7 @@ function help(
   variable: string,
   name: string,
   element: string,
-  kind: Case,
+  kind: ForwardKind,
   rootWorks: boolean,
 ): string {
   switch (kind) {
@@ -197,20 +201,22 @@ export const forwardVariableReference: LintRule = {
     const reliable = (linkId: string | undefined): linkId is string =>
       linkId !== undefined && linkId !== '__proto__' && linkIdCounts.get(linkId) === 1;
     const keys = keyOrder(document);
-    // Whether a declaration is on the root or an item of this Questionnaire, not in a contained
-    // resource, which population does not evaluate.
+    // Whether a declaration is in the extension array of the root or an item of this
+    // Questionnaire, where population reads variables: not in a modifierExtension, and not in a
+    // contained resource, which population does not evaluate.
     const inForm = ({ item, pointer }: Declaration): boolean => {
       const { resourcePointer } = document;
-      return item === undefined
-        ? pointer.startsWith(`${resourcePointer}/extension/`)
-        : item.pointer.startsWith(resourcePointer) &&
-            /^(\/item\/\d+)+$/.test(item.pointer.slice(resourcePointer.length));
+      return (
+        pointer.startsWith(`${item?.pointer ?? resourcePointer}/extension/`) &&
+        (item === undefined ||
+          (item.pointer.startsWith(resourcePointer) &&
+            /^(\/item\/\d+)+$/.test(item.pointer.slice(resourcePointer.length))))
+      );
     };
 
-    // When population evaluates a declaration: a position, 'never' when it does not bind its name,
-    // or 'unknown' when an item's linkId makes the order unreliable.
-    const positions = new Map<Declaration, Position | 'never' | 'unknown'>();
-    const positionOf = (declaration: Declaration): Position | 'never' | 'unknown' => {
+    // When population evaluates a declaration.
+    const positions = new Map<Declaration, Evaluation>();
+    const positionOf = (declaration: Declaration): Evaluation => {
       let position = positions.get(declaration);
       if (position === undefined) {
         position = evaluatedAt(declaration);
@@ -218,7 +224,7 @@ export const forwardVariableReference: LintRule = {
       }
       return position;
     };
-    const evaluatedAt = (declaration: Declaration): Position | 'never' | 'unknown' => {
+    const evaluatedAt = (declaration: Declaration): Evaluation => {
       const { kind, site, item } = declaration;
       if (
         !inForm(declaration) ||
@@ -228,18 +234,19 @@ export const forwardVariableReference: LintRule = {
       }
       if (kind === 'launchContext') return [1, 0, 0];
       if (site === undefined) return 'never';
+      // A query variable is fetched first, but only with expression text.
+      if (site.language === X_FHIR_QUERY) return site.text ? [1, 0, 0] : 'never';
+      const key =
+        item === undefined ? 0 : reliable(item.linkId) ? keys.get(item.linkId) : undefined;
+      if (key === undefined) return 'unknown';
       if (kind === 'itemPopulationContext') {
         return prerequisitesHold('populate', versions.populate, document, site)
           ? [4, 0, 0]
           : 'never';
       }
-      // A query variable is fetched first, but only with expression text.
-      if (site.language === X_FHIR_QUERY) return site.text ? [1, 0, 0] : 'never';
       const index = extensionOf(document, site)?.holder.index;
       if (index === undefined) return 'never';
-      if (item === undefined) return [2, 0, index];
-      const key = reliable(item.linkId) ? keys.get(item.linkId) : undefined;
-      return key === undefined ? 'unknown' : [3, key, index];
+      return item === undefined ? [2, 0, index] : [3, key, index];
     };
 
     // The names population binds before any FHIRPath, from sourceQueries.
@@ -247,10 +254,11 @@ export const forwardVariableReference: LintRule = {
 
     // How many declarations each name has on each element, of any kind.
     const placeOf = ({ item }: Declaration): string => item?.pointer ?? '';
+    const nameKey = (declaration: Declaration): string =>
+      `${placeOf(declaration)}\n${declaration.name}`;
     const counts = new Map<string, number>();
     for (const declaration of declarations) {
-      const key = `${placeOf(declaration)}\n${declaration.name}`;
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+      counts.set(nameKey(declaration), (counts.get(nameKey(declaration)) ?? 0) + 1);
     }
 
     // Whether from depends on to through the declarations its expression references, at any
@@ -311,7 +319,7 @@ export const forwardVariableReference: LintRule = {
       // fhirpath.js looks names up with in, so an Object property name never fails.
       if (name in Object.prototype) return true;
       // sdc/duplicate-declaration.
-      if ((counts.get(`${placeOf(declaration)}\n${declaration.name}`) ?? 0) > 1) return true;
+      if ((counts.get(nameKey(declaration)) ?? 0) > 1) return true;
       // sdc/reserved-name.
       if (definerOf(name) !== undefined) return true;
       // sdc/dependency-cycle, a self-reference included.
@@ -348,7 +356,7 @@ export const forwardVariableReference: LintRule = {
         if (position === 'never' || position === 'unknown' || compare(position, at) <= 0) continue;
         if (silent(variable, at, declaration, name)) continue;
         reported.add(declaration);
-        const kind: Case =
+        const forward: ForwardKind =
           declaration.kind === 'itemPopulationContext'
             ? 'population-context'
             : placeOf(declaration) === placeOf(variable)
@@ -358,12 +366,12 @@ export const forwardVariableReference: LintRule = {
         ctx.report({
           site,
           range: { startOffset, endOffset },
-          message: message(variable.name, name, element, kind),
+          message: message(variable.name, name, element, forward),
           help: help(
             variable.name,
             name,
             element,
-            kind,
+            forward,
             ctx.readsInput(declaration.site) === false,
           ),
           relatedLocations: [

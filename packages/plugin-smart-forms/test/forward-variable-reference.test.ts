@@ -60,4 +60,32 @@ describe('smart-forms/forward-variable-reference', () => {
   it("stays silent when the declaration's item has no linkId", async () => {
     expect(await findings(form({}, { linkId: 'a' }))).toEqual([]);
   });
+
+  it("stays silent when an itemPopulationContext's item has no linkId", async () => {
+    const content = JSON.stringify(
+      questionnaire({
+        extension: [launch],
+        item: [
+          {
+            type: 'group',
+            extension: [
+              ext(
+                `${sdc}itemPopulationContext`,
+                expression('text/fhirpath', '%patient.name', 'ctx'),
+              ),
+            ],
+            item: [
+              {
+                linkId: 'a',
+                type: 'group',
+                extension: [variable('x', '%ctx.given.first()')],
+                item: [{ linkId: 'q', type: 'string', extension: [initial('%x')] }],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(await findings(content)).toEqual([]);
+  });
 });
