@@ -42,7 +42,7 @@ function* allEvidence(): Generator<Evidence> {
 
 describe('runtime facts', () => {
   it('are collected from every table', () => {
-    expect(tables).toHaveLength(5);
+    expect(tables).toHaveLength(6);
   });
 
   it.each(components)('cover every verified %s version', (component) => {
