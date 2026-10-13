@@ -76,12 +76,11 @@ const isQueryInput = (extension: unknown): boolean => {
 
 // Whether population runs for the form (population-needs-input): it has a root launchContext, a
 // root sourceQueries with a valueReference, or a query variable it fetches, and a subjectType that
-// allows Patient. A form with an item whose linkId is __proto__ fails population altogether.
+// allows Patient.
 function populationRuns(document: QuestionnaireDocument, items: readonly Json[]): boolean {
   const { subjectType, extension } = document.resource;
   const subjects = array(subjectType);
   if (subjects.length > 0 && !subjects.includes('Patient')) return false;
-  if (items.some((item) => item.linkId === '__proto__')) return false;
   const root = array(extension);
   return (
     root.some(isLaunchInput) ||
@@ -191,11 +190,12 @@ export const forwardVariableReference: LintRule = {
     const items = itemsOf(document);
     if (!populationRuns(document, items)) return;
 
-    // A linkId population's order cannot be read from: absent, or on more than one item.
+    // A linkId population's order cannot be read from: absent, on more than one item, or
+    // __proto__, which sets the prototype of population's object instead of adding a key.
     const linkIdCounts = new Map<unknown, number>();
     for (const { linkId } of items) linkIdCounts.set(linkId, (linkIdCounts.get(linkId) ?? 0) + 1);
     const reliable = (linkId: string | undefined): linkId is string =>
-      linkId !== undefined && linkIdCounts.get(linkId) === 1;
+      linkId !== undefined && linkId !== '__proto__' && linkIdCounts.get(linkId) === 1;
     const keys = keyOrder(document);
     // Whether a declaration is on the root or an item of this Questionnaire, not in a contained
     // resource, which population does not evaluate.

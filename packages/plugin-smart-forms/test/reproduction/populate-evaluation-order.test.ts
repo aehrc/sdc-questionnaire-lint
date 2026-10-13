@@ -271,11 +271,26 @@ describe('populate 4.7.1 evaluation order with duplicate linkIds', () => {
     expect(context?.x).toEqual(['first']);
   });
 
-  it('fails population altogether for a form with an item whose linkId is __proto__', async () => {
-    const { success, response } = await populateWith({
+  // The key __proto__ sets the prototype of population's object instead of adding a key.
+  it('never evaluates the variables of an item whose linkId is __proto__', async () => {
+    const { success, issues, context } = await populateWith({
       item: [
-        holder('__proto__', [fhirPathVariable('x', "'proto'")], [{ linkId: 'a', type: 'string' }]),
+        holder(
+          'g',
+          [],
+          [{ linkId: '__proto__', type: 'string', extension: [fhirPathVariable('x', "'proto'")] }],
+        ),
       ],
+    });
+    expect(success).toBe(true);
+    expect(issues).toEqual([undefinedVariable('x')]);
+    expect(context).not.toHaveProperty('x');
+  });
+
+  // Adding display text reads answerOptions['__proto__'], Object.prototype, and calls its map.
+  it('fails population when the response gets an item whose linkId is __proto__', async () => {
+    const { success, response } = await populateWith({
+      item: [holder('__proto__', [], [{ linkId: 'a', type: 'string' }])],
     });
     expect(success).toBe(false);
     expect(response).toBeUndefined();

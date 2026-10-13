@@ -54,7 +54,8 @@ import { type Component, type FactTable, factsAt } from './versions.js';
 //   not yet bound fails with an OperationOutcome warning and leaves the variable unset; one to a
 //   name bound earlier silently reads that value. fhirpath.js skips an iif branch, a coalesce
 //   argument after a non-empty one and a predicate over an empty collection, so a reference there
-//   need not fail. A form with an item whose linkId is __proto__ is not populated at all.
+//   need not fail. The variables of an item whose linkId is __proto__ are never evaluated, and a
+//   response item with that linkId fails population altogether.
 // - population-needs-input: population runs only when the form has a root launchContext with name
 //   and type sub-extensions, found by URL, a root sourceQueries with a valueReference, or an
 //   application/x-fhir-query variable with a name and expression text on the root or an item, and
@@ -277,7 +278,8 @@ const populate471: readonly VariableFact[] = Object.freeze([
     ),
     duplicateTest('replaces them with none when the later item has an empty extension array'),
     duplicateTest('keeps them when the later item has no extension property'),
-    duplicateTest('fails population altogether for a form with an item whose linkId is __proto__'),
+    duplicateTest('never evaluates the variables of an item whose linkId is __proto__'),
+    duplicateTest('fails population when the response gets an item whose linkId is __proto__'),
   ),
   fact(
     'population-needs-input',
