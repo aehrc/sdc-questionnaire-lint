@@ -2,7 +2,7 @@
 
 Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §2.1, §2.3, §4.2, §4.3 and §5, and the [plugin follow-ups](core-rules.md#plugin-follow-ups-not-in-this-plan) of the core rules plan. Researched on 2026-10-09 against Smart Forms commit `7e64a22f` (renderer 1.4.0, sdc-populate 4.7.1, sdc-template-extract 1.0.15). Revised the same day after a review: its runtime claims were checked against the source, and the population claims were reproduced with the published `@aehrc/sdc-populate@4.7.1`.
 
-**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6 on 2026-10-13; P5's design questions were settled on 2026-10-13 ([P5](#settled-in-the-p5-review)), and two of P6's the same day ([P6](#settled-in-the-p6-review)); the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
+**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6, and S12 and S17 for P7, on 2026-10-13; P5's design questions were settled on 2026-10-13 ([P5](#settled-in-the-p5-review)), two of P6's the same day ([P6](#settled-in-the-p6-review)), and six of P7's ([P7](#settled-in-the-p7-review)); the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
 P0 to P6 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable`, `unsupported-query-embedding`, `variable-name-collision`, `repeating-group-variable` and `named-expression-not-referenceable`, plugin rules receive core's references, available variables, declarations, dependencies, uses and input reads, the plugin supplies the sourceQueries result names population binds through core's `hostVariables` hook, and population facts, the embedding, sourceQueries and variable storage facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`.
 
@@ -30,7 +30,7 @@ One PR per slice, in this order.
 | [P5](#p5-smart-formsvariable-name-collision-and-smart-formsrepeating-group-variable) | API stage C (`dependenciesOf`, `useOf`, `readsInput`, `definerOf`), item linkIds for pointer locations, `smart-forms/variable-name-collision` | error | H, P4 | done |
 |  | `smart-forms/repeating-group-variable` | warning | P5 | done |
 | [P6](#p6-smart-formsnamed-expression-not-referenceable) | `smart-forms/named-expression-not-referenceable` | error | H, P4, P5 | done |
-| [P7](#p7-smart-formsforward-variable-reference) | `conditional` flag on references, `smart-forms/forward-variable-reference` (new, S12) | warning | P5 | todo |
+| [P7](#p7-smart-formsforward-variable-reference) | API stage D (`conditional` flag on references), the `sort(…)` crash fix, `smart-forms/forward-variable-reference` (new, S12) | warning | P5, P6 | todo |
 | [P8](#p8-smart-formstemplate-extract-context-string-only) | Template-extract reproduction harness, suppression by exact pointer, `smart-forms/template-extract-context-string-only` | error | P0 | todo |
 | [P9](#p9-renderer-reproduction-harness-optional) | Renderer reproduction harness; upgrades renderer facts from source-only | – | P1 | optional |
 
@@ -185,12 +185,13 @@ Each fact names its evidence (S4, S10). When a harness exists, the evidence is a
 | B | P2 | `referencesAt(site)`, `variablesAt(site)`; replaces the `scopeAt` stub and `Scope` | `VariableReference { name, startOffset, endOffset, complete }`; `AvailableVariables` with `resolve(name)` giving `{ name, origin, declaration? }`; `Variable`; `Declaration { name, kind, pointer, item?, useCases, site? }` |
 | B2 | H | `declarations`: every declaration in the document, in document order, frozen; identical to the objects `variablesAt` resolves to | – |
 | C | P5 | `dependenciesOf(declaration)`, `useOf(declaration)`, `readsInput(site)` | `Dependencies`, `DeclarationUse`; `definerOf` and `BuiltinDefiner` |
+| D | P7 | – | `VariableReference.conditional` |
 
 - **Empty versus unavailable.** `referencesAt` returns `undefined` when the site has no FHIRPath analysis (a non-FHIRPath site, or text that does not parse) and `[]` when it parses and references nothing. `variablesAt` returns `undefined` for an uncatalogued site. Both return `undefined` for an object that is not one of `ctx.sites`. Document both; a rule treats `undefined` as "cannot check", never as "no references".
 - Stage B is a breaking contract change (`scopeAt` goes) and lifts D15 and D18. Core and the plugin stay at 0.1.0, and the peer range at `^0.1.0`, before the first release: core is unreleased, so 0.1.0 is the version that ships stage B, and a core without `referencesAt` fails the plugin's rule with `RULE_CRASH`. The GLOSSARY rename D15 deferred is done.
 - `readsInput(site)` is in core because core owns the parser; the plugin takes no `fhirpath` dependency. Its definition is in [P5](#p5-smart-formsvariable-name-collision-and-smart-formsrepeating-group-variable). It returns `boolean | undefined`: `undefined` for a site with no FHIRPath analysis or not in `ctx.sites`, like `referencesAt`. `definerOf(name)` is exported so a plugin rule can stay silent where `sdc/reserved-name` reports (S9) without copying core's list of built-in names.
 - The arrays a rule receives, `sites` and `declarations`, are frozen, not only their elements (H).
-- P7 adds a `conditional` flag to `VariableReference`: the reference is inside an `iif` branch, so it may not be evaluated.
+- P7 adds a `conditional` flag to `VariableReference` (stage D): fhirpath.js may skip evaluating the reference, because it is in an `iif` branch, a later `coalesce` argument or an argument evaluated per item of its target. The positions are listed in [P7](#p7-smart-formsforward-variable-reference).
 - Not planned: a completion hook, rule options, an item-tree API, inline config. A plugin reads an item by resolving `site.item.pointer` against `document.resource` (strip `document.resourcePointer` first); put that helper in the plugin.
 
 ### Site eligibility
@@ -606,17 +607,85 @@ At an answerExpression the renderer reads:
 
 ### P7. `smart-forms/forward-variable-reference`
 
-Decisions: S12, D8. New rule, not in core-plan §4.2.
+Decisions: S1, S4, S5, S9, S10, S12, S17, D8. New rule, not in core-plan §4.2. Uses P6's `src/stored-names.ts` and stage C. Reviewed on 2026-10-13 against `7e64a22f`, with a second opinion from Codex: the population claims were reproduced against `@aehrc/sdc-populate@4.7.1` with probe forms; the renderer claims are `source-only` until P9. Six questions were settled the same day ([below](#settled-in-the-p7-review)); the overrides are in [plan-amendments.md](plan-amendments.md).
 
-- **Warning.** A variable references a variable that population evaluates later, or an itemPopulationContext name. Populate fails the reference and adds an OperationOutcome warning, so the variable gets no value during population.
-- Order (populate): supplied names (launchContexts, sourceQueries Bundles, x-fhir-query variables on the root and on items, all fetched first); root FHIRPath variables in array order; item FHIRPath variables, items in post-order with integer-like linkIds first and array order within an item; itemPopulationContexts; initialExpressions.
-- A child item's variable that references an ancestor item's variable is a forward reference, because of the post-order.
-- x-fhir-query variable names are never forward references: populate fetches them first, and the renderer presets them to `[]`.
-- Add the `conditional` flag to `VariableReference` and skip references inside an `iif` branch.
-- The renderer is not the basis of the finding. From source, it evaluates with the context of the previous update, so it may use a stale value; this is not reproduced (P9).
-- Message: `%{name} is evaluated after %{declaration} when Smart Forms prefills the form, so %{declaration} gets no value then.` Help: `move %{name} to the Questionnaire root or before %{declaration}`.
-- Tests: populate reproduction of a root variable referencing a later root variable, and of a child item variable referencing its parent's; negative for x-fhir-query names and `iif` branches.
-- Corpus: GP CCMP 0, SDC 0 (regex-based check; confirm with the rule).
+**Population order** (P`createFhirPathContext.ts:68-153,199-214`; P`populate.ts:81-111`; P`readPopulationExpressions.ts:53-63`; P`evaluateExpressions.ts:126-153`; reproduced):
+1. Supplied names: the launch resources, the sourceQueries results and the `application/x-fhir-query` variables with a name and expression text, on the root and on items, all bound before any FHIRPath is evaluated.
+2. Root `text/fhirpath` variables, in array order.
+3. Item `text/fhirpath` variables, only when the root has extensions (`:126-128`). Population collects them into a plain object keyed by linkId, filled in post-order (an item after its child items), for every item with an `extension` property, and evaluates them in `Object.keys` order: integer-like keys (canonical decimal strings from `0` to `4294967294`) first, in ascending numeric order, then the others in order of first insertion. Within an item, array order. A later item with a duplicate linkId keeps the first one's position and replaces its variables when it has an `extension` property, even `extension: []`; without one, the earlier item's variables stay. A linkId of `__proto__` sets the object's prototype instead of a key.
+4. The itemPopulationContexts population reads, keyed by name, filled in pre-order.
+5. initialExpressions.
+
+A reference fails when its name is not yet bound: fhirpath.js throws "Attempting to access an undefined environment variable", populate catches it, adds an OperationOutcome warning (`invalid`) and leaves the variable's name unset, and population still succeeds (P`createFhirPathContext.ts:250-264`). Every later expression that reads the variable fails in turn. When the name is already bound by something evaluated earlier, nothing fails: the reference silently reads that value (reproduced: a root `y` read instead of an item `y`; an earlier declaration read instead of a later one). fhirpath.js looks names up with `in` (`fhirpath.js:332`), so an Object property name such as `%constructor` or `%toString` never fails.
+
+Reproduced examples: a child `a` reading its group `g`'s variable fails; a child `a` or `1.1` of group `1` gets the value, because `1` is integer-like and comes first; a child `1` of group `2`, or `2` of group `10`, fails.
+
+**Core API: `VariableReference.conditional` (stage D).** True when fhirpath.js 4.10.1 may skip evaluating the reference, so a failure is not certain. Positions:
+- an argument of `iif` after the criterion, in function and method form;
+- an argument of `coalesce` after the first: it stops at the first non-empty one;
+- an argument evaluated once per item of its target, so skipped on an empty one: `where`, `select`, `exists`, `all`, `repeat`, the first of `aggregate`, and `sort`'s selectors, which are skipped on a single item, and of which later ones run only for ties (`filtering.js:171`).
+
+The flag passes down to every reference below such an argument: a nested `iif`, or a function inside a branch. A call whose name is escaped, so `toCall` returns `undefined`, counts as conditional. Never conditional: the `iif` criterion, the operands of `and`, `or`, `xor`, `implies` and every other operator, `combine` and `union` arguments, `trace`'s projection, `defineVariable`'s value and `aggregate`'s second argument, all evaluated eagerly (reproduced: `false and %fwd`, `{}.combine(%fwd)` and `defineVariable('z', %fwd)` on `{}` fail).
+- Compute it in `findVariableReferences` (`analysis/fhirpath.ts:240-274`), passing the flag down through `visit`. Do not reuse `itemArguments` (`:489`) as it is: it also marks the `iif` criterion, `trace`'s projection and `defineVariable`'s value, which answer `readsInput`'s question, not this one.
+- Fix the `sort(…)` crash in the same change (P5, "Not fixed here"): `toCall` throws on sort's parse shape, a `Functn` with only `SortDirectionArgument` children, in both `findFunctionCalls` and `findVariableReferences`, and `findVariableReferences` visits only `ParamList`, so it must also visit those children. Tests: `(1|2).sort($this)` and `(1|2).sort(%x)` lint without a crash, and `%x` is a conditional reference.
+- Additive: the report, the schema, fingerprints and suppressions do not change. No existing rule uses it: P2 and P6 report every complete reference.
+
+**Population runs only** when the form has a root launchContext population reads, a root sourceQueries with a `valueReference`, or an `application/x-fhir-query` variable with a name and expression text (PI`inputParameters.ts:70-76,96-180`; reproduced in `populate-prerequisites.test.ts`). Otherwise the rule reports nothing.
+
+**Rule (warning).** The referencing variable is a `text/fhirpath` `variable` that `readBy` gives to populate and that population evaluates (`storedName(ctx, versions, declaration, ['populate'])`, which already leaves out item variables when the root has no extensions). Its references come from `ctx.referencesAt(site)`: complete, not conditional, and resolved by `variablesAt` to a declaration. Not from `dependenciesOf`, which drops ranges and flags. A reference is forward when the declaration it resolves to is:
+- (a) a root `text/fhirpath` variable later in array order, read from a root variable;
+- (b) a `text/fhirpath` variable later in array order on the same item (D8);
+- (c) a `text/fhirpath` variable on an ancestor item whose linkId comes after the referencing item's in population's key order. Build that order as population does: a plain object filled in post-order, `object[linkId] = …` for each item with an `extension` property, read with `Object.keys`;
+- (d) an itemPopulationContext population reads (`populationReadsContext`), on the referencing variable's item or an ancestor: every itemPopulationContext is evaluated after every variable.
+
+Never forward: an `application/x-fhir-query` variable, a launchContext or a sourceQueries result, all bound first (the renderer also presets query names to `[]`); a root variable read from an item. Out of scope: an initialExpression, evaluated last; an itemPopulationContext, read in pre-order, so a parent's before its child's; calculatedExpression and the other renderer-only sites, which population does not evaluate. A sibling, cousin or root-to-item reference resolves to nothing in core and is `sdc/undefined-variable`'s.
+
+**Population consumer** (decision M). Report only when population uses the referencing variable's value: an initialExpression or itemPopulationContext that population reads (`readBy`) references it, directly or through a chain of variables population evaluates. Without one, the only effect is the OperationOutcome warning. Do not use `useOf`: it also counts renderer-only consumers.
+
+**Silent**, by checking each condition itself (S9):
+- the name is bound before the referencing variable is evaluated: by another stored declaration of the name that population evaluates earlier, a launchContext under its Smart Forms name, a sourceQueries result, or an `application/x-fhir-query` variable with a name and expression text, anywhere in the form. The reference then reads that value, and `variable-name-collision` reports the pair. Decide from the form, not from that rule's setting. `storedName` accepts a query variable without text, which population does not fetch: check the text;
+- the name is an Object property name, such as `constructor` or `toString`, so fhirpath.js finds it with `in`;
+- the name is declared more than once on the declaration's element: `sdc/duplicate-declaration`;
+- `definerOf(name)` is defined: `sdc/reserved-name`;
+- the reference is an edge of a dependency cycle: the declaration depends, through `dependenciesOf`, on the referencing variable, a self-reference (D25) included. `sdc/dependency-cycle` reports it, and reordering cannot fix it. Another forward reference in the same variable is still reported;
+- population does not store the declaration: a `text/cql` variable (P1), a named expression or an itemPopulationContext population does not read (P6), or a replaced itemPopulationContext (P5);
+- the referencing item or the declaration's item has no linkId, a linkId another item also has, or the linkId `__proto__`: population's order is not the document's, and the Validator reports the first two.
+
+Co-firing with `repeating-group-variable` on a later variable on the same item (P5 decision E) is allowed (decision L, S9): reordering fixes population, while every repetition still shares one value.
+
+**Location.** One finding per referencing variable and resolved declaration, at the range of its first eligible reference (decision N). Related locations: the declaration, `%{name} is declared here`, then the first population consumer, `this prefill expression uses %{variable}`.
+
+**Messages**, with `{variable}` the referencing variable's name, `{name}` the referenced one, and `{element}` from `elementName` of the declaration's element:
+- (a), (b), (c): `%{variable} references %{name} on {element}, which Smart Forms evaluates after %{variable} when it prefills the form, so %{variable} has no value while the form is prefilled.`
+- (d): `%{variable} references the itemPopulationContext %{name} on {element}, which Smart Forms evaluates only after every variable when it prefills the form, so %{variable} has no value while the form is prefilled.`
+- Help:
+  - (a), (b): `move %{name} before %{variable} on {element}`;
+  - (c): `compute the value in %{variable} itself`, with `, or declare %{name} on the Questionnaire root` when `readsInput` is false for the declaration's site: root variables are evaluated against the response, not the item;
+  - (d): `compute %{variable} from the itemPopulationContext's expression instead of %{name}, or read %{name} only in initialExpressions`.
+
+**The renderer is not the basis of the finding** (source-only, kept out of the message under S10). Its first pass starts from `{}`, so the reference throws, and the error is caught with a console warning. After `additionalContext` is merged, the variable reads the later variable's value from the previous update, through every iteration of the calculation loop, so it may recover with a stale value (R`utils/fhirpath.ts:193-197,295-297`; R`utils/calculatedExpression.ts:838-856`; R`stores/questionnaireStore.ts:267`; R`utils/manageForm.ts:149`; R`utils/questionnaireStoreUtils/createQuestionnaireModel.ts:130,153`).
+
+**Facts** in `src/facts/variables.ts`: `population-evaluation-order` (populate 4.7.1, reproduced: the five steps and the key order), `population-needs-input` (populate 4.7.1, reproduced) and the renderer's stale forward read (renderer 1.4.0, source-only). Make the comment "Items are evaluated children first, so an ancestor's value reaches a descendant" cite the order fact.
+
+**Tests.**
+- Positive: (a); (b) on the root and on an item; (c) with child `a` of group `g`, a grandchild and its grandparent, child `1` of group `2`, child `2` of group `10`; (d) from the group's own variable and from a descendant's; an `iif` criterion; an `and` operand; a `combine` argument; a consumer through a chain of variables; two references to one name (one finding); references to two later names (two findings); a co-fire with `repeating-group-variable`.
+- Negative: an earlier variable; an item variable reading a root variable; child `a`, `b` or `1.1` of group `1`; a later `application/x-fhir-query` variable, on the root and on an item; a launchContext; a sourceQueries result; an `iif` branch in function, method and nested form; a later `coalesce` argument; a `where` over `%resource`; a `sort` selector; no population consumer; a consumer only the renderer reads (a calculatedExpression); a form population does not run for; a root without extensions; a name bound earlier by a root variable of the same name, a launchContext or a query variable; `%constructor`; each silence above with its core rule off; a `text/cql` referencing variable; text that does not parse; an incomplete reference; a suppressed finding.
+- Reproductions against populate 4.7.1 in `test/reproduction/`: (a) with a dependent initialExpression left empty; (b); (c) with `g`/`a` failing, `1`/`a` and `1`/`1.1` succeeding, and `2`/`1` failing; (d); an `iif` branch with no issue against an `iif` criterion with one; `coalesce`; a `where` over `%resource`; a name bound earlier by a launchContext or a `#id` Bundle giving that value; the duplicate-linkId cases; a form with no input that population does not run.
+
+**Docs:** README rule table, the rules-library example (`docs/.vitepress/rules.ts`), `meta.docs` known limitations (references at conditional positions, the renderer, a root without extensions), architecture.md and GLOSSARY "Reference" for `conditional`, the comments on `VariableReference` and `referencesAt`, and core-rules.md's plugin follow-up for D8 and its "Forward references" runtime bullets, marked applied in P7.
+
+**Corpus:** 0 in all 66 forms, GP CCMP included, from a scan in population's order (470 variables, 34 itemPopulationContexts population reads, 485 references from variables to declarations; no ancestor reference that only the integer-like order makes safe). Evidence is synthetic only. The Smart Forms corpus snapshot predates P5 and P6 and shows their 6 findings as added: refresh it in its own commit before the rule, so P7's diff shows only P7.
+
+#### Settled in the P7 review
+
+2026-10-13, with a second opinion from Codex.
+
+- **I. S12 and S17 are accepted, amended.** The renderer may recover with a stale value, not "still produces a value"; `conditional` means that evaluation may be skipped, not only an `iif` branch.
+- **J. `conditional` covers every position fhirpath.js may skip** (the list above). Rejected: `iif` branches only, with the rest a known limitation: population's `%resource` is an empty response, so a `where` over it never evaluates its predicate.
+- **K. References at conditional positions are not reported.** Rejected: a hedged message, as P2 has, which would report references an author deliberately put behind a branch and predicates over the empty response. Listed as a known limitation.
+- **L. Co-firing with `repeating-group-variable` is allowed;** S9 lists the pair. Rejected: silencing P7 there. The findings state different consequences with different fixes.
+- **M. A finding needs a population consumer.** Rejected: reporting every forward reference, whose only effect would be an OperationOutcome warning, and `useOf`, which counts renderer-only consumers.
+- **N. One finding per referencing variable and resolved declaration,** at its first eligible reference. Rejected: one per reference, as P2 and P6 do: every reference to one later declaration needs the same fix.
 
 ### P8. `smart-forms/template-extract-context-string-only`
 
@@ -650,7 +719,7 @@ Runs only when `template-extract` is selected in `compat` (S3).
 
 ## Decisions
 
-Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6 on 2026-10-13; they are recorded in [plan-amendments.md](plan-amendments.md). The others are proposals.
+Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6, and S12 and S17 for P7, on 2026-10-13; they are recorded in [plan-amendments.md](plan-amendments.md). The others are proposals.
 
 ### Model
 
@@ -658,7 +727,7 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
   _Why:_ this is the pipeline the app runs when it works, and a rule that assumed the renderer alone would report every itemPopulationContext reference in GP CCMP. Suppressions remove false findings in other integrations, but cannot add findings S14 omits for them, which is why those targets are deferred rather than claimed.
 - **S2. Plugin rules map a location to a component through the runtime facts, never through `site.useCases`.**
   _Why:_ D20 made use cases follow the SDC table, not Smart Forms' evaluators. Populate evaluates initialExpression without a language check although SDC files it under both rendering and population.
-- **S9. A plugin rule stays silent where a core rule or the Validator reports the same root cause, by checking the condition itself, never whether that rule ran.** Co-firing is allowed only when the two findings state different facts with different fixes: `variable-name-collision` with `sdc/shadowed-declaration`, embedding checks 1–5 with `sdc/fragment-parse-error`, and `template-extract-context-string-only` with `sdc/uncatalogued-expression`.
+- **S9. A plugin rule stays silent where a core rule or the Validator reports the same root cause, by checking the condition itself, never whether that rule ran.** Co-firing is allowed only when the two findings state different facts with different fixes: `variable-name-collision` with `sdc/shadowed-declaration`, embedding checks 1–5 with `sdc/fragment-parse-error`, `forward-variable-reference` with `repeating-group-variable` (P7 review, decision L), and `template-extract-context-string-only` with `sdc/uncatalogued-expression`.
   _Why:_ one root cause should produce one finding, and a plugin finding must not appear or disappear when a core rule is turned off.
 - **S14. Within S1, `named-expression-not-referenceable` does not report populate-only names at renderer sites, except at an answerExpression.**
   _Why:_ after a successful population they reach the renderer through `additionalContext`. An answerExpression gets a context of its own, which `additionalContext` never reaches (P6 review).
@@ -688,7 +757,7 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
 - **S10. Every runtime fact has a reproduction test against the pinned npm package where a harness exists.** Populate runs in plain Node ESM; template-extract through its CJS build; the renderer needs jsdom (P9). Until a harness exists, a fact is `source-only` with a permalink, and a message based on it claims only what the source shows.
   _Why:_ core-plan §2.1 asks for reproduction tests. Reproduction corrected several facts in this plan's first draft: item query variables, sourceQueries naming, the embedding replacement.
 - **S12. Add `smart-forms/forward-variable-reference` (warning) for the D8 follow-up.**
-  _Why:_ it is a different failure from a collision or an unexposed name, with a different fix. Warning, because the demonstrated failure is during population; the renderer still produces a value, possibly a stale one.
+  _Why:_ it is a different failure from a collision or an unexposed name, with a different fix. Warning, because the demonstrated failure is during population; the renderer may recover, with a stale value (P7 review, decision I).
 - **S13. A host-supplied `%questionnaire` or `%qitem` is handled by a suppression with a reason.** From P4, config `hostVariables` rejects both names, and its help points here. A host can supply `%qitem` correctly only when every expression that uses it is on one item. This does not apply to an answerExpression: the renderer builds its context from the name before the first `.` alone, so `additionalContext` never reaches it, and its finding has no suppression note.
   _Why:_ `hostVariables` cannot express it (config rejects built-in names) and names no component, and rule options are not built (S7).
 - **S15. No rule for the answerExpression fallback or for `%context` being `{}`.** The names an answerExpression references are checked by P6 (P6 review, decision H); the fallback itself is not. The fallback runs only when answerValueSet produced no codings, supplies only the first `%name` found by string operations, and has one FHIRPath answerExpression in the corpus. `%context` is `{}` at most renderer and populate evaluators, but the result is a silent empty value and the corpus has no real case. Record both as facts; revisit with corpus evidence.
@@ -699,13 +768,13 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
   - `x-fhir-query-embedding-shape` → `unsupported-query-embedding`: "shape" does not say what is wrong.
   - `flat-variable-context` → `variable-name-collision`: names the author's problem; "flat variable context" stays the glossary term for the runtime behaviour.
   - The new D8 rule is `forward-variable-reference`, not `variable-evaluation-order`.
-  The reference flag is `conditional`, not `lazy`: it marks a reference inside an `iif` branch, which is narrower than the "lazy branches" core-rules.md describes. Use the glossary terms available variables, declarations, host variables and expression sites throughout.
+  The reference flag is `conditional`, not `lazy`: it marks a reference fhirpath.js may not evaluate, at the positions P7 lists, and nothing about whether the branch is meant to guard it (P7 review, decision I). Use the glossary terms available variables, declarations, host variables and expression sites throughout.
 
 ## Open items
 
 | Item | Blocks |
 | :- | :- |
-| Review and accept S8, S12 and S15–S17; record the accepted overrides in plan-amendments.md. | The first slice that cites each one. |
+| Review and accept S8, S15 and S16; record the accepted overrides in plan-amendments.md. | The first slice that cites each one. |
 | Smart Forms-specific Expressions outside the core catalogue (binding-parameter expression, QuestionnaireItemTextAriaLabelExpression, calculatedExpression on `_text` and `_prefix`) cannot be targeted without an extension URL on uncatalogued sites. Add one, or catalogue them in the plugin? | Nothing in v1. |
 | Should P3 check embeddings in sourceQueries Bundle `request.url` through pointer findings (possible after P8)? 25 embeddings in 5 corpus forms, all fine. | Nothing in v1. |
 | Renderer-only and extraction-only targets (S1): an explicit `compat` without populate, and the findings S14 omits for such hosts. | Nothing in v1. |
@@ -717,7 +786,6 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
 | A plugin diagnostic for a sourceQueries reference population never binds: a `#id` with no first contained Bundle with `entry`, an empty or display-only reference, `#%x`. A pointer finding at the extension, so suppressible only after P8. It cannot prove every binding failure: a fetched reference can still fail at run time. | Nothing in v1. |
 | In the app, `%<sourceQueries Bundle>.entry.resource` is always empty (P4): population fills entries only from a `{ data }` callback. A finding or a note for expressions that read it, until upstream fixes it? All 48 `%PrePopQuery` references in the corpus do. | Nothing in v1. |
 | Host names, from config or a plugin, are available at extraction sites (D19), but template-extract receives none. Report them at extraction sites when template carriers become sites, or in a template-extract rule. | Nothing in v1. |
-| Fingerprints collide for two findings of one rule at one site (`%foo & %bar`). Add the reported span text and an occurrence number to the fingerprint identity, and state that a fingerprint is unique within a report ([#31 comment](https://github.com/beda-software/sdc-questionnaire-lint/issues/31)). | SARIF (#31). |
 | `run.rules` (rule metadata, effective severities, `docsUrl`) and a config-only `run.hostVariables` in the report, or SARIF renders the report plus the rule set. Copy `meta.docsUrl` into findings. | SARIF (#31). |
 | The report schema's `smartFormsVersions` hard-codes renderer and populate. Use a generic component-to-version map, and keep required components in compat resolution. | The first release. |
 | Remove `RuleContext.options`, always `undefined` under S7; show the resolved compat in `explain`. | The first release. |
