@@ -401,7 +401,7 @@ Each decision is listed under its topic and keeps its original number.
 ## Plugin follow-ups (not in this plan)
 
 - A plugin hook for supplied names. With it, the Smart Forms plugin supplies its own host variables: the sourceQueries result names it reads from the form (`%<Bundle id>`, `%sourceQuery<index>`). Core's resolution then accepts names from `hostVariables` and from plugins alike, still without knowing any host's conventions (D1, D16). Accepted as S6 and planned in the Smart Forms plugin's P4. The `additionalContext` names an application passes are not supplied by the plugin: they belong to that application, so they stay in config `hostVariables` (D1).
-- An eagerly evaluated reference to a later variable can fail in Smart Forms when there is no earlier binding that was supplied or fetched (D8). Tell this apart from lazy branches, and from x-fhir-query contexts that are fetched first.
+- An eagerly evaluated reference to a later variable can fail in Smart Forms when there is no earlier binding that was supplied or fetched (D8). Tell this apart from lazy branches, and from x-fhir-query contexts that are fetched first. Done in the Smart Forms plugin's P7: `smart-forms/forward-variable-reference`, with core's `VariableReference.conditional` for the lazy positions.
 - Smart Forms ignores `text/x-fhir-query` (D11) at filtering locations, and `application/x-fhir-query` everywhere except `variable`; it evaluates either as FHIRPath at targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext. Done in the Smart Forms plugin's P1: `smart-forms/unsupported-expression-language` and `smart-forms/expression-evaluated-as-fhirpath`.
 - sdc-populate skips item variables when the Questionnaire root has no extensions.
 - Template-extract evaluates no Questionnaire `variable`s, as SDC $extract specifies (D19). This is not a compatibility gap.
@@ -521,7 +521,7 @@ These facts were verified by running fhirpath.js on 2026-10-08.
 These facts matter for the plugin, not for core.
 
 - Variables share one flat namespace: one value for each name for the whole form. Root variables are evaluated in array order; item variables in post-order of items, with integer-like linkIds first, and in the renderer once for each repetition, each overwriting the name ([Smart Forms rules plan, P5](smart-forms-rules.md#variable-storage-and-order)).
-- **Forward references.**
+- **Forward references.** Applied in the Smart Forms plugin's P7 (`smart-forms/forward-variable-reference`).
   - An eagerly evaluated forward reference fails when the name is not in the supplied context.
   - Population fetches x-fhir-query contexts before FHIRPath variables, so a reference to one of those names is not necessarily a failing forward reference.
   - Renderer reevaluation can keep an earlier value.

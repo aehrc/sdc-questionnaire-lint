@@ -178,8 +178,8 @@ export const forwardVariableReference: LintRule = {
         'not reported when something population binds earlier supplies the name, which ' +
         'smart-forms/variable-name-collision reports; when the referenced declaration is ' +
         'declared twice on its element, reserved, part of a dependency cycle or not stored by ' +
-        'population, which other rules report; or when an item involved has no linkId or a ' +
-        'duplicate one. The population facts are reproduced against sdc-populate.',
+        'population, which other rules report; or when an item involved has no linkId, a ' +
+        'duplicate one or the linkId __proto__. The population facts are reproduced against sdc-populate.',
     },
   },
   check(ctx) {

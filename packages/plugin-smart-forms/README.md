@@ -36,6 +36,7 @@ export default defineConfig({
 | `smart-forms/variable-name-collision` | error | A name declared on two elements, or named like a sourceQueries result, which Smart Forms stores as one value |
 | `smart-forms/repeating-group-variable` | warning | A variable on or below a repeating group whose value differs between repetitions, of which Smart Forms keeps one |
 | `smart-forms/named-expression-not-referenceable` | error | A reference to a named expression that Smart Forms does not make available to other expressions, or a name an answerExpression cannot get |
+| `smart-forms/forward-variable-reference` | warning | A variable that references a variable or itemPopulationContext Smart Forms population evaluates after it |
 
 `sdc-lint explain smart-forms/<rule>` prints what a rule checks, why, an example message and the fix. The [rules library](https://github.com/beda-software/sdc-questionnaire-lint/blob/main/docs/rules/index.md) has the same documentation with example forms, and the [Smart Forms rules plan](https://github.com/beda-software/sdc-questionnaire-lint/blob/main/docs/smart-forms-rules.md) the runtime facts behind each rule.
 
