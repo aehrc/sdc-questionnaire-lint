@@ -2,7 +2,7 @@
 
 Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §2.1, §2.3, §4.2, §4.3 and §5, and the [plugin follow-ups](core-rules.md#plugin-follow-ups-not-in-this-plan) of the core rules plan. Researched on 2026-10-09 against Smart Forms commit `7e64a22f` (renderer 1.4.0, sdc-populate 4.7.1, sdc-template-extract 1.0.15). Revised the same day after a review: its runtime claims were checked against the source, and the population claims were reproduced with the published `@aehrc/sdc-populate@4.7.1`.
 
-**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12; P5's design questions were settled on 2026-10-13 ([P5](#settled-in-the-p5-review)); the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
+**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6 on 2026-10-13; P5's design questions were settled on 2026-10-13 ([P5](#settled-in-the-p5-review)), and two of P6's the same day ([P6](#settled-in-the-p6-review)); the other decisions are proposals until reviewed. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
 P0 to P5 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable`, `unsupported-query-embedding`, `variable-name-collision` and `repeating-group-variable`, plugin rules receive core's references, available variables, declarations, dependencies, uses and input reads, the plugin supplies the sourceQueries result names population binds through core's `hostVariables` hook, and population facts, the embedding, sourceQueries and variable storage facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`.
 
@@ -29,7 +29,7 @@ One PR per slice, in this order.
 | [P4](#p4-supplied-names-hook) | Supplied-names hook, `PLUGIN_CRASH`, built-in names rejected in config `hostVariables`; the plugin supplies sourceQueries result names | – | P0 | done |
 | [P5](#p5-smart-formsvariable-name-collision-and-smart-formsrepeating-group-variable) | API stage C (`dependenciesOf`, `useOf`, `readsInput`, `definerOf`), item linkIds for pointer locations, `smart-forms/variable-name-collision` | error | H, P4 | done |
 |  | `smart-forms/repeating-group-variable` | warning | P5 | done |
-| [P6](#p6-smart-formsnamed-expression-not-referenceable) | `smart-forms/named-expression-not-referenceable` | error | P1, P2, H, P4 | todo |
+| [P6](#p6-smart-formsnamed-expression-not-referenceable) | `smart-forms/named-expression-not-referenceable` | error | H, P4, P5 | todo |
 | [P7](#p7-smart-formsforward-variable-reference) | `conditional` flag on references, `smart-forms/forward-variable-reference` (new, S12) | warning | P5 | todo |
 | [P8](#p8-smart-formstemplate-extract-context-string-only) | Template-extract reproduction harness, suppression by exact pointer, `smart-forms/template-extract-context-string-only` | error | P0 | todo |
 | [P9](#p9-renderer-reproduction-harness-optional) | Renderer reproduction harness; upgrades renderer facts from source-only | – | P1 | optional |
@@ -352,7 +352,7 @@ Decisions: S1, S5, S9, S10, S13. Implements core-plan §4.3.
 | enableWhenExpression | Keeps the previous enabled state, initially `false`: the item starts disabled | R`utils/enableWhenExpression.ts:156-161,285-287`; R`utils/questionnaireStoreUtils/extractOtherExtensions.ts:418,443,505` |
 | answerOptionsToggleExpression | Keeps the previous state, initially `undefined`, which counts as disabled | R`utils/answerOptionsToggleExpressions.ts:116-121,196-200`; R`hooks/useAnswerOptionsToggleExpressions.ts:46` |
 | targetConstraint | Keeps the previous result, initially `undefined`: it never fires | R`utils/targetConstraint.ts:113-115,177-179`; R`utils/validate.ts:125` |
-| answerExpression | Evaluated only when its head names a launch context or a query variable, with only that name in its context. A throw falls back to the answerValueSet codings | R`hooks/useValueSetCodings.ts:66-124` |
+| answerExpression | Evaluated only when its head names a launch context with a resource, or an `application/x-fhir-query` variable whose expression is a ValueSet URL and whose expansion resolved, with only that name in its context. A throw falls back to the answerValueSet codings | R`hooks/useValueSetCodings.ts:66-124` |
 
 Populate behaves the same way: a variable stays unset, an initialExpression leaves no answer, and an itemPopulationContext builds no group (P`createFhirPathContext.ts:257-264`; P`evaluateExpressions.ts:63-71,89-96,140-148`). _Reproduced in populate._
 
@@ -538,25 +538,60 @@ Not stored, so never reported: `allocateId`, `namedExpression` (P6), and any nam
 
 ### P6. `smart-forms/named-expression-not-referenceable`
 
-Decisions: S1, S5, S9, S14.
+Decisions: S1, S5, S9, S14. Uses P5's stored names and P4's sourceQueries reader. Reviewed on 2026-10-13 against `7e64a22f`, with a second opinion from Codex: the population claims were reproduced against `@aehrc/sdc-populate@4.7.1` with probe forms; the renderer claims are `source-only` until P9, in files identical at `f846e2d8`. Two questions were settled the same day ([below](#settled-in-the-p6-review)).
 
-**Rule (error).** For each complete reference at a site that `readBy` returns a component for, resolve it with `variablesAt` and report when the declaration it resolves to is one no component exposes:
+**Available names.** Smart Forms makes a declaration available to other expressions only by storing a value under its name. Move `storedName` and `launchContextName` from `variable-name-collision.ts` into a shared module, answering per component; P5 keeps its behaviour.
+- Population stores a `text/fhirpath` variable (an item one only when the root has extensions: P`createFhirPathContext.ts:126-128`), an `application/x-fhir-query` variable on the root or an item, an itemPopulationContext it reads (`populationReadsContext`), a root launchContext under its Smart Forms name when the host supplies its resource, and the sourceQueries results P4 supplies.
+- The renderer stores `text/fhirpath` variables on the root and on items, and the names of `application/x-fhir-query` variables. Nothing else: no other named expression, no itemPopulationContext (R`utils/questionnaireStoreUtils/extractVariables.ts:48-77`; R`utils/questionnaireStoreUtils/extractOtherExtensions.ts:318-329`).
+- A declaration is available at a site when a component that reads the site (`readBy`) stores it, or, at a renderer site other than an answerExpression, when population stores it: population's context reaches the renderer as `additionalContext` (S14). One set for every component would be wrong: population skips item FHIRPath variables when the root has no extensions, and the renderer does not.
+
+**Rule (error).** For each complete reference at a site `readBy` returns a component for, other than an answerExpression ([below](#answerexpression-sites)), that `variablesAt` resolves to a declaration: report when the declaration is not available at the site. That is:
 - (a) a named expression that is not a `variable`: calculated, initial, enableWhen, answer, candidate, context or answerOptionsToggle expression, targetConstraint, cqf-expression;
-- (b) an itemPopulationContext on the root or on a leaf item, which populate never reads;
+- (b) an itemPopulationContext population does not read: on the root, on an item with no child items (`item` absent or `[]`), after another itemPopulationContext on its item, or without expression text (each reproduced: the reference fails with "undefined environment variable", or the name is absent from `populatedContext`);
 - (c) an itemExtractionContext: Smart Forms does not support definition-based extraction.
 
-The consuming site and the declaration are checked separately: a reference in a candidateExpression is not reported, because nothing evaluates it.
+The consuming site and the declaration are checked separately: a reference in a candidateExpression is not reported, because nothing evaluates it. Report each reference at its range, as P2 does, with the declaration as related location.
 - It never overlaps `sdc/undefined-variable`, which reports only references that resolve to nothing. It is triggered by the reference, never by the declaration alone (core-plan §4.2).
-- Populate-only names at renderer sites, such as an itemPopulationContext name in an enableWhenExpression, work after a successful population because its context reaches the renderer as `additionalContext`. They are not reported (S14).
-- When another declaration of the name is exposed anywhere in the form, Smart Forms silently evaluates the reference with that value instead: its namespace is flat, so the other declaration can be on any element. Report with the exposed declaration as a second related location.
-- Report at the reference, with the declaration as related location.
-- Messages:
-  - `%{name} is declared by a {extension}, which Smart Forms does not make available to other expressions.`
-  - With another exposed declaration: `%{name} refers to the {extension} on {element}, which Smart Forms does not make available, so it uses the %{name} declared on {other element} instead.`
-  - Help: `declare it as a variable on this item or an ancestor and reference that`.
-- Tests. Positive: (a) for each kind; (b) root and leaf itemPopulationContext; (c); a reference with another exposed declaration of the name. Negative: a reference to a variable; a reference to an itemPopulationContext on a group with children; an unresolved name; a reference in a candidateExpression.
-- Corpus: GP CCMP 0 under S14 (1 if renderer-only hosts counted: `%PostalAddressArray.exists()`). SDC 2 (sdc-test-fhirpath-prepop-candexpr: two initialExpressions using a named candidateExpression).
-- Depends on H for `ctx.declarations`: "another exposed declaration anywhere in the form" needs the form's declarations, not those `variablesAt` reaches. Decide in P6 whether a sourceQueries name the plugin supplies (P4) counts as another exposed value of the name: in Smart Forms' flat namespace, a `#x` Bundle and a named expression `x` share one name.
+- An `allocateId` never reaches it: core makes allocateIds available only at extraction sites (D19), and no component reads those.
+
+**Silent**, by checking each condition itself (S9):
+- the resolved declaration's name is declared more than once on its element, of any kind: `sdc/duplicate-declaration` reports it, whatever its setting. Core resolves to the first one in document order, so skipping only later duplicates is not enough (reproduced: a named calculatedExpression `x` before a variable `x` on one item resolves to the calculatedExpression; population binds the variable);
+- `definerOf(name)` is defined: `sdc/reserved-name` reports the declaration;
+- a variable in a language no component stores, such as `text/cql`: `smart-forms/unsupported-expression-language` reports the variable, which is the root cause;
+- a launchContext: whether population binds it depends on the resources the host supplies (patient always; user, encounter and fhirContext resources only when supplied, PI`inputParameters.ts:338-374`). A type-first launchContext binds nothing (reproduced) and stays the open item of S16;
+- an itemPopulationContext that population reads although a later one of the same name replaces it: `smart-forms/variable-name-collision` reports the pair.
+
+**Another value of the name.** Smart Forms keeps one value for each name, so a reference to an unavailable declaration can still get a value: from a declaration of the name that is available, anywhere in the form, or from a sourceQueries result P4 supplies (reproduced: a named expression `x` and a `#x` Bundle; an initialExpression reading `%x` gets the Bundle). Report it all the same, with each such declaration (`%{name} is also declared here`) and the sourceQueries extension (`%{name} is also the name of this sourceQueries result`) as further related locations. Never say which value the reference gets: item variables are evaluated in linkId key order, not document order (reproduced: items `a` then `2` give `a`'s value, items `b` then `c` give `c`'s). A name config `hostVariables` or assembleContext supplies gets the general message (settled).
+
+**Messages**, with `{extension}` from `extensionName` of the declaration's site and `{element}` from `elementName`:
+- `%{name} refers to the {extension} on {element}, which Smart Forms does not make available to other expressions{reason}, so the reference fails when it is evaluated.`
+- With another value of the name: `%{name} refers to the {extension} on {element}, which Smart Forms does not make available to other expressions{reason}; Smart Forms keeps one value for each name, so the reference can get the value of another %{name} instead.`
+- `{reason}` for (b): `, because the item has no child items`, `, because it is on the Questionnaire root`, `, because another itemPopulationContext comes first on the item`, `, because it has no expression text`. Empty otherwise.
+- Help: `declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that`. For (b): `make it the only itemPopulationContext on a group with child items, with expression text, or declare the value as a variable`. Never suggest a variable of the same name: beside the named expression it is a duplicate declaration.
+
+#### answerExpression sites
+
+Settled in the P6 review: checked here, not deferred under S15. The renderer gives an answerExpression a context of its own, with at most one name, so S14 does not apply there (R`hooks/useValueSetCodings.ts:66-112`):
+- The head is the text between the first `%` and the first `.` (`substring`, so with no `.` after the first `%` the head names nothing).
+- The head is supplied when it is a root launchContext under its Smart Forms name whose resource the SMART launch has: Patient, Practitioner, Encounter, or a fhirContext resource of its type (R`utils/questionnaireStoreUtils/extractLaunchContext.ts:5-20`; R`utils/valueSet.ts:197-213`). Otherwise when it is an `application/x-fhir-query` variable, root or item, whose expression matches the renderer's ValueSet URL pattern and whose expansion resolved: only then does the renderer set the variable's `result` (R`utils/questionnaireStoreUtils/resolveValueSets.ts:37-66`; R`utils/valueSet.ts:39-40,184-195`). A search or `$lookup` query variable never gets one.
+- Nothing else reaches it: no FHIRPath variable, no itemPopulationContext, no sourceQueries result, no `additionalContext`, so no host name. fhirpath.js adds only `%context` and `%ucum`.
+- When the head is not supplied, the expression is never evaluated. When it is, a reference to any other name throws when it is evaluated, the error is caught, and the item keeps the answerValueSet codings, which are empty whenever the fallback runs.
+
+At an answerExpression the renderer reads:
+- **Head.** The reference at the first `%` is complete, its name is the renderer's head, it resolves to a declaration or to a host or assembled name, and the head is not statically supplied: not a root launchContext under its Smart Forms name, and not an `application/x-fhir-query` variable whose expression matches the ValueSet URL pattern. Report once, at the head; the expression's other references are not reported, because it is never evaluated. Message: `Smart Forms computes an answerExpression only when it starts with a launch context or with an application/x-fhir-query variable that expands a ValueSet, and %{name} is neither, so the answers on {element} are never computed from this expression.` Help: `start the expression with a launch context, or with an application/x-fhir-query variable whose expression is a ValueSet URL, or list the answers with answerOption or answerValueSet`.
+- **Other references**, when the head is supplied: each complete reference other than the head that resolves to a declaration, a launchContext included, or to a host or assembled name. Message: `Smart Forms gives an answerExpression only %{head}, the name it starts with, so %{name} has no value here, and the answers on {element} are not computed from this expression when the reference is evaluated.` Help: `compute the answers from %{head} alone`.
+- The silences above apply, except the launchContext one, which covers only a launchContext head. A head whose query fails or whose ValueSet does not expand fails at run time and is not reported. A built-in name, such as `%resource`, is left to the [open item](#open-items); `%questionnaire` and `%qitem` are `questionnaire-variable-unavailable`'s.
+
+**Tests.** Positive: (a) for each kind; (b) each reason: root, no `item`, `item: []`, second on its item (with its own name, so it does not exercise the duplicate silence), no expression text; (c); another available declaration of the name; a sourceQueries result of the name; two other declarations of the name, with no claim of which wins; a configured host name with the general message; answerExpression heads: a FHIRPath variable, an itemPopulationContext, a search query variable, a `$lookup` query variable, a named calculatedExpression, a configured host name; answerExpression references after a patient launchContext head: a FHIRPath variable, another launchContext. Negative: a reference to a variable; to an itemPopulationContext population reads, at a population site and at a renderer site; an unresolved name; a reference in a candidateExpression; a same-element duplicate; a reserved name; a `text/cql` variable; a launchContext, including a type-first one; a second itemPopulationContext of a name on another group; an answerExpression headed by a patient launchContext or a ValueSet URL query variable; a later reference to the head itself; a second `text/fhirpath` answerExpression, which the renderer does not read.
+
+**Corpus:** GP CCMP 0 under S14. SDC 3: sdc-test-fhirpath-prepop-candexpr (two initialExpressions using a named candidateExpression), and rxterms (an answerExpression headed by a `$lookup` query variable, which the renderer never evaluates).
+
+#### Settled in the P6 review
+
+2026-10-13, with a second opinion from Codex.
+
+- **G. Host names keep the general message.** Core resolves a reference to a declaration before a configured or assembled name, and does not tell a plugin which supplied name a declaration hides. Whether the host's value reaches the reference depends on the component, so the message claims only that the declaration is not available. Rejected: a host-specific message.
+- **H. answerExpression is checked in P6.** Its context holds only the head, so S14 does not apply there, and every other reference, host names included, gets no value. Rejected: leaving answerExpression sites out of P6 under S15.
 
 ### P7. `smart-forms/forward-variable-reference`
 
@@ -604,7 +639,7 @@ Runs only when `template-extract` is selected in `compat` (S3).
 
 ## Decisions
 
-Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12; they are recorded in [plan-amendments.md](plan-amendments.md). The others are proposals.
+Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6 on 2026-10-13; they are recorded in [plan-amendments.md](plan-amendments.md). The others are proposals.
 
 ### Model
 
@@ -614,8 +649,8 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
   _Why:_ D20 made use cases follow the SDC table, not Smart Forms' evaluators. Populate evaluates initialExpression without a language check although SDC files it under both rendering and population.
 - **S9. A plugin rule stays silent where a core rule or the Validator reports the same root cause, by checking the condition itself, never whether that rule ran.** Co-firing is allowed only when the two findings state different facts with different fixes: `variable-name-collision` with `sdc/shadowed-declaration`, embedding checks 1–5 with `sdc/fragment-parse-error`, and `template-extract-context-string-only` with `sdc/uncatalogued-expression`.
   _Why:_ one root cause should produce one finding, and a plugin finding must not appear or disappear when a core rule is turned off.
-- **S14. Within S1, `named-expression-not-referenceable` does not report populate-only names at renderer sites.**
-  _Why:_ after a successful population they reach the renderer through `additionalContext`.
+- **S14. Within S1, `named-expression-not-referenceable` does not report populate-only names at renderer sites, except at an answerExpression.**
+  _Why:_ after a successful population they reach the renderer through `additionalContext`. An answerExpression gets a context of its own, which `additionalContext` never reaches (P6 review).
 
 ### Compat
 
@@ -645,7 +680,7 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
   _Why:_ it is a different failure from a collision or an unexposed name, with a different fix. Warning, because the demonstrated failure is during population; the renderer still produces a value, possibly a stale one.
 - **S13. A host-supplied `%questionnaire` or `%qitem` is handled by a suppression with a reason.** From P4, config `hostVariables` rejects both names, and its help points here. A host can supply `%qitem` correctly only when every expression that uses it is on one item. This does not apply to an answerExpression: the renderer builds its context from the name before the first `.` alone, so `additionalContext` never reaches it, and its finding has no suppression note.
   _Why:_ `hostVariables` cannot express it (config rejects built-in names) and names no component, and rule options are not built (S7).
-- **S15. No rule for the answerExpression fallback or for `%context` being `{}`.** The fallback runs only when answerValueSet produced no codings, supplies only the first `%name` found by string operations, and has one FHIRPath answerExpression in the corpus. `%context` is `{}` at most renderer and populate evaluators, but the result is a silent empty value and the corpus has no real case. Record both as facts; revisit with corpus evidence.
+- **S15. No rule for the answerExpression fallback or for `%context` being `{}`.** The names an answerExpression references are checked by P6 (P6 review, decision H); the fallback itself is not. The fallback runs only when answerValueSet produced no codings, supplies only the first `%name` found by string operations, and has one FHIRPath answerExpression in the corpus. `%context` is `{}` at most renderer and populate evaluators, but the result is a silent empty value and the corpus has no real case. Record both as facts; revisit with corpus evidence.
   _Why:_ low value now.
 - **S16. A launchContext is read by position in Smart Forms.** Populate and the renderer read `extension[0]` and `[1]` of a launchContext, while core finds sub-extensions by URL. A launchContext written type-first loses its resource. Record it as a fact; a rule is an open item.
 - **S17. Rule IDs name the author's problem and avoid report vocabulary.** Four IDs differ from core-plan §4.2:
@@ -659,13 +694,14 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
 
 | Item | Blocks |
 | :- | :- |
-| Review and accept S8, S12 and S14–S17; record the accepted overrides in plan-amendments.md. | The first slice that cites each one. |
+| Review and accept S8, S12 and S15–S17; record the accepted overrides in plan-amendments.md. | The first slice that cites each one. |
 | Smart Forms-specific Expressions outside the core catalogue (binding-parameter expression, QuestionnaireItemTextAriaLabelExpression, calculatedExpression on `_text` and `_prefix`) cannot be targeted without an extension URL on uncatalogued sites. Add one, or catalogue them in the plugin? | Nothing in v1. |
 | Should P3 check embeddings in sourceQueries Bundle `request.url` through pointer findings (possible after P8)? 25 embeddings in 5 corpus forms, all fine. | Nothing in v1. |
 | Renderer-only and extraction-only targets (S1): an explicit `compat` without populate, and the findings S14 omits for such hosts. | Nothing in v1. |
 | Populate evaluates the initialExpressions of the children of a repeating group without an itemPopulationContext, but builds that group only from an itemPopulationContext, so their answers are never prefilled whatever the language. A rule for it? `expression-evaluated-as-fhirpath` still reports a non-FHIRPath one there; its consequence holds, but the language is not its cause. | Nothing in v1. |
 | itemPopulationContext on a repeating group binds only direct children, chosen by text between the first `%` and the first `.` of a child's initialExpression. A rule for consumers it does not bind? | Nothing in v1. |
 | A rule for a launchContext written type-first (S16)? | Nothing in v1. |
+| Built-in names other than `%questionnaire` and `%qitem`, such as `%resource`, are not supplied to an answerExpression either: fhirpath.js adds only `%context` and `%ucum` (P6). Extend `questionnaire-variable-unavailable`? | Nothing in v1. |
 | A plugin diagnostic for a sourceQueries reference population never binds: a `#id` with no first contained Bundle with `entry`, an empty or display-only reference, `#%x`. A pointer finding at the extension, so suppressible only after P8. It cannot prove every binding failure: a fetched reference can still fail at run time. | Nothing in v1. |
 | In the app, `%<sourceQueries Bundle>.entry.resource` is always empty (P4): population fills entries only from a `{ data }` callback. A finding or a note for expressions that read it, until upstream fixes it? All 48 `%PrePopQuery` references in the corpus do. | Nothing in v1. |
 | Host names, from config or a plugin, are available at extraction sites (D19), but template-extract receives none. Report them at extraction sites when template carriers become sites, or in a template-extract rule. | Nothing in v1. |
@@ -726,7 +762,7 @@ Language checks are exact string comparisons. No `text/x-fhir-query` string appe
 - **Template-extract.** `{ resource, rootResource, ...allocateIds }` from the root only (T`createFhirPathContext.ts:10-19`; T`extractAllocateId.ts:4-29`). No host names.
 - **`%questionnaire`, `%qitem`.** No component supplies either. fhirpath.js 4.10.1 throws "Attempting to access an undefined environment variable" when the reference is evaluated; `iif(false, %qitem, 1)` returns `[1]`. A host's `additionalContext` reaches every later evaluation (R`stores/questionnaireStore.ts:267,634`). _Reproduced in populate._ Reported upstream as [aehrc/smart-forms#2140](https://github.com/aehrc/smart-forms/issues/2140) and [#2141](https://github.com/aehrc/smart-forms/issues/2141).
 - **`%context`.** `{}` at renderer calculatedExpression, enableWhenExpression, answerOptionsToggleExpression, targetConstraint, parameterised value sets, and populate initialExpression, itemPopulationContext and variables. Exceptions: renderer root and item variables (R`utils/fhirpath.ts:275,326`).
-- **answerExpression fallback.** It supplies one name: the text between the first `%` and the first `.`, resolved from patient, user, encounter or fhirContext, or an x-fhir-query variable whose result was set (R`hooks/useValueSetCodings.ts:66-124`).
+- **answerExpression fallback.** It supplies one name: the text between the first `%` and the first `.`, resolved from patient, user, encounter or fhirContext, or an `application/x-fhir-query` variable whose result was set (R`hooks/useValueSetCodings.ts:66-124`). The renderer sets a result only for a query whose expression matches its ValueSet URL pattern, to the expanded ValueSet, so a search or `$lookup` query variable never supplies one (R`utils/questionnaireStoreUtils/resolveValueSets.ts:37-66`; R`utils/valueSet.ts:39-40,184-195`).
 - **sourceQueries.** Read from root extensions only, every one; nothing when `subjectType` is non-empty and lacks `Patient` (PI`inputParameters.ts:127-141,209-212`). Name: `<id>` for a `#id` reference, chosen before resolution; `sourceQuery<i>` for any other reference, `i` counting from 0 every extension with a truthy `valueReference`, display-only, empty and `#` ones included (PI`:262-269,395-429`). Value: a `#id` name is bound only when the first contained resource with that id and type Bundle has an `entry` element, to that Bundle; an `entry: []` Bundle is bound without fetching (P`createFhirPathContext.ts:78-80,391-414,559-597`). A missing or entry-less Bundle leaves the name unset. Another reference is fetched and bound to the returned resource, any type, unless the fetch fails or returns an OperationOutcome (P`:291-371`). An entry's result is stored only from a callback that resolves to `{ data }` (P`:432-437`); the app's callback returns the resource, so in the app `entry.resource` stays empty. With no launch resource, `#` references are not filtered and are passed to `fetchResourceCallback` too (P`:523-550,716-721`). _Reproduced_ (`populate-source-queries.test.ts`, with the app's callback shape as the harness default).
 
 ### Variable storage and order
@@ -774,7 +810,7 @@ All _reproduced_ with `populateQuestionnaire`, a `patient` launchContext and an 
 | unsupported-query-embedding | 0 | 1 |
 | variable-name-collision | 0 | 2 |
 | repeating-group-variable | 0 | 1 |
-| named-expression-not-referenceable | 0 | 2 |
+| named-expression-not-referenceable | 0 | 3 |
 | forward-variable-reference | 0 | 0 |
 | template-extract-context-string-only | 0 | 0 |
 
