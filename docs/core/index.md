@@ -33,7 +33,7 @@ A block without a link has no page yet.
 | # | Block | Code | What it does |
 | :- | :- | :- | :- |
 | 1 | [CLI](cli.md) | `cli/` | Reads the arguments, runs `lint` or `explain`, prints the result and sets the exit code |
-| 2 | Config | `config/` | Finds and checks the config file, then works out the file paths |
+| 2 | [Config](config.md) | `config/` | Finds and checks the config file, then works out the file paths |
 | 3 | Plugins and rule set | `plugins/` | Loads the plugins and decides which rules run, at which severity |
 | 4 | Inputs | `inputs/` | Finds the compiled JSON files and reads the Questionnaires out of them and out of Bundles |
 | 5 | Expression discovery | `analysis/expression-sites.ts` | Finds every expression in a form and records what kind it is |
