@@ -9,8 +9,9 @@ import type {
 import { isObject, type Json } from '../document.js';
 import { readBy, requireCompat } from '../eligibility.js';
 import { embeddingsAt } from '../facts/embeddings.js';
+import { launchContextsOf } from '../launch-contexts.js';
 import { readSourceQueries } from '../source-queries.js';
-import { LAUNCH_CONTEXT, VARIABLE, X_FHIR_QUERY } from '../urls.js';
+import { VARIABLE, X_FHIR_QUERY } from '../urls.js';
 
 // A query population fetches and replaces embeddings in: an application/x-fhir-query variable with
 // a name, or a request URL in a contained sourceQueries Bundle.
@@ -34,11 +35,6 @@ function isFetched(ctx: Pick<RuleContext, 'document' | 'compat'>, site: Expressi
     site.name !== '' &&
     readBy(ctx, site).some(({ component }) => component === 'populate')
   );
-}
-
-function rootExtensions(document: QuestionnaireDocument): readonly unknown[] {
-  const extensions = document.resource.extension;
-  return Array.isArray(extensions) ? extensions : [];
 }
 
 // The request URLs of the contained Bundles the root's sourceQueries reference by #id, in contained
@@ -71,29 +67,6 @@ function sourceQueryUrls(document: QuestionnaireDocument): Query[] {
           : [];
       });
     });
-}
-
-// The root launchContexts: whether any is declared, of any shape, and the names they declare, read
-// as population reads them: the name sub-extension's valueId, else its valueCoding.code
-// (inputParameters.ts:97-121,346). Not ctx.declarations: core reads valueCoding.code first, and
-// declares only launchContexts whose name it can read. Population supplies only some of them at
-// run time, which the rule does not check.
-function launchContexts(document: QuestionnaireDocument): {
-  declared: boolean;
-  names: readonly string[];
-} {
-  const declared = rootExtensions(document).filter(
-    (extension) => isObject(extension) && extension.url === LAUNCH_CONTEXT,
-  );
-  const names = declared.flatMap((extension) => {
-    const parts =
-      isObject(extension) && Array.isArray(extension.extension) ? extension.extension : [];
-    const name: unknown = parts.find((part: unknown) => isObject(part) && part.url === 'name');
-    if (!isObject(name)) return [];
-    const code = name.valueId ?? (isObject(name.valueCoding) ? name.valueCoding.code : undefined);
-    return typeof code === 'string' && code !== '' ? [code] : [];
-  });
-  return { declared: declared.length > 0, names };
 }
 
 // Population's recognition of an embedding: {{% and at least one character other than a line
@@ -260,7 +233,15 @@ export const unsupportedQueryEmbedding: LintRule = {
       })),
       ...sourceQueryUrls(ctx.document),
     ];
-    const launch = launchContexts(ctx.document);
+    // The root launchContexts: any, of any shape, counts as declared, and their names are read by
+    // URL, the first name sub-extension's valueId, else its valueCoding.code. Population fills
+    // embeddings only under the name it binds a launch resource under, read by position
+    // (launch-context-named-by-position), so a launchContext not in name, type order is read here
+    // by URL, as SDC defines it, not as populate reads it: that is aehrc/smart-forms#2161, which an
+    // open item tracks. An empty valueId is left to the Validator (S9). Population supplies only some of them
+    // at run time, which the rule does not check.
+    const launch = launchContextsOf(ctx.document);
+    const launchNames = launch.flatMap(({ byUrl }) => byUrl.name ?? []);
     const supplied = new Set(facts.get('evaluated-with-only')?.names ?? []);
 
     // Each fragment directly follows its query site.
@@ -283,7 +264,7 @@ export const unsupportedQueryEmbedding: LintRule = {
       const head = dot === -1 ? text.slice(1) : text.slice(1, dot);
 
       // 2. No launch context, so nothing is replaced and no other problem can occur.
-      if (facts.has('replaced-only-with-launch-resource') && !launch.declared) {
+      if (facts.has('replaced-only-with-launch-resource') && launch.length === 0) {
         ctx.report({
           site,
           range: whole,
@@ -306,8 +287,8 @@ export const unsupportedQueryEmbedding: LintRule = {
 
       // 5. The head is not a launch context, or there is no path after it.
       if (facts.has('head-is-launch-context')) {
-        const isLaunch = launch.names.includes(head);
-        const example = launch.names[0] ?? 'patient';
+        const isLaunch = launchNames.includes(head);
+        const example = launchNames[0] ?? 'patient';
         const help = isLaunch
           ? `add the path to the value, such as %${head}.id`
           : `use a launch context declared on the Questionnaire root, such as %${example}.id`;

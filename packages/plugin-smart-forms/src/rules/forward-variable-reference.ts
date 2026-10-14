@@ -10,12 +10,12 @@ import { readBy, requireCompat } from '../eligibility.js';
 import { prerequisitesHold } from '../facts/prerequisites.js';
 import { variableFactsAt } from '../facts/variables.js';
 import { suppliedSourceQueries } from '../host-variables.js';
+import { launchContextsOf } from '../launch-contexts.js';
 import { storedName } from '../stored-names.js';
 import {
   FHIRPATH,
   INITIAL_EXPRESSION,
   ITEM_POPULATION_CONTEXT,
-  LAUNCH_CONTEXT,
   SOURCE_QUERIES,
   VARIABLE,
   X_FHIR_QUERY,
@@ -32,22 +32,6 @@ type Position = readonly [step: number, key: number, index: number];
 type Evaluation = Position | 'never' | 'unknown';
 
 const compare = (a: Position, b: Position): number => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
-
-// A launchContext population reads as an input: a name sub-extension with a valueId or a
-// valueCoding.code and a type sub-extension with a valueCode, found by URL in any order
-// (inputParameters.ts:96-121). It binds a resource only when its first two sub-extensions are the
-// name and the type, but makes population run either way.
-const isLaunchInput = (extension: unknown): boolean => {
-  if (!isObject(extension) || extension.url !== LAUNCH_CONTEXT) return false;
-  const parts = arrayOf(extension.extension).filter(isObject);
-  return (
-    parts.some(
-      (part) =>
-        part.url === 'name' &&
-        Boolean(part.valueId || (isObject(part.valueCoding) && part.valueCoding.code)),
-    ) && parts.some((part) => part.url === 'type' && Boolean(part.valueCode))
-  );
-};
 
 // An application/x-fhir-query variable population fetches: with a name and expression text.
 const isQueryInput = (extension: unknown): boolean => {
@@ -70,7 +54,7 @@ function populationRuns(document: QuestionnaireDocument, items: readonly Json[])
   if (subjects.length > 0 && !subjects.includes('Patient')) return false;
   const root = arrayOf(extension);
   return (
-    root.some(isLaunchInput) ||
+    launchContextsOf(document).some(({ input }) => input) ||
     root.some(
       (each) => isObject(each) && each.url === SOURCE_QUERIES && Boolean(each.valueReference),
     ) ||
