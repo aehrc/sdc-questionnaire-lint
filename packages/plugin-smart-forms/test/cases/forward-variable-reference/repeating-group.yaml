@@ -1,0 +1,32 @@
+# A variable on a repeating group references a later variable on the group that reads its input:
+# smart-forms/repeating-group-variable reports it too, a different fact with a different fix.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: itemPopulationContext
+        name: ctx
+        expression: '%patient.name'
+      - url: variable
+        name: x
+        expression: '%y'
+      - url: variable
+        name: y
+        expression: "item.where(linkId = 'q').answer.value"
+    items:
+      - linkId: q
+        type: string
+        extensions:
+          - url: initialExpression
+            expression: '%ctx.given.first() & %x'

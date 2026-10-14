@@ -1,0 +1,26 @@
+# A text/cql variable stores no name, but smart-forms/unsupported-expression-language reports it, so
+# references to it are not reported here: at an answerExpression head, or after a launch context.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+extensions:
+  - url: variable
+    name: codes
+    language: text/cql
+    expression: 'Codes'
+items:
+  - linkId: head
+    type: coding
+    extensions:
+      - url: answerExpression
+        expression: '%codes.first()'
+  - linkId: after
+    type: coding
+    extensions:
+      - url: answerExpression
+        expression: '%patient.extension.value.coding.where(code in %codes)'

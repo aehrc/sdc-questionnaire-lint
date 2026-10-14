@@ -1,0 +1,20 @@
+# A variable on a group inside a repeating group is evaluated for each repetition too.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    items:
+      - linkId: s
+        type: group
+        extensions:
+          - url: variable
+            name: v
+            expression: 'item.answer.value'
+        items:
+          - linkId: a
+            type: string
+            extensions:
+              - url: calculatedExpression
+                expression: '%v'

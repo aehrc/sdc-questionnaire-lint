@@ -765,6 +765,182 @@ describe('a plugin rule', () => {
   });
 });
 
+describe('a plugin hostVariables hook', () => {
+  interface HookCall {
+    file: string;
+    resourcePointer: string;
+    compat: Readonly<Record<string, string>>;
+    self: string;
+  }
+  // Read by the config module while lint imports it in this process.
+  const state = globalThis as {
+    sdcLintHook?: { names: unknown; calls: HookCall[]; origins: [string, string | undefined][] };
+  };
+  const variable = (name: string, expression: string) => ({
+    url: 'http://hl7.org/fhir/StructureDefinition/variable',
+    valueExpression: { name, language: 'text/fhirpath', expression },
+  });
+  const form = (extension: unknown[], item: unknown[] = []) =>
+    JSON.stringify({ resourceType: 'Questionnaire', id: 'A', status: 'draft', extension, item });
+
+  // A demo plugin whose hook returns names, and whose rule records how each name in recorded
+  // resolves at every site. plugin and config are spliced into the plugin and the config.
+  async function run(
+    names: unknown,
+    files: Record<string, string>,
+    {
+      recorded = [],
+      plugin = '',
+      config = '',
+      rules = { 'sdc/unused-declaration': 'off' },
+    }: {
+      recorded?: string[];
+      plugin?: string;
+      config?: string;
+      rules?: Record<string, string>;
+    } = {},
+  ) {
+    state.sdcLintHook = { names, calls: [], origins: [] };
+    const cwd = await tempTree({
+      'sdc-questionnaire-lint.config.mjs': `export default {
+        plugins: [{
+          meta: { name: 'demo', version: '0.0.0' },
+          rules: {
+            record: {
+              meta: { description: 'Records resolutions.', defaultSeverity: 'info' },
+              check(ctx) {
+                for (const site of ctx.sites) {
+                  for (const name of ${JSON.stringify(recorded)}) {
+                    globalThis.sdcLintHook.origins.push([name, ctx.variablesAt(site)?.resolve(name)?.origin]);
+                  }
+                }
+              },
+            },
+          },
+          hostVariables({ document, compat }) {
+            globalThis.sdcLintHook.calls.push({
+              file: document.file,
+              resourcePointer: document.resourcePointer,
+              compat,
+              self: this.meta.name,
+            });
+            return globalThis.sdcLintHook.names;
+          },
+          ${plugin}
+        }],
+        rules: ${JSON.stringify(rules)},
+        ${config}
+      };`,
+      ...files,
+    });
+    const report = await lint({ cwd });
+    expectValidReport(report);
+    return { report, ...state.sdcLintHook };
+  }
+  const undefinedNames = (report: CompletedReport) =>
+    report.findings
+      .filter(({ ruleId }) => ruleId === 'sdc/undefined-variable')
+      .map(({ message }) => message);
+
+  it('supplies its names after config hostVariables, as host variables', async () => {
+    const files = {
+      'fsh-generated/resources/Questionnaire-A.json': form([
+        variable('total', '%Hook + %Config + %Both'),
+      ]),
+    };
+    const { report, origins } = await run(['Hook', 'Both', 'Hook'], files, {
+      recorded: ['Hook', 'Config', 'Both'],
+      config: "hostVariables: ['Config', 'Both'],",
+    });
+    expect(undefinedNames(report)).toEqual([]);
+    expect(origins).toEqual([
+      ['Hook', 'host'],
+      ['Config', 'host'],
+      ['Both', 'host'],
+    ]);
+    const without = await run([], files);
+    expect(undefinedNames(without.report)).toEqual([
+      '%Hook is not available on the Questionnaire root.',
+      '%Config is not available on the Questionnaire root.',
+      '%Both is not available on the Questionnaire root.',
+    ]);
+  });
+
+  it('is overridden by a declaration of the name', async () => {
+    const { origins } = await run(
+      ['total'],
+      {
+        'fsh-generated/resources/Questionnaire-A.json': form(
+          [variable('total', '1')],
+          [{ linkId: 'q', extension: [variable('double', '%total * 2')] }],
+        ),
+      },
+      { recorded: ['total'] },
+    );
+    expect(origins).toEqual([
+      ['total', 'host'],
+      ['total', 'declaration'],
+    ]);
+  });
+
+  it('cannot supply a name FHIRPath, FHIR or SDC defines', async () => {
+    const { report, origins } = await run(
+      ['qitem', 'vs-x', 'resource'],
+      {
+        'fsh-generated/resources/Questionnaire-A.json': form([
+          variable('total', '%qitem.text'),
+          variable('more', '%`vs-x`'),
+        ]),
+      },
+      { recorded: ['qitem', 'vs-x', 'resource'] },
+    );
+    expect(undefinedNames(report)).toEqual(['%qitem is not available on the Questionnaire root.']);
+    expect(origins.slice(0, 3)).toEqual([
+      ['qitem', undefined],
+      ['vs-x', 'builtin'],
+      ['resource', 'builtin'],
+    ]);
+  });
+
+  it("gets the plugin's frozen compat as this plugin, or {} without compat", async () => {
+    const files = { 'fsh-generated/resources/Questionnaire-A.json': form([]) };
+    const withCompat = await run([], files, {
+      plugin: "compat: { verified: { renderer: ['1.0.0', '2.0.0'] }, required: ['renderer'] },",
+    });
+    expect(withCompat.calls).toEqual([
+      expect.objectContaining({ compat: { renderer: '2.0.0' }, self: 'demo' }),
+    ]);
+    expect(Object.isFrozen(withCompat.calls[0]?.compat)).toBe(true);
+    const without = await run([], files);
+    expect(without.calls[0]?.compat).toEqual({});
+    expect(Object.isFrozen(without.calls[0]?.compat)).toBe(true);
+  });
+
+  it('runs once per Questionnaire in a file or a Bundle entry, with every rule off', async () => {
+    const { report, calls } = await run(
+      ['Hook'],
+      {
+        'fsh-generated/resources/Questionnaire-A.json': form([variable('total', '%Hook')]),
+        'fsh-generated/resources/Bundle-B.json': JSON.stringify({
+          resourceType: 'Bundle',
+          type: 'collection',
+          entry: [
+            { resource: JSON.parse(form([variable('total', '%Hook')])) as unknown },
+            { resource: JSON.parse(form([])) as unknown },
+          ],
+        }),
+      },
+      { rules: { 'demo/record': 'off', 'sdc/unused-declaration': 'off' } },
+    );
+    expect(undefinedNames(report)).toEqual([]);
+    expect(calls.map(({ file, resourcePointer }) => [file, resourcePointer])).toEqual([
+      ['fsh-generated/resources/Bundle-B.json', '/entry/0/resource'],
+      ['fsh-generated/resources/Bundle-B.json', '/entry/1/resource'],
+      ['fsh-generated/resources/Questionnaire-A.json', ''],
+    ]);
+  });
+});
+
 describe('FSH source mapping', () => {
   const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
   const compiled = JSON.stringify({

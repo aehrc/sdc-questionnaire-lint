@@ -1,0 +1,10 @@
+- ruleId: sdc/shadowed-declaration
+  severity: info
+  at: input/fsh/variable-name-collision-launch-context-modifier-extension.fsh:15:51
+  message: The name %patient on item a is also declared on the Questionnaire root, so other expressions on item a and its descendant items get this declaration's value.
+  help: rename one of the declarations of %patient, unless this item should override it
+  expression:
+    text: "'not a patient'"
+  related:
+    - at: /modifierExtension/0 (source-unavailable)
+      message: '%patient is also declared here'

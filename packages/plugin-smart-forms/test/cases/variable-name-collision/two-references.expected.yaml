@@ -1,0 +1,10 @@
+- ruleId: smart-forms/variable-name-collision
+  severity: error
+  at: input/fsh/variable-name-collision-two-references.fsh:8:43
+  message: "%prepop is also the name of a sourceQueries result; Smart Forms keeps one value for each name, so expressions that read either can get the other's value."
+  help: rename the declaration
+  expression:
+    text: '1'
+  related:
+    - at: /extension/1 (source-unavailable)
+      message: '%prepop is also the name of this sourceQueries result'

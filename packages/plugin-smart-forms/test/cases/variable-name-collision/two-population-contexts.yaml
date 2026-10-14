@@ -1,0 +1,22 @@
+# Two groups each have an itemPopulationContext %c: population builds both from the last one.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: g
+    type: group
+    extensions:
+      - url: itemPopulationContext
+        name: c
+        expression: "'g'"
+    items:
+      - linkId: qg
+        type: string
+  - linkId: h
+    type: group
+    extensions:
+      - url: itemPopulationContext
+        name: c
+        expression: "'h'"
+    items:
+      - linkId: qh
+        type: string

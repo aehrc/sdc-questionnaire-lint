@@ -1,0 +1,26 @@
+# Two variables %x on other items: both are related locations, and the message does not say which
+# value the reference gets. variable-name-collision reports the pair.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    text: A
+    extensions:
+      - url: initialExpression
+        name: x
+        expression: "'a'"
+      - url: calculatedExpression
+        expression: '%x'
+  - linkId: b
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'b'"
+  - linkId: c
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'c'"

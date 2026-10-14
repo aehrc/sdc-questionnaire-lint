@@ -1,0 +1,14 @@
+# A named calculatedExpression and a variable %x on one item: core resolves %x to the first one,
+# but sdc/duplicate-declaration reports the pair, so this rule is silent.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        name: x
+        expression: "'a'"
+      - url: variable
+        name: x
+        expression: "'b'"
+      - url: enableWhenExpression
+        expression: "%x = 'b'"

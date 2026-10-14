@@ -1,0 +1,39 @@
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-shared-value-set.fsh:17:51
+  message: Smart Forms computes an answerExpression only when it starts with a launch context or with an application/x-fhir-query variable that expands a ValueSet, and %first is neither, so the answers on item first-head are never computed from this expression.
+  help: start the expression with a launch context, or with an application/x-fhir-query variable whose expression is a ValueSet URL, or list the answers with answerOption or answerValueSet
+  expression:
+    text: '%first.expansion.contains'
+    range:
+      startOffset: 0
+      endOffset: 6
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%first is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-shared-value-set.fsh:22:91
+  message: Smart Forms gives an answerExpression only %later, the name it starts with, so %first has no value here, and the answers on item later-head are not computed from this expression when the reference is evaluated.
+  help: compute the answers from %later alone
+  expression:
+    text: '%later.expansion.contains.where(code != %first.id)'
+    range:
+      startOffset: 40
+      endOffset: 46
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%first is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-shared-value-set.fsh:39:67
+  message: Smart Forms computes an answerExpression only when it starts with a launch context or with an application/x-fhir-query variable that expands a ValueSet, and %inner is neither, so the answers on item inner-head are never computed from this expression.
+  help: start the expression with a launch context, or with an application/x-fhir-query variable whose expression is a ValueSet URL, or list the answers with answerOption or answerValueSet
+  expression:
+    text: '%inner.expansion.contains'
+    range:
+      startOffset: 0
+      endOffset: 6
+  related:
+    - at: /item/2/item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%inner is declared here'

@@ -29,7 +29,8 @@ export const undefinedVariable: CoreRule = {
         'place: the declarations on its item, its ancestor items and the root, such as ' +
         'variables, other named expressions and launchContexts; the names FHIRPath, FHIR and ' +
         'SDC define, such as %resource, %context and %qitem; in a module, the names its ' +
-        'assembleContext lists; and the names listed in hostVariables. An expression used in ' +
+        'assembleContext lists; the names listed in hostVariables; and the names a listed ' +
+        'plugin supplies. An expression used in ' +
         'extraction sees only extractAllocateId names and named extraction contexts among the ' +
         'declarations.',
       why:
@@ -40,7 +41,11 @@ export const undefinedVariable: CoreRule = {
         'Correct the name in the FSH rule that sets the expression, or declare it on the item, ' +
         'an ancestor item or the root, then run SUSHI again. A module lists the names the ' +
         'Questionnaire that includes it supplies in assembleContext. If the application running the ' +
-        'form supplies the name, list it in hostVariables in the config. The help names an ' +
+        'form supplies the name, list it in hostVariables in the config. A listed plugin can ' +
+        'supply names as well, such as the sourceQueries results the Smart Forms plugin ' +
+        'supplies. Listing a name the plugin does not supply in hostVariables asserts that the ' +
+        'application supplies it; for a sourceQueries name, it usually hides a failure instead ' +
+        'of fixing it. The help names an ' +
         'available name that is similar, when there is one.',
       limitations:
         'Expressions in contained resources and at uncatalogued locations, and expressions that ' +

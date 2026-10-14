@@ -1,0 +1,11 @@
+- ruleId: smart-forms/unsupported-query-embedding
+  severity: error
+  at: input/fsh/unsupported-query-embedding-duplicate-bundle-id-without-entries.fsh:8:63
+  message: Smart Forms builds a regular expression from the text inside {{…}} and applies it to every query, and this text also matches other text in this query, so it corrupts that URL.
+  help: keep the text inside {{…}} to a launch context and a path, such as {{%patient.id}}
+  expression:
+    text: Condition?patient={{%patient.id|x}}
+    range:
+      startOffset: 20
+      endOffset: 33
+  related: []

@@ -1,7 +1,7 @@
 import { paintSeverity } from './colour.js';
 import { findingDetailLines, primaryLocation } from './locations.js';
 import { compareFindings } from './sort.js';
-import type { CompletedReport, ExpressionExcerpt, Finding } from './types.js';
+import type { CompletedReport, ExpressionExcerpt, Finding, RunCompat } from './types.js';
 
 export interface TextFindingOptions {
   showInfo: boolean;
@@ -58,6 +58,15 @@ export function formatTextFindings(
 }
 
 // Counts always cover every unsuppressed finding, including hidden info findings.
+// One line per namespace with a selected component, components in the plugin's order (decision T in
+// docs/smart-forms-rules.md).
+export function formatCompatLines(compat: RunCompat): string[] {
+  return Object.entries(compat).flatMap(([namespace, versions]) => {
+    const components = Object.entries(versions).map(([name, version]) => `${name} ${version}`);
+    return components.length === 0 ? [] : [`Compat ${namespace}: ${components.join(', ')}.`];
+  });
+}
+
 export function formatTextSummary(
   report: CompletedReport,
   { showInfo }: { showInfo: boolean },
@@ -97,14 +106,7 @@ export function formatTextSummary(
     `Linter: ${run.tool.version}. Plugins: ${plugins}.` +
       (run.sushi === undefined ? '' : ` SUSHI: ${run.sushi.version}.`),
   ];
-  const smartForms = run.compat['smart-forms'];
-  if (smartForms) {
-    const extract = smartForms['template-extract'];
-    lines.push(
-      `Smart Forms: renderer ${smartForms.renderer}, populate ${smartForms.populate}` +
-        `${extract === undefined ? '' : `, template-extract ${extract}`}.`,
-    );
-  }
+  lines.push(...formatCompatLines(run.compat));
   return `${lines.join('\n')}\n`;
 }
 

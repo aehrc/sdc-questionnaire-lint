@@ -1,0 +1,17 @@
+# A variable that does not parse is sdc/parse-error's.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: 'item.answer.('
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%v'

@@ -1,0 +1,12 @@
+# sort is known, and a call in its arguments is checked; fhirpath.js parses sort without a name.
+items:
+  - linkId: known
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '(1|2).sort($this)'
+  - linkId: argument
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '(1|2).sort($this.fist() desc)'

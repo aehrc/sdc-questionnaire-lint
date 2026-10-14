@@ -9,7 +9,8 @@ import type { ExpressionSite, QuestionnaireDocument, SiteItem } from './expressi
 import { hasFhirPathText, type VariableReference } from './fhirpath.js';
 import { hasQueryText, scanQueryFragments } from './x-fhir-query.js';
 
-// Uses stay internal to core until a plugin rule needs them (core-rules.md D15).
+// DeclarationUse is public: plugin rules receive it from RuleContext's useOf (API stage C).
+// findUses stays internal.
 
 // Whether the expressions of others reference a declaration: referenced when a reference resolves
 // to it, and unreferenced when none does and every expression that could see it was analysed (D5).

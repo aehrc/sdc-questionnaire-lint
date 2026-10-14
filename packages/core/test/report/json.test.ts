@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { formatJsonReport } from '../../src/report/json.js';
 import { compareFindings } from '../../src/report/sort.js';
@@ -7,7 +8,7 @@ import {
   questionnaireFinding,
   staleSuppressionFinding,
 } from '../support/builders.js';
-import { expectValidReport } from '../support/report.js';
+import { docsDir, expectValidReport, readJson, validateReportSchema } from '../support/report.js';
 
 // Findings deliberately out of order.
 function report(): CompletedReport {
@@ -103,5 +104,42 @@ describe('formatJsonReport', () => {
       },
     };
     expect(formatJsonReport(reversedKeys(failed))).toBe(`${JSON.stringify(failed, null, 2)}\n`);
+  });
+});
+
+describe('the report schema', () => {
+  const examples = new URL('examples/reports/', docsDir);
+  const files = readdirSync(examples).filter((file) => file.endsWith('.json'));
+
+  it('finds the six report examples', () => {
+    expect(files).toHaveLength(6);
+  });
+
+  it.each(files)('validates the example %s', (file) => {
+    const example = readJson(new URL(file, examples));
+    expect(validateReportSchema(example), JSON.stringify(validateReportSchema.errors)).toBe(true);
+  });
+
+  function withCompat(compat: unknown): unknown {
+    const json = JSON.parse(formatJsonReport(completedReport())) as { run: { compat: unknown } };
+    json.run.compat = compat;
+    return json;
+  }
+
+  it.each([
+    ['a second namespace', { 'smart-forms': { renderer: '1.4.0' }, demo: { engine: '2.0.0' } }],
+    ['Smart Forms compat without populate', { 'smart-forms': { renderer: '1.4.0' } }],
+    ['an empty namespace map', { demo: {} }],
+  ])('accepts %s', (_, compat) => {
+    expect(validateReportSchema(withCompat(compat))).toBe(true);
+  });
+
+  it.each([
+    ['latest', { 'smart-forms': { renderer: 'latest', populate: '4.7.1' } }],
+    ['latest in another namespace', { demo: { engine: 'latest' } }],
+    ['an empty version', { 'smart-forms': { renderer: '1.4.0', populate: '' } }],
+    ['an empty version in another namespace', { demo: { engine: '' } }],
+  ])('rejects %s as a compat version', (_, compat) => {
+    expect(validateReportSchema(withCompat(compat))).toBe(false);
   });
 });

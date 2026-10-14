@@ -25,10 +25,16 @@ export const patient = { resourceType: 'Patient', id: 'pat-1' };
 const emptySearchset = { resourceType: 'Bundle', type: 'searchset', entry: [] };
 
 // Populates a Questionnaire for the patient pat-1. fetch answers each request by URL; a request it
-// does not answer gets an empty searchset Bundle.
+// does not answer gets an empty searchset Bundle, and one it throws for fails. The callback resolves
+// to the resource itself, as the Smart Forms app's does since it moved from axios to fetch
+// (apps/smart-forms-app/src/features/prepopulate/utils/callback.ts:65-70,99-101 at f846e2d8);
+// response: 'data' resolves to { data: resource }, as axios does.
 export async function populate(
   questionnaire: Json,
-  { fetch }: { fetch?: (url: string) => Json | undefined } = {},
+  {
+    fetch,
+    response = 'resource',
+  }: { fetch?: (url: string) => Json | undefined; response?: 'resource' | 'data' } = {},
 ): Promise<Populated> {
   const urls: string[] = [];
   const result: {
@@ -43,7 +49,12 @@ export async function populate(
     patient,
     fetchResourceCallback: (url: string) => {
       urls.push(url);
-      return Promise.resolve({ data: fetch?.(url) ?? emptySearchset });
+      try {
+        const resource = fetch?.(url) ?? emptySearchset;
+        return Promise.resolve(response === 'data' ? { data: resource } : resource);
+      } catch (error) {
+        return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+      }
     },
     fetchResourceRequestConfig: { sourceServerUrl: 'https://fhir.example.org' },
     // Its timer is never cleared, so keep it short.

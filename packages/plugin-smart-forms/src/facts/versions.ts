@@ -1,4 +1,5 @@
-// The Smart Forms components the runtime facts describe. template-extract has none until P8.
+// The Smart Forms components these runtime facts describe. template-extract's facts are keyed by
+// its version alone, in extraction.ts: extraction is checked only when selected.
 export type Component = 'renderer' | 'populate';
 
 export const components: readonly Component[] = Object.freeze(['renderer', 'populate']);

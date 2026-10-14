@@ -1,0 +1,13 @@
+- ruleId: sdc/uncatalogued-expression
+  severity: info
+  at: /contained/0/contained/0/name/0/extension/0/valueExpression/expression (not-found)
+  message: This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.
+  expression:
+    text: item.where(linkId = 'name')
+- ruleId: smart-forms/unsupported-template-extract-context
+  severity: error
+  at: /contained/0/contained/0/name/0/extension/0/valueExpression/expression (not-found)
+  message: When Smart Forms extracts this template, it ignores this templateExtractContext because it reads only valueString, so the values below it are extracted without this context.
+  help: set the context as valueString with the same FHIRPath
+  expression:
+    text: item.where(linkId = 'name')

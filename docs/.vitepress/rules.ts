@@ -54,6 +54,15 @@ const examples: Readonly<Record<string, { case: string } | { tests: readonly str
   'smart-forms/unsupported-query-embedding': {
     case: 'unsupported-query-embedding/not-launch-context',
   },
+  'smart-forms/variable-name-collision': { case: 'variable-name-collision/siblings' },
+  'smart-forms/repeating-group-variable': { case: 'repeating-group-variable/reads-input' },
+  'smart-forms/named-expression-not-referenceable': {
+    case: 'named-expression-not-referenceable/calculated-expression',
+  },
+  'smart-forms/forward-variable-reference': { case: 'forward-variable-reference/root-later' },
+  'smart-forms/unsupported-template-extract-context': {
+    case: 'unsupported-template-extract-context/fhirpath-context',
+  },
 };
 
 interface RuleGroup {

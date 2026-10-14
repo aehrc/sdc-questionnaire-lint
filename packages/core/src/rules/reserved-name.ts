@@ -1,15 +1,5 @@
-import {
-  type BuiltinDefiner,
-  builtinNames,
-  builtinPrefixes,
-} from '../analysis/available-variables.js';
+import { type BuiltinDefiner, definerOf } from '../analysis/available-variables.js';
 import type { CoreRule } from '../plugins/core-rule.js';
-
-// The specification that reserves a name, or undefined when none does.
-function definerOf(name: string): BuiltinDefiner | undefined {
-  if (builtinPrefixes.some((prefix) => name.startsWith(prefix))) return 'FHIR';
-  return builtinNames.get(name);
-}
 
 const message = (name: string, definer: BuiltinDefiner): string =>
   `The name %${name} is defined by ${definer}, so a form cannot declare it; it is unclear ` +
@@ -36,7 +26,9 @@ export const reservedName: CoreRule = {
         'again.',
       limitations:
         'Contained resources and uncatalogued expressions declare nothing, so their names are not ' +
-        'checked. Names a host supplies, listed in hostVariables, are not declarations.',
+        'checked. Names a host supplies, listed in hostVariables or supplied by a listed plugin, ' +
+        'are not declarations; config hostVariables cannot list a name FHIRPath, FHIR or SDC ' +
+        'defines, and a plugin cannot supply one.',
     },
   },
   check(ctx, { declarations }) {

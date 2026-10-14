@@ -1,0 +1,16 @@
+# The renderer sets the name of an application/x-fhir-query variable with only a reference to [],
+# so the item variable %x collides with it.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    language: application/x-fhir-query
+    reference: 'Library/query'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'item'"

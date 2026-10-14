@@ -265,11 +265,11 @@ describe('formatGithubSummary', () => {
     );
   });
 
-  it('includes the Smart Forms versions when the plugin ran', () => {
+  it('includes the compat versions when the plugin ran', () => {
     const withPlugin = completedReport([], {});
     withPlugin.run.compat = { 'smart-forms': { renderer: '1.4.0', populate: '4.7.1' } };
     expect(formatGithubSummary(withPlugin)).toContain(
-      '- Smart Forms: renderer 1.4.0, populate 4.7.1.\n',
+      '- Compat smart-forms: renderer 1.4.0, populate 4.7.1.\n',
     );
   });
 

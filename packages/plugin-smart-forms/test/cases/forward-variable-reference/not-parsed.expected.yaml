@@ -1,0 +1,10 @@
+- ruleId: sdc/parse-error
+  severity: error
+  at: input/fsh/forward-variable-reference-not-parsed.fsh:8:55
+  message: The expression ends before it is complete.
+  note: "the FHIRPath parser reported: mismatched input '<EOF>'"
+  expression:
+    text: '%y.where('
+    range:
+      startOffset: 9
+      endOffset: 9

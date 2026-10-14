@@ -2,7 +2,9 @@ import {
   type Evidence,
   populateNames,
   populateSource,
+  type Reported,
   rendererSource,
+  reported,
   reproduced,
   source,
 } from './evidence.js';
@@ -10,14 +12,23 @@ import { type Component, type FactTable, factsAt } from './versions.js';
 
 // A name a component does not supply to the expressions it evaluates, although SDC defines it.
 // fhirpath.js fails on a reference to it when the reference is evaluated, and the component
-// catches the failure. P4 adds the sourceQueries names population supplies to this file.
-export interface NameFact {
+// catches the failure. The sourceQueries names population supplies are in source-queries.ts.
+export interface NameFact extends Reported {
   readonly name: string;
   readonly evidence: readonly Evidence[];
 }
 
+// The aehrc/smart-forms issues that report a name missing.
+const upstream: Readonly<Record<string, readonly number[]>> = {
+  questionnaire: [2140],
+  qitem: [2141],
+};
+
 function unsupplied(name: string, ...evidence: Evidence[]): NameFact {
-  return Object.freeze({ name, evidence: Object.freeze(evidence) });
+  return reported<NameFact>(
+    Object.freeze({ name, evidence: Object.freeze(evidence) }),
+    upstream[name],
+  );
 }
 
 // The renderer's context is the previous context, the response as %resource and %rootResource,
@@ -60,8 +71,7 @@ const populate471: readonly NameFact[] = Object.freeze([
   ),
 ]);
 
-// Upstream issues aehrc/smart-forms#2140 (%questionnaire) and #2141 (%qitem) track the fix. A later
-// verified version that supplies a name gets facts without it.
+// A later verified version that supplies a name gets facts without it.
 export const unsuppliedNames: FactTable<readonly NameFact[]> = Object.freeze({
   renderer: Object.freeze({ '1.4.0': renderer140 }),
   populate: Object.freeze({ '4.7.1': populate471 }),

@@ -1,0 +1,15 @@
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-source-query.fsh:21:54
+  message: '%prepop refers to the initialExpression on item "A" (a), which Smart Forms does not make available to other expressions; Smart Forms keeps one value for each name, so the reference can get the value of another %prepop instead.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%prepop.entry.count().toString()'
+    range:
+      startOffset: 0
+      endOffset: 7
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%prepop is declared here'
+    - at: /extension/0 (source-unavailable)
+      message: '%prepop is also the name of this sourceQueries result'

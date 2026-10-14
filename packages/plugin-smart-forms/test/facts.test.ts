@@ -1,33 +1,56 @@
+/// <reference types="vite/client" />
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { embeddingFacts } from '../src/facts/embeddings.js';
-import { type Evidence, sourceBase } from '../src/facts/evidence.js';
-import { languageFacts } from '../src/facts/languages.js';
-import { unsuppliedNames } from '../src/facts/names.js';
-import { prerequisites } from '../src/facts/prerequisites.js';
+import { type Evidence, type Reported, sourceBase } from '../src/facts/evidence.js';
+import { extractionAt, extractionFacts } from '../src/facts/extraction.js';
 import { type Component, components, type FactTable } from '../src/facts/versions.js';
 import smartForms from '../src/index.js';
 
-const tables: FactTable<readonly { evidence: readonly Evidence[] }[]>[] = [
-  languageFacts,
-  prerequisites,
-  unsuppliedNames,
-  embeddingFacts,
-];
+type Fact = Reported & { evidence: readonly Evidence[] };
+type Table = FactTable<readonly Fact[]>;
 
-function* factsOf(component: Component): Generator<{ evidence: readonly Evidence[] }> {
+// Whether an export is a table of facts: facts by version for every component.
+function isTable(value: unknown): value is Table {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    components.every((component) => {
+      const versions: unknown = (value as Record<string, unknown>)[component];
+      return (
+        typeof versions === 'object' &&
+        versions !== null &&
+        Object.values(versions).every(Array.isArray)
+      );
+    })
+  );
+}
+
+// Every table every fact module exports, so that a new table cannot escape these checks.
+const tables: Table[] = Object.values(
+  import.meta.glob<Record<string, unknown>>('../src/facts/*.ts', { eager: true }),
+).flatMap((module) => Object.values(module).filter(isTable));
+
+function* factsOf(component: Component): Generator<Fact> {
   for (const table of tables) {
     for (const facts of Object.values(table[component])) yield* facts;
   }
 }
 
+// The template-extract facts, in their own table: extraction is checked only when selected.
+const extraction = Object.values(extractionFacts).flat();
+
 function* allEvidence(): Generator<Evidence> {
   for (const component of components) {
     for (const fact of factsOf(component)) yield* fact.evidence;
   }
+  for (const fact of extraction) yield* fact.evidence;
 }
 
 describe('runtime facts', () => {
+  it('are collected from every table', () => {
+    expect(tables).toHaveLength(6);
+  });
+
   it.each(components)('cover every verified %s version', (component) => {
     const verified = smartForms.compat?.verified[component] ?? [];
     expect(verified.length).toBeGreaterThan(0);
@@ -36,10 +59,33 @@ describe('runtime facts', () => {
     }
   });
 
+  it('cover every verified template-extract version', () => {
+    const verified = smartForms.compat?.verified['template-extract'] ?? [];
+    expect(verified.length).toBeGreaterThan(0);
+    expect(Object.keys(extractionFacts)).toEqual(verified);
+    for (const version of verified) expect(extractionAt(version).size).toBeGreaterThan(0);
+  });
+
+  it('have no extraction facts for a version that is not verified', () => {
+    expect(() => extractionAt('0.0.0')).toThrow(
+      'the plugin has no extraction facts for Smart Forms template-extract 0.0.0',
+    );
+  });
+
   it('give every fact evidence', () => {
     for (const component of components) {
       for (const fact of factsOf(component)) expect(fact.evidence.length).toBeGreaterThan(0);
     }
+    for (const fact of extraction) expect(fact.evidence.length).toBeGreaterThan(0);
+  });
+
+  it('name each upstream issue by its number', () => {
+    const facts = [...components.flatMap((component) => [...factsOf(component)]), ...extraction];
+    const issues = facts.flatMap(({ upstream }) => upstream ?? []);
+    expect(issues.length).toBeGreaterThan(0);
+    for (const fact of facts)
+      if (fact.upstream !== undefined) expect(fact.upstream.length).toBeGreaterThan(0);
+    for (const issue of issues) expect(Number.isInteger(issue) && issue > 0).toBe(true);
   });
 
   it('cite the source at the release commit', () => {
@@ -58,6 +104,12 @@ describe('runtime facts', () => {
   it('every populate fact has reproduced evidence', () => {
     for (const fact of factsOf('populate')) {
       expect(fact.evidence.map(({ kind }) => kind)).toContain('reproduced');
+    }
+  });
+
+  it('every template-extract fact is reproduced', () => {
+    for (const fact of extraction) {
+      for (const evidence of fact.evidence) expect(evidence.kind).toBe('reproduced');
     }
   });
 

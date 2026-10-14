@@ -18,6 +18,16 @@ export interface ResolvedRule {
   setting: RuleSetting;
   // The versions selected for the rule's namespace, as ctx.compat gives them; frozen.
   compat: Readonly<Record<string, string>>;
+  // The meta.docsUrl read when the plugin was validated, copied into each finding (decision Y in
+  // docs/smart-forms-rules.md). No built-in rule has one yet.
+  docsUrl?: string;
+}
+
+// A listed plugin with a hostVariables hook, and the compat its rules get.
+export interface HostVariableHook {
+  plugin: LintPlugin & Required<Pick<LintPlugin, 'hostVariables'>>;
+  // The same frozen object as each of its rules' compat.
+  compat: Readonly<Record<string, string>>;
 }
 
 export interface RuleSet {
@@ -27,12 +37,22 @@ export interface RuleSet {
   rules: ResolvedRule[];
   // For run.compat: the versions selected for each plugin that declares compat, by namespace.
   compat: Record<string, Readonly<Record<string, string>>>;
+  // In config order.
+  hostVariableHooks: HostVariableHook[];
 }
 
 // The two halves of the report schema's rule ID pattern.
 const namePattern = /^[a-z][a-z0-9-]*$/;
 const severities: readonly string[] = ['error', 'warning', 'info'];
 const docsFields = ['checks', 'why', 'exampleMessage', 'fix', 'limitations'] as const;
+// A URI character or percent-encoding (RFC 3986), without "#", which starts the fragment, and "[" and
+// "]", which only an IPv6 host may use.
+const uriCharacter = "(?:[A-Za-z0-9\\-._~:/?@!$&'()*+,;=]|%[0-9A-Fa-f]{2})";
+// A scheme, a non-empty rest and at most one fragment. With URL.canParse, a docsUrl that passes is
+// one the report schema's format: uri accepts (decision Z in docs/smart-forms-rules.md).
+const uriPattern = new RegExp(
+  `^[A-Za-z][A-Za-z0-9+.-]*:(?![?#]|$)${uriCharacter}*(?:#${uriCharacter}*)?$`,
+);
 
 // Help for an unknown rule ID, shared by config failures and explain.
 export function unknownRuleHelp(id: string, ruleSet: RuleSet): string {
@@ -54,7 +74,13 @@ export function unknownRuleHelp(id: string, ruleSet: RuleSet): string {
 }
 
 // Checks the shape of the plugin at plugins/<index>; a failure points into the exported config.
-function validatePlugin(value: unknown, index: number, display: string): LintPlugin {
+// Adds each rule's validated docsUrl to docsUrls, so that nothing reads meta.docsUrl again.
+function validatePlugin(
+  value: unknown,
+  index: number,
+  display: string,
+  docsUrls: Map<object, string>,
+): LintPlugin {
   const fail = (at: (string | number)[], problem: string, help: string): never => {
     throw invalidConfigFailure(display, ['plugins', index, ...at], problem, help);
   };
@@ -112,12 +138,15 @@ function validatePlugin(value: unknown, index: number, display: string): LintPlu
       );
     }
     const { docsUrl, docs } = ruleMeta;
-    if (docsUrl !== undefined && (typeof docsUrl !== 'string' || !URL.canParse(docsUrl))) {
-      fail(
-        [...at, 'meta', 'docsUrl'],
-        'docsUrl is not an absolute URL',
-        'set meta.docsUrl to an absolute URL, such as https://example.org/rules/no-today',
-      );
+    if (docsUrl !== undefined) {
+      if (typeof docsUrl !== 'string' || !URL.canParse(docsUrl) || !uriPattern.test(docsUrl)) {
+        return fail(
+          [...at, 'meta', 'docsUrl'],
+          'docsUrl is not an absolute URL',
+          'set meta.docsUrl to an absolute URL, such as https://example.org/rules/no-today',
+        );
+      }
+      docsUrls.set(rule, docsUrl);
     }
     if (docs !== undefined) {
       const fields = `give docs the non-empty fields ${docsFields.join(', ')}`;
@@ -135,6 +164,13 @@ function validatePlugin(value: unknown, index: number, display: string): LintPlu
     }
   }
   if (plugin.compat !== undefined) validatePluginCompat(plugin.compat, fail);
+  if (plugin.hostVariables !== undefined && typeof plugin.hostVariables !== 'function') {
+    fail(
+      ['hostVariables'],
+      'hostVariables is not a function',
+      'give the plugin a hostVariables({ document, compat }) that returns the names it supplies',
+    );
+  }
   return value as LintPlugin;
 }
 
@@ -251,8 +287,9 @@ export function resolveRuleSet(loaded: LoadedConfig | null): RuleSet {
   };
 
   const plugins = [sdcPlugin, lintPlugin];
+  const docsUrls = new Map<object, string>();
   (config.plugins ?? []).forEach((value: unknown, index) => {
-    const plugin = validatePlugin(value, index, display);
+    const plugin = validatePlugin(value, index, display, docsUrls);
     const { name } = plugin.meta;
     const at = ['plugins', index, 'meta', 'name'];
     if (name === sdcPlugin.meta.name || name === lintPlugin.meta.name) {
@@ -305,17 +342,29 @@ export function resolveRuleSet(loaded: LoadedConfig | null): RuleSet {
       .flatMap(({ meta, rules }) =>
         Object.entries(rules).map(([key, rule]) => {
           const id = `${meta.name}/${key}`;
+          const docsUrl = docsUrls.get(rule);
           return {
             id,
             namespace: meta.name,
             rule,
             setting: settings[id] ?? rule.meta.defaultSeverity,
             compat: compat[meta.name] ?? noCompat,
+            ...(docsUrl === undefined ? {} : { docsUrl }),
           };
         }),
       )
       .sort((a, b) => compareStrings(a.id, b.id)),
     compat,
+    hostVariableHooks: plugins.flatMap((plugin) =>
+      plugin.hostVariables === undefined
+        ? []
+        : [
+            {
+              plugin: plugin as HostVariableHook['plugin'],
+              compat: compat[plugin.meta.name] ?? noCompat,
+            },
+          ],
+    ),
   };
 
   const ruleIds: string[] = ruleSet.rules.map(({ id }) => id);

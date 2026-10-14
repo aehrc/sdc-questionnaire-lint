@@ -1,0 +1,15 @@
+# No contained Bundle has the id the reference names, so population binds nothing to %prepop.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: observations
+    expression: '%prepop.entry.count()'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries"'
+  - 'extension[=].valueReference.reference = "#prepop"'
+  - 'contained[0].resourceType = "Patient"'
+  - 'contained[0].id = "prepop"'
+items:
+  - linkId: q
+    type: string

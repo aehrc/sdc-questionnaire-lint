@@ -1,0 +1,20 @@
+# An itemPopulationContext population reads is not reported, at a population site (an
+# initialExpression) or at a renderer site (a calculatedExpression), which gets population's names.
+items:
+  - linkId: g
+    type: group
+    extensions:
+      - url: itemPopulationContext
+        name: rows
+        expression: '%resource.item'
+    items:
+      - linkId: initial
+        type: string
+        extensions:
+          - url: initialExpression
+            expression: '%rows.linkId'
+      - linkId: calculated
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%rows.linkId'

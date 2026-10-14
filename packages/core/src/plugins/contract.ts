@@ -1,8 +1,10 @@
 // The plugin contract (core-plan §5.2). Exported from the package, so changes are public API changes.
 import type { AvailableVariables } from '../analysis/available-variables.js';
 import type { Declaration } from '../analysis/declarations.js';
+import type { Dependencies } from '../analysis/dependencies.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../analysis/expression-site.js';
 import type { VariableReference } from '../analysis/fhirpath.js';
+import type { DeclarationUse } from '../analysis/uses.js';
 import type { OffsetRange, Severity } from '../report/types.js';
 
 export type { Severity };
@@ -48,23 +50,34 @@ export interface RuleContext {
   // compare items by pointer.
   readonly declarations: readonly Declaration[];
   // The %name references in a site's FHIRPath text, in source order, fragments included; [] when
-  // the text parses and references nothing. undefined when the site has no FHIRPath analysis: its
-  // language is not text/fhirpath, it has no text, or the text does not parse. A rule treats
-  // undefined as "cannot check", never as "no references". The array and its references are
-  // frozen.
+  // the text parses and references nothing. Each says whether it is complete, and whether it is
+  // conditional: fhirpath.js may skip evaluating it, as in an iif branch. undefined when the site
+  // has no FHIRPath analysis: its language is not text/fhirpath, it has no text, or the text does
+  // not parse. A rule treats undefined as "cannot check", never as "no references". The array and
+  // its references are frozen.
   referencesAt(site: ExpressionSite): readonly VariableReference[] | undefined;
   // The names an expression can reference at a site, and the variable each name resolves to;
   // undefined at an uncatalogued site, where name analysis cannot run.
   variablesAt(site: ExpressionSite): AvailableVariables | undefined;
-  // Both return undefined for an object that is not one of sites: they compare by identity, so a
-  // copy of a site is not one.
+  // Whether a site's FHIRPath expression can give a different value for two inputs that share their
+  // linkId, such as two repetitions of a group: some term is evaluated with the expression's input
+  // as its focus, other than to read the input's linkId, or it uses %context. A syntactic test, not
+  // proof that a value differs. undefined where referencesAt is.
+  readsInput(site: ExpressionSite): boolean | undefined;
+  // referencesAt, variablesAt and readsInput return undefined for an object that is not one of
+  // sites: they compare by identity, so a copy of a site is not one.
+  // What a declaration's expression references, the declarations its references resolve to
+  // included; and whether the expressions of others reference it: referenced, unreferenced, or,
+  // when an expression that could reference it was not analysed, blocked (only syntax errors) or
+  // unknown. Both follow SDC's scoping, as variablesAt does, and return undefined for an object
+  // that is not one of declarations: they compare by identity.
+  dependenciesOf(declaration: Declaration): Dependencies | undefined;
+  useOf(declaration: Declaration): DeclarationUse | undefined;
   // The component versions the run checks against for this rule's namespace, such as
   // { renderer: '1.4.0', populate: '4.7.1' }; {} when the plugin declares no compat. For a plugin
   // with compat, core guarantees a version for every component in compat.required, and for every
   // other verified component unless an explicit config compat object omits it.
   readonly compat: Readonly<Record<string, string>>;
-  // Always undefined: the config cannot pass rule options yet.
-  readonly options: unknown;
   report(finding: RuleFinding): void;
 }
 
@@ -83,7 +96,8 @@ export interface LintRule {
   meta: {
     description: string;
     defaultSeverity: Severity;
-    // An absolute URL, shown by sdc-lint explain <rule-id>.
+    // An absolute URL of URI characters (RFC 3986), which the report schema accepts. Shown by
+    // sdc-lint explain <rule-id>, linked from SARIF and copied into each finding of the rule.
     docsUrl?: string;
     docs?: RuleDocs;
   };
@@ -102,6 +116,14 @@ export interface PluginCompat {
   required: readonly string[];
 }
 
+// What a plugin's hostVariables receives for one Questionnaire. An object, so that fields can be
+// added without breaking the hook.
+export interface HostVariablesInput {
+  readonly document: QuestionnaireDocument;
+  // The same frozen object the plugin's rules get as ctx.compat; {} without compat.
+  readonly compat: Readonly<Record<string, string>>;
+}
+
 // A plugin: listed in plugins in an .mjs config, it registers its rules under its namespace.
 export interface LintPlugin {
   // name is the rule namespace: smart-forms plus variable-name-collision gives
@@ -110,4 +132,14 @@ export interface LintPlugin {
   rules: Readonly<Record<string, LintRule>>;
   // Declared by a plugin that checks forms against runtime versions selected in config compat.
   compat?: PluginCompat;
+  // The names, without %, that the runtime the plugin describes supplies to a Questionnaire's
+  // expressions, such as the results of its sourceQueries. Core adds them to the host variables
+  // after config hostVariables, so a declaration or an assembleContext name of the same name still
+  // wins. It only adds names. Called as a method, once per Questionnaire in a file or a Bundle entry,
+  // in plugins order, before the Questionnaire is analysed, whenever the plugin is listed, even with
+  // all its rules off. Runs synchronously and is pure: it must not mutate input or access the
+  // network. Duplicates and a name with a space are allowed; a name FHIRPath, FHIR or SDC defines is
+  // dropped. A throw, a returned promise, or a result that is not an array of non-empty strings
+  // without % fails the run with PLUGIN_CRASH.
+  hostVariables?(input: HostVariablesInput): readonly string[];
 }

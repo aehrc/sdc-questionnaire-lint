@@ -4,7 +4,8 @@ import type { ExpressionSite } from './expression-site.js';
 import { hasFhirPathText, type VariableReference } from './fhirpath.js';
 import { hasQueryText, scanQueryFragments } from './x-fhir-query.js';
 
-// Dependencies stay internal to core until a plugin rule needs them (core-rules.md D15).
+// Dependencies is public: plugin rules receive it from RuleContext's dependenciesOf (API stage C).
+// findDependencies stays internal.
 
 // What a declaration's expression references.
 export interface Dependencies {

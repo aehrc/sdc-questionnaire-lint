@@ -1,0 +1,18 @@
+# Only a CQL expression can reference %v, so its use is unknown, and it is still reported.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: 'item.answer.value'
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            language: text/cql
+            expression: '%v'

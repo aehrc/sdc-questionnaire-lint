@@ -1,0 +1,18 @@
+# Smart Forms reads launchContexts only from the root extension array, so a patient launchContext in
+# the root modifierExtension stores nothing, and the item variable %patient collides with nothing.
+# Core still declares it.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'modifierExtension[0].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'modifierExtension[=].extension[0].url = "name"'
+  - 'modifierExtension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'modifierExtension[=].extension[+].url = "type"'
+  - 'modifierExtension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: patient
+        expression: "'not a patient'"

@@ -1,0 +1,15 @@
+- ruleId: smart-forms/forward-variable-reference
+  severity: warning
+  at: input/fsh/forward-variable-reference-population-context.fsh:20:54
+  message: '%x references the itemPopulationContext %ctx on item "Medications" (g), which Smart Forms evaluates only after every variable when it prefills the form, so %x has no value while the form is prefilled.'
+  help: compute %x from the itemPopulationContext's expression instead of %ctx, or read %ctx only in initialExpressions
+  expression:
+    text: '%ctx.given.first()'
+    range:
+      startOffset: 0
+      endOffset: 4
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%ctx is declared here'
+    - at: /item/0/item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: this prefill expression uses %x

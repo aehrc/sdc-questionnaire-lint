@@ -1,0 +1,17 @@
+# Reading the input's linkId alone would not count, but this also reads its answers.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: 'linkId & item.answer.value'
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%v'

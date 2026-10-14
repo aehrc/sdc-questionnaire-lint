@@ -1,0 +1,16 @@
+# A named calculatedExpression stores no name, so it does not collide with a variable %x.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        name: x
+        expression: "'a'"
+  - linkId: b
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'b'"

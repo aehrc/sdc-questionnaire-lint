@@ -1,0 +1,19 @@
+# As unreferenced, with sdc/unused-declaration off.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: 'item.answer.value'
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: "'x'"

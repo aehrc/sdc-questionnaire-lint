@@ -1,0 +1,7 @@
+# A name nothing declares is sdc/undefined-variable's.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '%missing'

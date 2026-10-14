@@ -1,0 +1,25 @@
+# An answerExpression headed by a patient launchContext, or by an application/x-fhir-query variable
+# whose expression is a ValueSet URL, is not reported, nor is a later reference to its head.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: launch
+    type: coding
+    extensions:
+      - url: answerExpression
+        expression: '%patient.extension.value.coding.where(code != %patient.id)'
+  - linkId: value-set
+    type: coding
+    extensions:
+      - url: variable
+        name: conditions
+        language: application/x-fhir-query
+        expression: 'https://tx.example.org/fhir/ValueSet/conditions/$expand'
+      - url: answerExpression
+        expression: '%conditions.expansion.contains.where(code != %conditions.id)'

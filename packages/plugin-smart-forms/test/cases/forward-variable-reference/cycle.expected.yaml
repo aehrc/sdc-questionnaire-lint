@@ -1,0 +1,10 @@
+- ruleId: sdc/dependency-cycle
+  severity: warning
+  at: input/fsh/forward-variable-reference-cycle.fsh:8:46
+  message: Declarations %x and %y reference each other; updates may not reach a stable value.
+  help: Break the dependency cycle or verify that these expressions reach stable values in the form filler.
+  expression:
+    text: '%y'
+  related:
+    - at: /extension/1/valueExpression/expression (source-unavailable)
+      message: '%y is declared here'

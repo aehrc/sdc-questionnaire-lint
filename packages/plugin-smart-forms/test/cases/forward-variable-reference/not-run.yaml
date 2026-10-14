@@ -1,0 +1,16 @@
+# Population does not run for a form with no launchContext, sourceQueries or query variable.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    expression: '%y'
+  - url: variable
+    name: y
+    expression: '1'
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: initialExpression
+        expression: '%x'

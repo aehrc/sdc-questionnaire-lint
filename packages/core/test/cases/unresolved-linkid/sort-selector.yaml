@@ -1,0 +1,7 @@
+# A missing linkId in an argument of sort is reported.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: "%resource.item.sort(%resource.item.where(linkId = 'x').answer.value).first().linkId"

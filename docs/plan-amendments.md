@@ -99,7 +99,7 @@ Accepted with P1 (2026-10-09):
 Accepted with P2 (2026-10-09):
 
 - **§5.2 core API for plugins (S5, D15, D18):** API stage B replaces the `scopeAt` stub and the `Scope` type with `RuleContext.referencesAt(site)` and `RuleContext.variablesAt(site)`, and exports the types they return: `VariableReference`, `AvailableVariables`, `Variable`, `Declaration` and `DeclarationKind`. D15 and D18 are lifted for these types; dependencies and uses stay internal until P5. `undefined` means the analysis is unavailable at the site, and is distinct from `[]`. Core and the plugin stay at 0.1.0 before the first release, so 0.1.0 is the version that ships stage B.
-- **§4.3 host-supplied `%questionnaire` and `%qitem` (S13):** a host that supplies either name through Smart Forms' `additionalContext` records a suppression with a reason naming the host; `hostVariables` cannot express it, because built-in names resolve first. This does not apply to an answerExpression: the renderer builds its context from the name before the first `.` alone, and `additionalContext` never reaches it, so no host can supply the name there.
+- **§4.3 host-supplied `%questionnaire` and `%qitem` (S13):** a host that supplies either name through Smart Forms' `additionalContext` records a suppression with a reason naming the host; `hostVariables` cannot express it, because config rejects built-in names. This does not apply to an answerExpression: the renderer builds its context from the name before the first `.` alone, and `additionalContext` never reaches it, so no host can supply the name there.
 - **Reproduction dependencies:** `@aehrc/sdc-populate@4.7.1` declares `fhirclient`, which it never imports at run time and which pulls in about 500 Expo and React Native packages. An npm override replaces it with an empty local stub, `test/stubs/fhirclient`. A new `sdc-populate` version must re-check the override, which names 4.7.1.
 - **§4.3 `smart-forms/questionnaire-variable-unavailable` silence (S9):** the rule is silent for a name any declaration in the form has, wherever it is. `sdc/reserved-name` reports that declaration, which is the root cause. This claims nothing about whether the declaration supplies a value at run time.
 - **§4.3 `smart-forms/questionnaire-variable-unavailable` message:** the message states the consequence of the failed evaluation at each location, which leaves the previous result in place. An answerExpression gets its own message, because the renderer never evaluates one whose head is the name ([smart-forms-rules.md](smart-forms-rules.md#p2-smart-formsquestionnaire-variable-unavailable)).
@@ -124,3 +124,51 @@ Issue #31. [cli.md](cli.md#github) and [cli.md](cli.md#sarif) hold the contract.
 - **§7.3 failures in github and sarif:** a recognized `github` or `sarif` selection gets a failure document on stdout, as `json` does: one `::error` annotation and a summary section without counts, or a SARIF log with `executionSuccessful: false` and no `results`. An absent `results` keeps code scanning from closing open alerts; the CLI recipe skips the SARIF upload on exit 2 as well.
 - **§7.4 SARIF locations and fingerprints:** artifact URIs are relative to `%SRCROOT%`, the working directory. `partialFingerprints.primaryLocationLineHash` carries the report's fingerprint, so upload-sarif does not compute one from the source line. Whether GitHub honours both, and its reading of `endColumn`, is checked against a real repository before the formats are relied on.
 - **§7.4 unique fingerprints:** a Questionnaire finding's fingerprint also has the text of its expression range, and a fingerprint that would repeat in a report is made distinct by its occurrence. Two findings of one rule in one expression were otherwise one code-scanning alert. Every fingerprint of a finding with a range changed once.
+
+## From the Smart Forms P5 review (2026-10-13)
+
+Settled before building P5; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-p5-review).
+
+- **§4.2 `smart-forms/flat-variable-context` (built as `smart-forms/variable-name-collision`, S17):** "declarations that the component stores in one shared context" means the names Smart Forms' readers bind: variables in `text/fhirpath` or `application/x-fhir-query`, the itemPopulationContexts populate reads, and launchContexts under the name Smart Forms reads, which can differ from core's. The sourceQueries result names the plugin supplies collide too, although they are not declarations. A name FHIRPath, FHIR or SDC defines, and a second declaration of a name on one element, are left to `sdc/reserved-name` and `sdc/duplicate-declaration` (S9).
+- **§4.2 `smart-forms/repeating-group-variable`:** "evaluated per instance" means the variable's value can differ between repetitions: it reads its input other than `linkId`, or depends on such a variable on the same item, in either order. A variable nothing references is not reported.
+- **§5.2 core API for plugins (S5):** stage C also exports `definerOf` and `BuiltinDefiner`, so a plugin rule can stay silent where `sdc/reserved-name` reports without copying core's list of built-in names. `RuleContext.readsInput(site)` does not count a read of only the input's `linkId`.
+
+## From the Smart Forms P6 review (2026-10-13)
+
+Settled before building P6; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-p6-review).
+
+- **§4.2 `smart-forms/named-expression-not-referenceable` and population (S14):** under S1, a name only population makes available, such as an itemPopulationContext's, is not reported at a renderer site, because population's context reaches the renderer as `additionalContext`. An answerExpression is the exception, below.
+- **§4.2 `smart-forms/named-expression-not-referenceable` at an answerExpression:** the renderer gives an answerExpression a context of its own with one name, the text between its first `%` and first `.`, and only when that names a launch context or an `application/x-fhir-query` variable whose expression is a ValueSet URL. The rule reports a head that is neither, and every other reference in the expression, names supplied by the host or by sourceQueries included. Populate-only names that S14 lets through at other renderer sites are reported there.
+- **§4.2 `smart-forms/named-expression-not-referenceable` and host names:** a reference that resolves to a declaration Smart Forms does not make available gets the same finding when config `hostVariables` or an assembleContext name also supplies the name. The message does not claim which value the reference gets, nor that the reference fails: it says the reference never gets the declaration's value.
+
+## From the Smart Forms P7 review (2026-10-13)
+
+Settled before building P7; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-p7-review).
+
+- **§4.2 new rule `smart-forms/forward-variable-reference` (S12, warning):** a `text/fhirpath` variable population evaluates references, at a position fhirpath.js always evaluates, a variable population evaluates later (a later root variable, a later variable on the same element, or an ancestor item's variable later in population's linkId key order) or an itemPopulationContext population reads. Population fails the reference, so the variable has no value while the form is prefilled. The rule reports only when population runs and an initialExpression or itemPopulationContext population reads uses the variable, directly or through other variables, and stays silent when an earlier binding of the name supplies a value instead.
+- **§4.2 rule IDs (S17):** `unchecked-language-evaluated-as-fhirpath` is built as `expression-evaluated-as-fhirpath`, `x-fhir-query-embedding-shape` as `unsupported-query-embedding`, `flat-variable-context` as `variable-name-collision`, and the new D8 rule is `forward-variable-reference`.
+- **§4.2 overlap with core (S9):** `forward-variable-reference` and `repeating-group-variable` may report the same variable: reordering fixes population, while every repetition still shares one value.
+- **§5.2 core API for plugins (S5):** stage D adds `VariableReference.conditional`, true when fhirpath.js may skip evaluating the reference: an `iif` argument after the criterion, a `coalesce` argument after the first, or an argument evaluated per item of its target (`where`, `select`, `exists`, `all`, `repeat`, the first of `aggregate`, `sort`'s selectors), and every reference below one. The change is additive.
+
+## From the Smart Forms P8 review (2026-10-13)
+
+Settled before building P8; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-p8-review).
+
+- **§4.2 rule ID (S17):** `smart-forms/template-extract-context-string-only` is built as `smart-forms/unsupported-template-extract-context`.
+- **§4.2 `smart-forms/unsupported-template-extract-context` scope:** the rule reports a templateExtractContext with a `valueExpression` and no `valueString` only in a template Smart Forms extracts: a top-level contained resource referenced by the first `#id` `template` slice of an item's `templateExtract`. A template referenced only from the Questionnaire root is never extracted by template-extract 1.0.15, so it is not reported. It reports only where the Expression is an expression site, so a context with no `language` is left to the Validator, and only the first templateExtractContext in an `extension` array, outside the template resource's own `extension`.
+- **§6.3 suppressions:** unchanged. Suppression of a finding reported with only a JSON pointer, planned in P8, is deferred to an open item in smart-forms-rules.md.
+
+## From the Smart Forms open-items review (2026-10-14)
+
+Settled after P8; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-open-items-review).
+
+- **§6.3 suppressions and plugin rules (S8):** a suppression of a plugin finding is applied or stale as usual, but a target with no plugin finding is not assessed: plugin rules take part in no completion evidence and never make a site unchecked.
+- **§4.2 Smart Forms rules (S15):** no rule for the renderer's answerExpression fallback, or for `%context` being `{}` at most Smart Forms evaluators.
+- **§5.2 plugin contract (S19):** `RuleContext.options` is removed; rule options are not built (S7). Findings carry their rule's `docsUrl`.
+- **§7 report (S19):** the compat versions in the report are a generic map from component to version, not fields named after Smart Forms components.
+
+## From the Smart Forms P12 review (2026-10-14)
+
+Settled before building P12; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-p12-review).
+
+- **§5.2 plugin contract (Z):** a rule's `meta.docsUrl` must be an absolute URL that the report schema's `format: uri` accepts: RFC 3986 characters, well-formed percent-encodings, no `[` or `]`, at most one `#` and something after the scheme; otherwise loading the plugin fails.

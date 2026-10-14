@@ -6,6 +6,7 @@ import {
   findVariableReferences,
   hasFhirPathText,
   type LinkIdReferences,
+  readsInput,
   type VariableReference,
 } from './fhirpath.js';
 import { findLinkIdReferencesAt, findLinkIds } from './linkids.js';
@@ -13,9 +14,10 @@ import { type DeclarationUse, findUses } from './uses.js';
 
 // The facts core computes once per document and shares between its rules and the suppression
 // assessment (core-rules.md, Shared analysis). Internal: a plugin rule receives only references,
-// variablesAt and declarations, through RuleContext's referencesAt, variablesAt (API stage B) and
-// declarations (stage B2). Everything a rule can reach is frozen, because rules run before the
-// suppression assessment reuses it.
+// variablesAt, declarations, dependencies, uses and readsInput, through RuleContext's referencesAt,
+// variablesAt (API stage B), declarations (stage B2), dependenciesOf, useOf and readsInput (stage
+// C). Everything a rule can reach is frozen, because rules run before the suppression assessment
+// reuses it.
 export interface DocumentAnalysis {
   // In document order. RuleContext's declarations is this array.
   readonly declarations: readonly Declaration[];
@@ -33,6 +35,9 @@ export interface DocumentAnalysis {
   readonly linkIds: ReadonlySet<string>;
   // The linkId references of each FHIRPath site that parses.
   readonly linkIdReferences: ReadonlyMap<ExpressionSite, LinkIdReferences>;
+  // Whether a FHIRPath site's expression reads its input other than its linkId; undefined at a site
+  // with no references, because it is not FHIRPath with text that parses. Found on first use.
+  readsInput(site: ExpressionSite): boolean | undefined;
 }
 
 export function analyseDocument(
@@ -48,6 +53,7 @@ export function analyseDocument(
       references.set(site, Object.freeze(found.map((reference) => Object.freeze(reference))));
   }
   const declarations = Object.freeze(findDeclarations(document, sites));
+  const inputReads = new Map<ExpressionSite, boolean | undefined>();
   const variablesAt = availableVariables(
     declarations,
     findAssembleContextNames(document),
@@ -61,5 +67,10 @@ export function analyseDocument(
     uses: findUses(document, declarations, sites, references, variablesAt),
     linkIds: findLinkIds(document),
     linkIdReferences: findLinkIdReferencesAt(document, sites),
+    readsInput: (site) => {
+      if (!references.has(site) || !hasFhirPathText(site)) return undefined;
+      if (!inputReads.has(site)) inputReads.set(site, readsInput(site.text));
+      return inputReads.get(site);
+    },
   };
 }

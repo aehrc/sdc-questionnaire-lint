@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@aehrc/sdc-populate": "4.7.1",
+    "@aehrc/sdc-template-extract": "1.0.15",
     "@sdc-questionnaire-lint/lint-cases": "*",
     "sdc-questionnaire-lint": "*"
   }

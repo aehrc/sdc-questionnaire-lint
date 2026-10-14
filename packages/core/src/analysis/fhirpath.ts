@@ -106,10 +106,24 @@ function onOwnFunctions(call: ParseNode, parent: ParseNode | undefined): boolean
   );
 }
 
+// Whether a Functn is a sort call: fhirpath.js parses sort, or `sort`, as a Functn with no
+// Identifier and no ParamList, only a SortDirectionArgument child for each argument
+// (fhirpath.js:613-617). The FunctionInvocation holds the name as written and its position.
+function isSort(functn: ParseNode | undefined): functn is ParseNode {
+  return functn !== undefined && child(functn, 'Identifier') === undefined;
+}
+
+// The arguments of a FunctionInvocation, in source order.
+function argumentsOf(call: ParseNode): ParseNode[] {
+  const functn = child(call, 'Functn');
+  return (isSort(functn) ? functn.children : child(functn, 'ParamList')?.children) ?? [];
+}
+
 // The call a FunctionInvocation makes. fhirpath.js strips the backticks of a delimited name, then
 // decodes its escape sequences; a name with one gives undefined rather than a guess.
 function toCall(text: string, call: ParseNode): FunctionCall | undefined {
-  const { text: written, start } = child(child(call, 'Functn'), 'Identifier') ?? {};
+  const functn = child(call, 'Functn');
+  const { text: written, start } = (isSort(functn) ? call : child(functn, 'Identifier')) ?? {};
   if (written === undefined || start === undefined) {
     throw new Error(`fhirpath.js gave a function call without a name: ${text}`);
   }
@@ -152,6 +166,10 @@ export interface VariableReference {
   // False when an earlier step of its chain is a defineVariable with a computed name, which may
   // bind it.
   readonly complete: boolean;
+  // True when fhirpath.js 4.10.1 may skip evaluating it, so a failure there is not certain: it is
+  // in an iif argument after the criterion, a coalesce argument after the first, or an argument
+  // evaluated once per item of the function's target, or below one of these.
+  readonly conditional: boolean;
 }
 
 // A string literal's value, decoded as fhirpath.js decodes it; anything without both quotes is
@@ -185,7 +203,10 @@ function skipString(text: string, offset: number): number {
 
 // The reference an ExternalConstantTerm makes. Its length does not give the end: it excludes the %
 // and backticks, and anything between the % and the name.
-function toReference(text: string, term: ParseNode): Omit<VariableReference, 'complete'> {
+function toReference(
+  text: string,
+  term: ParseNode,
+): Omit<VariableReference, 'complete' | 'conditional'> {
   const name = term.delimitedText === undefined ? term.text : stringValue(term.delimitedText);
   const startOffset =
     term.start === undefined ? undefined : toOffset(text, term.start.line, term.start.column - 1);
@@ -235,29 +256,60 @@ function literalString(argument: ParseNode | undefined): string | undefined {
     : undefined;
 }
 
+// The arguments fhirpath.js 4.10.1 may skip evaluating, by function: iif's after the criterion;
+// coalesce's after the first, since it stops at the first non-empty one; and those it evaluates
+// once per item of the target, so never on an empty one: the Expr arguments of where, select,
+// exists, all and repeat, aggregate's first, and sort's selectors, skipped on a single item and
+// after the first unless there are ties (fhirpath.js:79-120,191; filtering.js:171). trace's and
+// defineVariable's Expr arguments are evaluated once on the whole target, so always.
+// A Map, so that a function named like an Object property, such as __proto__, is not one.
+const skippableArguments: ReadonlyMap<string, (index: number) => boolean> = new Map<
+  string,
+  (index: number) => boolean
+>([
+  ['iif', (index) => index > 0],
+  ['coalesce', (index) => index > 0],
+  ['where', () => true],
+  ['select', () => true],
+  ['exists', () => true],
+  ['all', () => true],
+  ['repeat', () => true],
+  ['aggregate', (index) => index === 0],
+  ['sort', () => true],
+]);
+
 // The %name references in text, in source order, or undefined when it does not parse. A name that
 // defineVariable binds for the reference is left out (core-rules.md, slice 4a).
 export function findVariableReferences(text: string): VariableReference[] | undefined {
   const parsed = parse(text);
   if (!('tree' in parsed)) return undefined;
   const references: VariableReference[] = [];
-  const visit = (node: ParseNode, local: LocalNames): void => {
+  // Conditional: whether node is below an argument fhirpath.js may skip.
+  const visit = (node: ParseNode, local: LocalNames, conditional: boolean): void => {
     if (node.type === 'ExternalConstantTerm') {
       const reference = toReference(text, node);
       if (!local.names.has(reference.name))
-        references.push({ ...reference, complete: !local.computed });
+        references.push({ ...reference, complete: !local.computed, conditional });
       return;
     }
     if (node.type !== 'FunctionInvocation') {
       const shared = sharedContext.has(node.type);
-      for (const next of node.children ?? []) visit(next, shared ? local : copy(local));
+      for (const next of node.children ?? []) {
+        visit(next, shared ? local : copy(local), conditional);
+      }
       return;
     }
-    const args = child(child(node, 'Functn'), 'ParamList')?.children ?? [];
-    for (const argument of args) visit(argument, copy(local));
+    // A call whose name has an escape sequence may be any function, so its arguments count as
+    // skippable.
+    const call = toCall(text, node);
+    const skippable =
+      call === undefined ? () => true : (skippableArguments.get(call.name) ?? (() => false));
+    const args = argumentsOf(node);
+    args.forEach((argument, index) => {
+      visit(argument, copy(local), conditional || skippable(index));
+    });
     // fhirpath.js accepts one or two arguments, and binds the name after evaluating them. A call
     // whose name has an escape sequence may be defineVariable, so it counts as a computed name.
-    const call = toCall(text, node);
     if (
       (call !== undefined && call.name !== 'defineVariable') ||
       args.length < 1 ||
@@ -269,7 +321,7 @@ export function findVariableReferences(text: string): VariableReference[] | unde
     if (name === undefined) local.computed = true;
     else local.names.add(name);
   };
-  visit(parsed.tree, { names: new Set(), computed: false });
+  visit(parsed.tree, { names: new Set(), computed: false }, false);
   return references;
 }
 
@@ -395,7 +447,7 @@ export function findLinkIdReferences(
     if (invocation.type !== 'FunctionInvocation') return unknown;
     const functn = child(invocation, 'Functn');
     const name = identifierName(functn);
-    const args = child(functn, 'ParamList')?.children ?? [];
+    const args = argumentsOf(invocation);
     // Only repeat's argument continues the chain of its input: the items it gives are reached
     // from those through the argument's steps.
     const argumentInput: Value =
@@ -478,4 +530,128 @@ export function findLinkIdReferences(
     ),
     uncertain: references.some(({ literal, established }) => !established || literal === undefined),
   };
+}
+
+// The arguments fhirpath.js 4.10.1 evaluates against each item of the function's target, by
+// function: those typed Expr, and sort's SortArgument (fhirpath.js:79-120,191,695-750). coalesce's
+// ExprAtCurrent arguments are evaluated against its target with the enclosing $this. Every other
+// argument, and every operand of an operator, is evaluated against the enclosing $this, or else
+// the input (fhirpath.js:753-754).
+// A Map, so that a function named like an Object property, such as __proto__, is not one.
+const itemArguments: ReadonlyMap<string, (index: number) => boolean> = new Map<
+  string,
+  (index: number) => boolean
+>([
+  ['where', () => true],
+  ['select', () => true],
+  ['exists', () => true],
+  ['all', () => true],
+  ['repeat', () => true],
+  ['iif', () => true],
+  ['sort', () => true],
+  ['aggregate', (index) => index === 0],
+  ['trace', (index) => index === 1],
+  ['defineVariable', (index) => index === 1],
+]);
+
+// The functions that read their target only through their arguments, or not at all.
+const targetUnread: ReadonlySet<string> = new Set(['iif', 'select', 'today', 'now', 'timeOfDay']);
+
+// The functions whose argument is a type, such as Coding, which is not evaluated.
+const typeArguments: ReadonlySet<string> = new Set(['ofType', 'is', 'as']);
+
+// The nodes fhirpath.js evaluates against their own input; every other node is an operator, whose
+// operands are evaluated against the enclosing $this.
+const ownInput: ReadonlySet<string> = new Set([
+  'EntireExpression',
+  'ParenthesizedTerm',
+  'TermExpression',
+  'InvocationExpression',
+  'IndexerExpression',
+  'PolarityExpression',
+]);
+
+// Where the walk evaluates a node: whether its input, and whether $this, is the expression's input.
+interface Focus {
+  current: boolean;
+  self: boolean;
+}
+
+// Whether a FHIRPath expression's value can differ between two inputs that share their linkId,
+// such as two repetitions of a group, or undefined when it does not parse: some term is evaluated
+// with the expression's input as its focus, other than to read its linkId, or it uses %context
+// (docs/smart-forms-rules.md, P5). A syntactic test: it does not prove that a value differs.
+export function readsInput(text: string): boolean | undefined {
+  const parsed = parse(text);
+  if (!('tree' in parsed)) return undefined;
+  let reads = false;
+
+  // A value that is the input and is used other than to read its linkId.
+  const use = (isInput: boolean): void => {
+    if (isInput) reads = true;
+  };
+
+  // Whether invocation's result is the input, applied to a target that is the input or not.
+  const invoke = (invocation: ParseNode, target: boolean, focus: Focus): boolean => {
+    if (invocation.type === 'ThisInvocation') return focus.self;
+    if (invocation.type === 'MemberInvocation') {
+      if (identifierName(invocation) !== 'linkId') use(target);
+      return false;
+    }
+    if (invocation.type !== 'FunctionInvocation') return false;
+    const functn = child(invocation, 'Functn');
+    const name = isSort(functn) ? 'sort' : (identifierName(functn) ?? '');
+    const args = typeArguments.has(name) ? [] : argumentsOf(invocation);
+    const onItems = itemArguments.get(name);
+    args.forEach((argument, index) => {
+      const argumentFocus: Focus =
+        onItems?.(index) === true
+          ? { current: target, self: target }
+          : name === 'coalesce'
+            ? { current: target, self: focus.self }
+            : { current: focus.self, self: focus.self };
+      use(visit(argument, argumentFocus));
+    });
+    if (!targetUnread.has(name)) use(target);
+    return false;
+  };
+
+  // Whether node's value is the input.
+  const visit = (node: ParseNode, focus: Focus): boolean => {
+    const [first, second] = node.children ?? [];
+    if (!ownInput.has(node.type)) {
+      for (const next of node.children ?? []) {
+        use(visit(next, { current: focus.self, self: focus.self }));
+      }
+      return false;
+    }
+    switch (node.type) {
+      case 'TermExpression': {
+        if (first?.type === 'ExternalConstantTerm') {
+          // The name as fhirpath.js looks it up, with a string literal's escapes decoded.
+          const { text: written, delimitedText } = first;
+          return (delimitedText === undefined ? written : stringValue(delimitedText)) === 'context';
+        }
+        if (first?.type === 'InvocationTerm') {
+          const invocation = first.children?.[0];
+          return invocation === undefined ? false : invoke(invocation, focus.current, focus);
+        }
+        return first === undefined ? false : visit(first, focus);
+      }
+      case 'InvocationExpression':
+        return first === undefined || second === undefined
+          ? false
+          : invoke(second, visit(first, focus), focus);
+      case 'EntireExpression':
+      case 'ParenthesizedTerm':
+        return first === undefined ? false : visit(first, focus);
+      default:
+        // An indexer or a polarity: its value is part of its first operand's.
+        for (const next of node.children ?? []) use(visit(next, focus));
+        return false;
+    }
+  };
+
+  use(visit(parsed.tree, { current: true, self: true }));
+  return reads;
 }

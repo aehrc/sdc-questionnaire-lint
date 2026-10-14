@@ -1,0 +1,16 @@
+# A reference that is not to a contained resource is named %sourceQuery<i>, where i counts the
+# display-only sourceQueries before it, so %sourceQuery1 is supplied and %sourceQuery0 is not.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: count
+    expression: '%sourceQuery1.total + %sourceQuery0.total'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries"'
+  - 'extension[=].valueReference.display = "Recent observations"'
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries"'
+  - 'extension[=].valueReference.reference = "Observation?code=1"'
+items:
+  - linkId: q
+    type: string

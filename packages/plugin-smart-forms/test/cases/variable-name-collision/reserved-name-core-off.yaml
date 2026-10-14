@@ -1,0 +1,17 @@
+# As reserved-name, with sdc/reserved-name off: still no collision.
+rules:
+  sdc/unused-declaration: 'off'
+  sdc/reserved-name: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: qitem
+        expression: "'a'"
+  - linkId: b
+    type: string
+    extensions:
+      - url: variable
+        name: qitem
+        expression: "'b'"

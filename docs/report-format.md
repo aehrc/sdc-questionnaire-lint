@@ -21,7 +21,7 @@ A completed report cannot contain `failure`. A failed report cannot contain `run
 | :- | :- |
 | `tool` | `{ "name": "sdc-questionnaire-lint", "version": "…" }` |
 | `plugins` | Array of `{ "name": "…", "version": "…" }`, including built-in `sdc`, sorted by namespace |
-| `compat` | The component versions selected by plugin namespace, which enabled plugin rules run against; `{}` without a compatibility plugin. Their presence does not mean any rule checked them. For Smart Forms, `smart-forms` contains exact `renderer` and `populate` versions, and `template-extract` when template extraction is selected; never `latest` |
+| `compat` | The component versions selected by plugin namespace, which enabled plugin rules run against; `{}` without a compatibility plugin. Their presence does not mean any rule checked them. Each namespace maps components, in the plugin's order, to exact versions, never `latest`; which components are present is checked when compat is resolved. For Smart Forms, `smart-forms` contains `renderer` and `populate`, and `template-extract` when template extraction is selected |
 | `selection` | `full` when using configured/default inputs; `targeted` when CLI paths are supplied |
 | `sushi` | Optional. `{ "version": "…" }`: the version of the `fsh-sushi` package installed for the IG; absent when it is unknown |
 
@@ -53,14 +53,14 @@ Expression counts describe coverage, not correctness: a syntax check that comple
 
 ## Findings and locations
 
-Every finding has stable `ruleId`, `severity`, `message`, `fingerprint` and `kind` fields. `help`, `note`, `docsUrl`, `expression`, `relatedLocations` and `suggestions` are optional. Omit an unavailable optional field instead of inventing data. Messages state the problem; help states an action. Fingerprints use rule, resource and stable site identity, or for a launchContext or extractAllocateId its element and name, plus the text of the finding's expression range when it has one; never source line numbers or offsets. Configuration fingerprints use the suppression selector and rule rather than its current array index. A fingerprint is unique within a report: when two findings share every part, such as two reports of the same text at one site or two suppression entries with the same rule and selectors, the later ones get a distinct fingerprint from their order.
+Every finding has stable `ruleId`, `severity`, `message`, `fingerprint` and `kind` fields. `help`, `note`, `docsUrl`, `expression`, `relatedLocations` and `suggestions` are optional. `docsUrl` is the rule's `meta.docsUrl`, absent for configuration findings and for a rule without one; no built-in rule has one yet. Omit an unavailable optional field instead of inventing data. Messages state the problem; help states an action. Fingerprints use rule, resource and stable site identity, or for a launchContext or extractAllocateId its element and name, plus the text of the finding's expression range when it has one; never source line numbers or offsets. Configuration fingerprints use the suppression selector and rule rather than its current array index. A fingerprint is unique within a report: when two findings share every part, such as two reports of the same text at one site or two suppression entries with the same rule and selectors, the later ones get a distinct fingerprint from their order.
 
 | Kind | Required location fields |
 | :- | :- |
 | `questionnaire` | `jsonLocation` and `sourceLocation` |
 | `config` | `configLocation`; no Questionnaire or FSH location is required or invented |
 
-`jsonLocation` contains `file`, `pointer`, `resource`, and optional `linkId`. Both `pointer` and `resource.pointer` are JSON Pointers from the root of the input file. `resource` contains its `resourceType`, optional `id`, and the pointer to that resource: `""` for a standalone root, `/entry/0/resource` for a Bundle entry, or the corresponding contained-resource pointer. The resource pointer identifies a resource even when an ID is absent or duplicated. The finding pointer identifies the exact site, including root-level expressions without an item.
+`jsonLocation` contains `file`, `pointer`, `resource`, and optional `linkId`. Both `pointer` and `resource.pointer` are JSON Pointers from the root of the input file. `resource` contains its `resourceType`, optional `id`, and the pointer to that resource: `""` for a standalone root, `/entry/0/resource` for a Bundle entry, or the corresponding contained-resource pointer. The resource pointer identifies a resource even when an ID is absent or duplicated. The finding pointer identifies the exact site, including root-level expressions without an item. `linkId` is the linkId of the item the location is on: the item of the expression, or else the innermost item of the Questionnaire the pointer lies in. A location on the root, or in a contained resource, has none.
 
 `sourceLocation` uses the plan's source-map union:
 
@@ -92,18 +92,19 @@ Prefer FSH source edits when FSH is the maintained source. A JSON-string target 
 
 ## Failures
 
-`failure` requires `code`, `message` and `help`. `path` identifies a relevant file, directory or unmatched pattern when known. `ruleId` is required for a rule crash. Paths and patterns are rendered relative to the working directory after resolving their input/config base.
+`failure` requires `code`, `message` and `help`. `path` identifies a relevant file, directory or unmatched pattern when known; for a rule or plugin crash, the input file of the Questionnaire it crashed on. `ruleId` is required for a rule crash, and `plugin` and `path` for a plugin crash; `plugin` has the plugin's `name` and `version`, as in `run.plugins`. Paths and patterns are rendered relative to the working directory after resolving their input/config base.
 
 | Code | Meaning |
 | :- | :- |
 | `USAGE_ERROR` | Invalid arguments after a valid JSON-format selection |
-| `CONFIG_INVALID` | Missing, unreadable, ambiguous or invalid config, including a `compat` entry for an unlisted plugin or a plugin without compatibility versions, an unknown or missing required component, and an unverified version; plugin loading failure. Invalid rule options are reserved: the config cannot pass rule options yet |
+| `CONFIG_INVALID` | Missing, unreadable, ambiguous or invalid config, including a `hostVariables` entry that FHIRPath, FHIR or SDC defines, a `compat` entry for an unlisted plugin or a plugin without compatibility versions, an unknown or missing required component, and an unverified version; plugin loading failure |
 | `INPUT_NOT_FOUND` | Selected literal input does not exist |
 | `INPUT_PATTERN_UNMATCHED` | Selected glob or directory yields no files after exclusions |
 | `INPUT_UNREADABLE` | Selected input cannot be read, or required input existence/traversal checks cannot complete |
 | `INPUT_INVALID_JSON` | Selected input is not valid JSON |
 | `NO_QUESTIONNAIRES` | Parsed selection contains no Questionnaires |
-| `RULE_CRASH` | Unexpected rule exception; `ruleId` names that rule |
+| `RULE_CRASH` | A rule threw, returned a promise or reported an invalid finding; `ruleId` names that rule, and `path` the file |
+| `PLUGIN_CRASH` | A plugin's `hostVariables` threw, returned a promise or returned something other than an array of names; `plugin` names that plugin, and `path` the file |
 | `INTERNAL_ERROR` | Other unexpected execution failure |
 
 The message explains this occurrence; the help gives a concrete next step. Codes are stable and never reused for another cause. Stack traces are not part of the machine contract. Consumers branch on `status` and `code`, not message text.

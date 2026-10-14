@@ -1,0 +1,10 @@
+- ruleId: sdc/shadowed-declaration
+  severity: info
+  at: input/fsh/forward-variable-reference-bound-by-root-collision-off.fsh:23:54
+  message: The name %y on item g is also declared on the Questionnaire root, so other expressions on item g and its descendant items get this declaration's value.
+  help: rename one of the declarations of %y, unless this item should override it
+  expression:
+    text: item
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%y is also declared here'

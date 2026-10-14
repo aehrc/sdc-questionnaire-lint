@@ -47,6 +47,21 @@ export function resourceAt(document: QuestionnaireDocument, pointer: string): Re
   return identity('Questionnaire', resource.id, resourcePointer);
 }
 
+// The linkId of the innermost item a pointer lies in, below the Questionnaire's resource pointer:
+// a pointer into a contained resource, or at the root, has none.
+function linkIdAt(document: QuestionnaireDocument, pointer: string): string | undefined {
+  const path = /^(?:\/item\/\d+(?=\/|$))+/.exec(
+    pointer.slice(document.resourcePointer.length),
+  )?.[0];
+  let node: unknown = document.resource;
+  let linkId: unknown;
+  for (const index of path?.split('/item/').slice(1) ?? []) {
+    node = isObject(node) && Array.isArray(node.item) ? node.item[Number(index)] : undefined;
+    linkId = isObject(node) ? node.linkId : undefined;
+  }
+  return typeof linkId === 'string' ? linkId : undefined;
+}
+
 // The excerpt a finding at a site shows. A fragment's finding is shown in its query, with the
 // rule's range rebased onto it, or over the whole fragment when the rule gave none
 // (report-format.md § Findings and locations).
@@ -90,7 +105,7 @@ function isOffset(value: unknown): value is number {
   return Number.isInteger(value);
 }
 
-function isThenable(value: unknown): value is PromiseLike<unknown> {
+export function isThenable(value: unknown): value is PromiseLike<unknown> {
   return (
     (typeof value === 'object' || typeof value === 'function') &&
     value !== null &&
@@ -98,8 +113,8 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
   );
 }
 
-// The message of a value a rule threw, which may itself throw when read.
-function describeThrown(error: unknown): string {
+// The message of a value a rule or a plugin threw, which may itself throw when read.
+export function describeThrown(error: unknown): string {
   try {
     return describeError(error);
   } catch {
@@ -200,10 +215,22 @@ function parseReportedFinding(
   };
 }
 
-function ruleCrashFailure({ id, namespace }: ResolvedRule, what: string): LintFailure {
+// The Questionnaire a crash happened on, in a message: its file, and for a Bundle entry the
+// resource's pointer, which text output does not otherwise show.
+export function describeDocument({ file, resourcePointer }: QuestionnaireDocument): string {
+  return resourcePointer === '' ? file : `${file} at ${resourcePointer}`;
+}
+
+// path is the file of the Questionnaire the rule crashed on.
+function ruleCrashFailure(
+  { id, namespace }: ResolvedRule,
+  path: string,
+  what: string,
+): LintFailure {
   return new LintFailure({
     code: 'RULE_CRASH',
     ruleId: id,
+    path,
     message: `rule ${id} ${what}`,
     help: `this is a bug in the ${namespace} plugin; report it to its maintainers`,
   });
@@ -236,24 +263,29 @@ export function runRules(
   const findings: QuestionnaireFinding[] = [];
   // By identity, as parseLocation checks a reported site: a copy of a site gets no analysis.
   const known: ReadonlySet<ExpressionSite> = new Set(sites);
+  // The document in a crash message.
+  const on = describeDocument(document);
 
   // A site's location, or else the pointer's, or else the resource's. The linkId is the site's
-  // item's, or the item of a declaration at the pointer.
+  // item's, or that of the innermost item the pointer lies in.
   function jsonLocation({ site, pointer }: Pick<RuleFinding, 'site' | 'pointer'>): JsonLocation {
     const at = site?.pointer ?? pointer ?? document.resourcePointer;
-    const item =
-      site === undefined
-        ? analysis.declarations.find((declaration) => declaration.pointer === at)?.item
-        : site.item;
+    const linkId = site === undefined ? linkIdAt(document, at) : site.item?.linkId;
     return {
       file: document.file,
       pointer: at,
       resource: resourceAt(document, at),
-      ...(item?.linkId === undefined ? {} : { linkId: item.linkId }),
+      ...(linkId === undefined ? {} : { linkId }),
     };
   }
 
-  function toFinding(id: string, severity: Severity, reported: RuleFinding): QuestionnaireFinding {
+  // docsUrl is the resolved rule's: the value validated when the rule set was resolved.
+  function toFinding(
+    id: string,
+    severity: Severity,
+    docsUrl: string | undefined,
+    reported: RuleFinding,
+  ): QuestionnaireFinding {
     const { site } = reported;
     const location = jsonLocation(reported);
     const { pointer, resource } = location;
@@ -274,6 +306,7 @@ export function runRules(
       message: reported.message,
       ...(reported.help === undefined ? {} : { help: reported.help }),
       ...(reported.note === undefined ? {} : { note: reported.note }),
+      ...(docsUrl === undefined ? {} : { docsUrl }),
       jsonLocation: location,
       sourceLocation: unmapped,
       ...(expression === undefined ? {} : { expression }),
@@ -294,7 +327,7 @@ export function runRules(
   }
 
   for (const resolved of rules) {
-    const { id, namespace, rule, setting, compat } = resolved;
+    const { id, namespace, rule, setting, compat, docsUrl } = resolved;
     if (setting === 'off') continue;
     // report() never throws, so a rule cannot swallow its own invalid finding: the first problem
     // is kept here, later reports are ignored, and the run fails once check returns.
@@ -308,8 +341,11 @@ export function runRules(
         declarations: analysis.declarations,
         referencesAt: (site) => (known.has(site) ? analysis.references.get(site) : undefined),
         variablesAt: (site) => (known.has(site) ? analysis.variablesAt(site) : undefined),
+        readsInput: (site) => (known.has(site) ? analysis.readsInput(site) : undefined),
+        // The maps are keyed by the declarations themselves, so a copy gets nothing.
+        dependenciesOf: (declaration) => analysis.dependencies.get(declaration),
+        useOf: (declaration) => analysis.uses.get(declaration),
         compat,
-        options: undefined,
         report: (reported) => {
           if (problem !== undefined) return;
           let checked: RuleFinding | string;
@@ -321,7 +357,7 @@ export function runRules(
           }
           if (typeof checked === 'string') problem = checked;
           else {
-            const finding = toFinding(id, setting, checked);
+            const finding = toFinding(id, setting, docsUrl, checked);
             findings.push(finding);
             origins?.set(finding, {
               document: doc,
@@ -343,13 +379,21 @@ export function runRules(
         returned.then(undefined, () => undefined);
       }
     } catch (error) {
-      throw ruleCrashFailure(resolved, `crashed: ${describeThrown(error)}`);
+      throw ruleCrashFailure(resolved, document.file, `crashed on ${on}: ${describeThrown(error)}`);
     }
     if (promised) {
-      throw ruleCrashFailure(resolved, 'returned a promise; check must be synchronous');
+      throw ruleCrashFailure(
+        resolved,
+        document.file,
+        `returned a promise on ${on}; check must be synchronous`,
+      );
     }
     if (problem !== undefined) {
-      throw ruleCrashFailure(resolved, `reported an invalid finding: ${problem}`);
+      throw ruleCrashFailure(
+        resolved,
+        document.file,
+        `reported an invalid finding on ${on}: ${problem}`,
+      );
     }
   }
   return findings;

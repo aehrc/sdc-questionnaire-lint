@@ -1,0 +1,13 @@
+# Two %x on one item are sdc/duplicate-declaration's, not a collision.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'first'"
+      - url: variable
+        name: x
+        expression: "'second'"

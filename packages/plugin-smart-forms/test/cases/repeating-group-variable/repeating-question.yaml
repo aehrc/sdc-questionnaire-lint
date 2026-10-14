@@ -1,0 +1,12 @@
+# A question that repeats keeps its answers in one response item, so its variable is evaluated once.
+items:
+  - linkId: q
+    type: string
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: 'answer.value'
+      - url: calculatedExpression
+        expression: '%v.count()'

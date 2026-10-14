@@ -1,0 +1,19 @@
+# A variable and an itemPopulationContext that population reads, on sibling items, share %x.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'a'"
+  - linkId: g
+    type: group
+    extensions:
+      - url: itemPopulationContext
+        name: x
+        expression: "'context'"
+    items:
+      - linkId: q
+        type: string

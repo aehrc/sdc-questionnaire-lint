@@ -1,0 +1,11 @@
+# Nothing evaluates a candidateExpression, so its reference to a named calculatedExpression is not
+# reported.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        name: x
+        expression: "'a'"
+      - url: candidateExpression
+        expression: '%x'

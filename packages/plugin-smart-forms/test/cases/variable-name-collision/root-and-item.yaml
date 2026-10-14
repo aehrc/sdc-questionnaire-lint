@@ -1,0 +1,14 @@
+# The root and an item declare %x. sdc/shadowed-declaration also reports the item's at info.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    expression: "'root'"
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'item'"

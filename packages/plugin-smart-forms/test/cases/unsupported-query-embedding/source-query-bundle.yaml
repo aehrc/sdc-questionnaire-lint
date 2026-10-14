@@ -1,0 +1,25 @@
+# A | makes the regular expression match part of an embedding in a request URL of the contained
+# Bundle sourceQueries references, which is a related location.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: conditions
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%patient.id|x}}'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries"'
+  - 'extension[=].valueReference.reference = "#prepop"'
+  - 'contained[0].resourceType = "Bundle"'
+  - 'contained[0].id = "prepop"'
+  - 'contained[0].type = #batch'
+  - 'contained[0].entry[0].request.method = #GET'
+  - 'contained[0].entry[0].request.url = "Observation?subject={{%patient.id}}"'
+items:
+  - linkId: q
+    type: string

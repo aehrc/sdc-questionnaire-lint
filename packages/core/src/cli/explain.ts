@@ -1,6 +1,12 @@
 import { type LoadedConfig, loadConfig } from '../config/load.js';
 import { asLintFailure, LintFailure, renderFailureText } from '../failure.js';
-import { type ResolvedRule, resolveRuleSet, unknownRuleHelp } from '../plugins/rule-set.js';
+import {
+  type ResolvedRule,
+  type RuleSet,
+  resolveRuleSet,
+  unknownRuleHelp,
+} from '../plugins/rule-set.js';
+import { formatCompatLines } from '../report/text.js';
 import { guardStdout } from './output-guard.js';
 import type { CliIo } from './run.js';
 
@@ -10,7 +16,10 @@ function configLine(loaded: LoadedConfig | null): string {
 
 // One aligned row per registered rule, including rules configured off. EFFECTIVE reads off for a
 // rule that does not run, so it carries the enabled status too.
-function formatRuleList(rules: readonly ResolvedRule[], loaded: LoadedConfig | null): string {
+function formatRuleList(
+  { rules, compat }: Pick<RuleSet, 'rules' | 'compat'>,
+  loaded: LoadedConfig | null,
+): string {
   const rows = [
     ['RULE', 'DEFAULT', 'EFFECTIVE', 'DESCRIPTION'],
     ...rules.map(({ id, rule, setting }) => [
@@ -30,6 +39,7 @@ function formatRuleList(rules: readonly ResolvedRule[], loaded: LoadedConfig | n
     ...table,
     '',
     configLine(loaded),
+    ...formatCompatLines(compat),
     "Run sdc-lint explain <rule-id> for a rule's documentation.",
     '',
   ].join('\n');
@@ -43,7 +53,7 @@ function indent(text: string): string {
 }
 
 function formatRuleDocs(
-  { id, namespace, rule, setting }: ResolvedRule,
+  { id, namespace, rule, setting, compat }: ResolvedRule,
   loaded: LoadedConfig | null,
 ): string {
   const { description, defaultSeverity, docsUrl, docs } = rule.meta;
@@ -68,7 +78,8 @@ function formatRuleDocs(
       lines.push('', heading, indent(text));
     }
   }
-  lines.push('', configLine(loaded), '');
+  // An sdc or lint rule, or a plugin without compat, has {}, which prints no line.
+  lines.push('', configLine(loaded), ...formatCompatLines({ [namespace]: compat }), '');
   return lines.join('\n');
 }
 
@@ -83,7 +94,7 @@ async function explain(
   });
   const ruleSet = resolveRuleSet(loaded);
   const { ruleId } = args;
-  if (ruleId === undefined) return formatRuleList(ruleSet.rules, loaded);
+  if (ruleId === undefined) return formatRuleList(ruleSet, loaded);
   const rule = ruleSet.rules.find(({ id }) => id === ruleId);
   if (rule === undefined) {
     throw new LintFailure({

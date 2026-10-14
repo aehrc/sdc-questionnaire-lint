@@ -1,0 +1,20 @@
+- ruleId: sdc/shadowed-declaration
+  severity: info
+  at: input/fsh/forward-variable-reference-bound-by-query.fsh:23:54
+  message: The name %obs on item g is also declared on the Questionnaire root, so other expressions on item g and its descendant items get this declaration's value.
+  help: rename one of the declarations of %obs, unless this item should override it
+  expression:
+    text: '1'
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%obs is also declared here'
+- ruleId: smart-forms/variable-name-collision
+  severity: error
+  at: input/fsh/forward-variable-reference-bound-by-query.fsh:23:54
+  message: "%obs is also declared on the Questionnaire root; Smart Forms keeps one value for each name, so expressions on either element can get the other's value."
+  help: rename one of the declarations so the name is declared on one element only
+  expression:
+    text: '1'
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%obs is also declared here'

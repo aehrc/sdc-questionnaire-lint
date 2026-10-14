@@ -1,0 +1,25 @@
+# The launch Patient is bound first under %patient.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: g
+    type: group
+    extensions:
+      - url: variable
+        name: x
+        expression: '%patient.id'
+      - url: variable
+        name: patient
+        expression: 'later'
+    items:
+      - linkId: q
+        type: string
+        extensions:
+          - url: initialExpression
+            expression: '%x'

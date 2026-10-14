@@ -1,0 +1,15 @@
+# Population never reads a root itemPopulationContext, so it does not collide with the item
+# variable %x. sdc/shadowed-declaration reports the item's declaration at info.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: itemPopulationContext
+    name: x
+    expression: "'root'"
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'a'"

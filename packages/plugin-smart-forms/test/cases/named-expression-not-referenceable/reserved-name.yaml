@@ -1,0 +1,11 @@
+# A named calculatedExpression %resource is sdc/reserved-name's, so a reference to it is not reported
+# here.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        name: resource
+        expression: "'a'"
+      - url: enableWhenExpression
+        expression: "%resource = 'a'"
