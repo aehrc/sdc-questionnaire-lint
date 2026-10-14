@@ -146,6 +146,7 @@ export default withMermaid(
             { text: 'Expression parsing', link: '/docs/core/parsing' },
             { text: 'Name analysis', link: '/docs/core/names' },
             { text: 'Rule runner', link: '/docs/core/runner' },
+            { text: 'Suppressions and fingerprints', link: '/docs/core/suppressions' },
           ],
         },
         {
