@@ -213,6 +213,17 @@ A private plugin helper, `readBy(ctx, site)` in `src/eligibility.ts`, returns th
 
 A rule whose `ctx.compat` names no renderer or populate version throws, which a conforming core never causes: `resolveRuleSet` always selects every required component. A selected version with no facts throws too: it is a plugin bug.
 
+### launchContexts
+
+A private plugin helper, `launchContextsOf(document)` in `src/launch-contexts.ts`, is the plugin's only reader of a launchContext's sub-extensions. It returns every launchContext in the root `extension` array, of any shape, in array order, each with its `pointer`, its `index` and four readings:
+
+- `byUrl`: the first `name` sub-extension's name and the first `type` sub-extension's `valueCode`, found by URL;
+- `byPosition`: the first sub-extension's name and the second's `valueCode`, whatever their URLs;
+- `input`: whether population reads it as an input (`population-needs-input`): a `name` sub-extension with a `valueId || valueCoding.code` and a `type` sub-extension with a `valueCode`, found by URL;
+- `boundName`: the name population binds the launch resource under (`launch-context-named-by-position`): an input with a name and a type by position.
+
+A name is the `valueId`, else the `valueCoding.code`, and an empty one is none, so an empty `valueId` beside a code makes population run but binds nothing (reproduced). The reader knows no facts: a rule checks the fact for the component and version before it uses a reading. Only the root `extension` array is read, as populate and the renderer read it, so a launchContext on an item or in the root `modifierExtension` is not one, though core declares it, and one core does not declare can be. `storedName` and `named-expression-not-referenceable`'s answerExpression heads use `boundName`, `forward-variable-reference` uses `input`, and `unsupported-query-embedding` uses `byUrl` ([#2161](https://github.com/aehrc/smart-forms/issues/2161)). `test/launch-contexts.test.ts` checks each shape, and checks `input` and `boundName` against populate 4.7.1.
+
 ### Completion and suppressions
 
 Plugin rules do not take part in completion evidence: `completesCheck` and `leavesUnchecked` in `plugins/builtin.ts` are built-in tables, and core-rules.md ([Shared analysis](core-rules.md#shared-analysis-and-completion-evidence)) forbids a public completion framework. The consequences (S8):
