@@ -174,7 +174,7 @@ describe('launchContextsOf', () => {
 });
 
 // Each shape against populate 4.7.1, with the launchContext as the form's only input: population
-// runs exactly when it is an input, and binds %patient exactly when it is the bound name.
+// runs exactly when it is an input, fetches nothing, and binds exactly the bound name.
 describe('launchContextsOf against populate 4.7.1', () => {
   it.each(shapes)('agrees with populate on $title', async ({ parts }) => {
     const form = questionnaire({
@@ -187,8 +187,13 @@ describe('launchContextsOf against populate 4.7.1', () => {
       ],
     });
     const [launch] = launchContextsOf(documentOf(form));
-    const { success, context } = await populate(form);
+    const { success, urls, context } = await populate(form);
     expect(success).toBe(launch?.input);
-    expect(Object.hasOwn(context ?? {}, 'patient')).toBe(launch?.boundName === 'patient');
+    expect(urls).toEqual([]);
+    // populatedContext also holds population's own %resource and %rootResource.
+    const bound = Object.keys(context ?? {}).filter(
+      (key) => key !== 'resource' && key !== 'rootResource',
+    );
+    expect(bound).toEqual(launch?.boundName === undefined ? [] : [launch.boundName]);
   });
 });
