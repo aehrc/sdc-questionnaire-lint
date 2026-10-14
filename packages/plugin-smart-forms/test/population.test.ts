@@ -1,8 +1,17 @@
 // The population model answers, for one form, whether population runs and what it binds for each
-// declaration, and when. Forms are JSON, with sites and declarations as core finds them.
+// declaration, and when. Forms are JSON, with sites and declarations as core finds them. The last
+// tests run the pinned populate (test/reproduction/populate.ts) beside the model; they are not
+// fact evidence, which stays in the reproduction tests.
 import type { Declaration } from 'sdc-questionnaire-lint';
-import { describe, expect, it } from 'vitest';
-import { type Binder, type Binding, type Population, population } from '../src/population.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  type Binder,
+  type Binding,
+  compare,
+  type Population,
+  population,
+} from '../src/population.js';
+import { populate, undefinedVariable } from './reproduction/populate.js';
 import {
   analyseDeclarations,
   expression,
@@ -353,5 +362,177 @@ describe('population readsContext', () => {
     const site = sites.find(({ location }) => location?.url === ITEM_POPULATION_CONTEXT);
     if (site === undefined) throw new Error('no itemPopulationContext site');
     expect(population({ document, compat }).readsContext(site)).toBe('no-name');
+  });
+});
+
+describe('population against populate 4.7.1', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  });
+
+  // Each form gives every FHIRPath variable and itemPopulationContext a literal value, its tag, so
+  // that none fails and the value tells which declaration of a name won.
+  const forms: readonly { readonly title: string; readonly form: Json }[] = [
+    {
+      title: 'root and item variables, integer-like linkIds and a named calculatedExpression',
+      form: {
+        extension: [launch, fhirPath('a', "'a'")],
+        item: [
+          item('g', [fhirPath('b', "'b'")], [item('1', [fhirPath('c', "'c'")], [leaf('q')])]),
+          item('b2', [fhirPath('d', "'d'")], [leaf('r')]),
+          {
+            ...leaf('s'),
+            extension: [ext(`${sdc}calculatedExpression`, expression('text/fhirpath', "'e'", 'e'))],
+          },
+        ],
+      },
+    },
+    {
+      title: 'a name on the root, a group and its child',
+      form: {
+        extension: [launch, fhirPath('x', "'root'")],
+        item: [item('g', [fhirPath('x', "'group'")], [item('c', [fhirPath('x', "'child'")])])],
+      },
+    },
+    {
+      title: 'a name on items keyed b, 2 and 1',
+      form: {
+        extension: [launch],
+        item: [
+          item('b', [fhirPath('x', "'b'")]),
+          item('2', [fhirPath('x', "'two'")]),
+          item('1', [fhirPath('x', "'one'")]),
+        ],
+      },
+    },
+    {
+      title: 'a variable on an item whose linkId is __proto__',
+      form: {
+        extension: [launch],
+        item: [item('g', [], [{ ...leaf('__proto__'), extension: [fhirPath('x', "'proto'")] }])],
+      },
+    },
+    {
+      title: 'a variable in the root modifierExtension',
+      form: { extension: [launch], modifierExtension: [fhirPath('x', "'modifier'")] },
+    },
+    {
+      title: 'application/x-fhir-query variables with and without text',
+      form: {
+        extension: [launch, query('q', 'Patient'), query('empty', '')],
+        item: [item('g', [query('r', 'Observation')], [leaf('a')])],
+      },
+    },
+    {
+      title: 'an item query variable as the only input, with no root extensions',
+      form: { item: [item('g', [query('q', 'Patient'), fhirPath('v', "'v'")], [leaf('a')])] },
+    },
+    {
+      title: 'itemPopulationContexts of one name, and one on a leaf',
+      form: {
+        extension: [launch],
+        item: [
+          item('g', [context('ctx', "'first'")], [leaf('a')]),
+          item('h', [context('ctx', "'second'")], [leaf('b')]),
+          item('k', [context('leaf', "'leaf'")]),
+        ],
+      },
+    },
+    {
+      title: 'a variable and an itemPopulationContext of one name',
+      form: {
+        extension: [launch, fhirPath('c', "'variable'")],
+        item: [item('g', [context('c', "'context'")], [leaf('a')])],
+      },
+    },
+    {
+      title: 'a sourceQueries result and a variable of one name',
+      form: {
+        contained: [bundle('x')],
+        extension: [sourceQuery('#x'), fhirPath('x', "'variable'")],
+      },
+    },
+    {
+      title: 'a launchContext whose first sub-extension is its type',
+      form: {
+        extension: [
+          { ...launch, extension: [...(launch.extension as Json[])].reverse() },
+          fhirPath('a', "'a'"),
+        ],
+      },
+    },
+    {
+      title: 'a subjectType without Patient',
+      form: { subjectType: ['Group'], extension: [launch, fhirPath('a', "'a'")] },
+    },
+    { title: 'no input', form: { extension: [fhirPath('a', "'a'")] } },
+  ];
+
+  it.each(forms)('binds what populate binds: $title', async ({ form }) => {
+    const resource = questionnaire(form);
+    const { document, declarations } = analyseDeclarations(resource);
+    const pop = population({ document, compat, declarations });
+    const { context } = await populate(resource);
+    const ran = context !== undefined && Object.keys(context).length > 0;
+    expect(pop.runs).toBe(ran);
+    if (context === undefined || !ran) return;
+    const names = new Set([
+      ...declarations.map((declaration) => declaration.name),
+      ...pop.sourceQueries.flatMap(({ name }) => name ?? []),
+    ]);
+    for (const name of names) {
+      const binders = pop.bindersOf(name);
+      // A duplicate linkId can replace an item's variables, so their name may not be bound.
+      if (binders.some((binder) => binder.kind === 'declaration' && binder.at === 'unknown')) {
+        continue;
+      }
+      const bound = binders.filter(
+        (binder) => binder.kind === 'sourceQuery' || binder.at !== 'never',
+      );
+      expect(Object.hasOwn(context, name), name).toBe(bound.length > 0);
+      const last = bound.at(-1);
+      const tag =
+        last?.kind === 'declaration'
+          ? /^'(.*)'$/.exec(last.declaration.site?.text ?? '')?.[1]
+          : undefined;
+      if (binders.length > 1 && tag !== undefined) expect(context[name], name).toEqual([tag]);
+    }
+  });
+
+  // Root variables, a child keyed 1 before its group g, an item b, then an itemPopulationContext.
+  // texts replaces a declaration's expression.
+  const ordered = (texts: Readonly<Record<string, string>> = {}): Json =>
+    questionnaire({
+      extension: [launch, fhirPath('r1', texts.r1), fhirPath('r2', texts.r2)],
+      item: [
+        item('g', [fhirPath('gv', texts.gv)], [item('1', [fhirPath('cv', texts.cv)], [leaf('a')])]),
+        item('b', [fhirPath('bv', texts.bv)], [leaf('c')]),
+        item('h', [context('ctx', texts.ctx ?? "'ctx'")], [leaf('d')]),
+      ],
+    });
+
+  it('orders declarations as populate evaluates them', async () => {
+    const { document, declarations } = analyseDeclarations(ordered());
+    const pop = population({ document, compat, declarations });
+    const order = declarations
+      .flatMap((declaration) => {
+        const at = pop.bindingOf(declaration)?.at;
+        return at === undefined || typeof at === 'string' || declaration.kind === 'launchContext'
+          ? []
+          : [{ name: declaration.name, at }];
+      })
+      .sort((a, b) => compare(a.at, b.at))
+      .map(({ name }) => name);
+    expect(order).toEqual(['r1', 'r2', 'cv', 'gv', 'bv', 'ctx']);
+    for (const [i, earlier] of order.entries()) {
+      for (const later of order.slice(i + 1)) {
+        const forward = await populate(ordered({ [later]: `%${earlier}` }));
+        expect(forward.issues, `${later} reads ${earlier}`).toEqual([]);
+        const backward = await populate(ordered({ [earlier]: `%${later}` }));
+        expect(backward.issues, `${earlier} reads ${later}`).toContainEqual(
+          undefinedVariable(later),
+        );
+      }
+    }
   });
 });
