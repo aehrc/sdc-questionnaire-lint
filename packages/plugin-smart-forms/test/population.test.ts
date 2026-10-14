@@ -248,6 +248,16 @@ describe('population sourceQueries', () => {
     expect(form.sourceQueries).toEqual([]);
   });
 
+  // As for runs: populate 4.7.1 throws on it, and the Validator reports it.
+  it('treats a subjectType that is not an array as no restriction', () => {
+    const form = model({
+      subjectType: 'Group',
+      contained: [bundle('b')],
+      extension: [sourceQuery('#b')],
+    });
+    expect(form.sourceQueries).toEqual(['b']);
+  });
+
   it('is what the hook works from, without declarations', () => {
     const { document } = analyseDeclarations(
       questionnaire({ contained: [bundle('b')], extension: [sourceQuery('#b')] }),

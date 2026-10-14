@@ -65,14 +65,23 @@ const isQueryInput = (extension: unknown): boolean => {
   );
 };
 
+// Whether population reads its inputs for the root subjectType: an empty one, or one with Patient.
+// populate stops before reading them otherwise (inputParameters.ts:209-212,293-303), which two
+// facts describe: population-needs-input and requires-patient-subject. populate 4.7.1 throws on a
+// subjectType that is not an array, such as "Group" (subjectTypes.find is not a function), so
+// population fails; that is invalid FHIR, which the Validator reports (S9), so it counts as no
+// restriction here.
+function allowsPatient(document: QuestionnaireDocument): boolean {
+  const subjects = arrayOf(document.resource.subjectType);
+  return subjects.length === 0 || subjects.includes('Patient');
+}
+
 // Whether population runs for the form (population-needs-input): it has a root launchContext, a
 // root sourceQueries with a valueReference, or a query variable it fetches, and a subjectType that
 // allows Patient.
 function populationRuns(document: QuestionnaireDocument, items: readonly Json[]): boolean {
-  const { subjectType, extension } = document.resource;
-  const subjects = arrayOf(subjectType);
-  if (subjects.length > 0 && !subjects.includes('Patient')) return false;
-  const root = arrayOf(extension);
+  if (!allowsPatient(document)) return false;
+  const root = arrayOf(document.resource.extension);
   return (
     launchContextsOf(document).some(({ input }) => input) ||
     root.some(
@@ -114,15 +123,7 @@ function suppliedSourceQueries(
 ): readonly SourceQuery[] {
   const facts = sourceQueriesAt('populate', version);
   if (!facts.has('read-from-root')) return [];
-  const { subjectType } = document.resource;
-  if (
-    facts.has('requires-patient-subject') &&
-    Array.isArray(subjectType) &&
-    subjectType.length > 0 &&
-    !subjectType.includes('Patient')
-  ) {
-    return [];
-  }
+  if (facts.has('requires-patient-subject') && !allowsPatient(document)) return [];
   return readSourceQueries(document).filter(({ reference, name, bundle }) => {
     if (name === undefined || name.startsWith('%') || reference === undefined) return false;
     if (reference.startsWith('#')) {
