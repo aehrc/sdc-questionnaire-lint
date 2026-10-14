@@ -168,6 +168,10 @@ export default withMermaid(
                 { text: 'Form readers', link: '/docs/plugin-smart-forms/readers' },
                 { text: 'Supplied names', link: '/docs/plugin-smart-forms/supplied-names' },
                 { text: 'Rules', link: '/docs/plugin-smart-forms/rules' },
+                {
+                  text: 'Evidence and reproduction',
+                  link: '/docs/plugin-smart-forms/evidence',
+                },
               ],
             },
           ],

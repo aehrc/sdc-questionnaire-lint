@@ -34,8 +34,6 @@ Core owns the run: it [checks the plugin and selects the versions](../core/plugi
 
 ## Blocks
 
-A block without a link has no page yet.
-
 | # | Block | Code | What it does |
 | :- | :- | :- | :- |
 | 1 | [Entry and compat](entry-and-compat.md) | `index.ts`, `facts/versions.ts` | Registers the rules and the Smart Forms versions the plugin has verified; a rule reads the selected ones |
@@ -45,6 +43,6 @@ A block without a link has no page yet.
 | 5 | [Form readers](readers.md) | `source-queries.ts`, `launch-contexts.ts`, `templates.ts`, `document.ts` | Read sourceQueries, launchContexts and templates as Smart Forms reads them |
 | 6 | [Supplied names](supplied-names.md) | `host-variables.ts` | Gives core the sourceQueries names, so `sdc/undefined-variable` accepts them |
 | 7 | [Rules](rules.md) | `rules/` | Lists each rule with the blocks and facts it uses |
-| 8 | Evidence and reproduction | `facts/evidence.ts`, `test/reproduction/` | Backs each fact with a test or a source link, and explains how to verify a new Smart Forms version |
+| 8 | [Evidence and reproduction](evidence.md) | `facts/evidence.ts`, `test/reproduction/` | Backs each fact with a test or a source link, and explains how to verify a new Smart Forms version |
 
 Paths are relative to `packages/plugin-smart-forms/src`, except `test/`, which is relative to the package.
