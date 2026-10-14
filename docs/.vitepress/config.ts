@@ -110,6 +110,7 @@ export default withMermaid(
       nav: [
         { text: 'Guide', link: '/' },
         { text: 'Rules', link: '/docs/rules/' },
+        { text: 'Core', link: '/docs/core/' },
         { text: 'CLI', link: '/docs/cli' },
         { text: 'Report format', link: '/docs/report-format' },
         { text: 'Architecture', link: '/docs/architecture' },
@@ -131,6 +132,13 @@ export default withMermaid(
               collapsed: true,
               items: rules.map(({ id, link }) => ({ text: id, link })),
             })),
+          ],
+        },
+        {
+          text: 'Core',
+          items: [
+            { text: 'Overview', link: '/docs/core/' },
+            { text: 'CLI', link: '/docs/core/cli' },
           ],
         },
         {
