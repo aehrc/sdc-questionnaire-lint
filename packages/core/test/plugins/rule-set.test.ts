@@ -226,6 +226,20 @@ describe('resolveRuleSet', () => {
       plugin({ 'no-today': rule({ docsUrl: 'docs/no-today.md' }) }),
       `${at}/meta/docsUrl`,
     ],
+    // URL.canParse accepts each of these, and the report schema's format: uri rejects it.
+    ...[
+      'https://example.org/rules/a b',
+      'https://example.org/rules/a|b',
+      'https://example.org/rules/é',
+      'https://example.org/rules/a%zz',
+      'https://example.org/rules/a[b]',
+      'https://example.org/rules/a#b#c',
+      'urn:',
+    ].map((docsUrl): [string, unknown, string] => [
+      `the docsUrl ${docsUrl}`,
+      plugin({ 'no-today': rule({ docsUrl }) }),
+      `${at}/meta/docsUrl`,
+    ]),
     [
       'docs that are not an object',
       plugin({ 'no-today': rule({ docs: 'see the README' }) }),
@@ -257,7 +271,41 @@ describe('resolveRuleSet', () => {
   it('accepts a plugin rule with an absolute docsUrl and complete docs', () => {
     const value = plugin({ 'no-today': rule({ docsUrl: 'https://example.org/no-today', docs }) });
     const ruleSet = resolveRuleSet(loaded({ plugins: [value as LintPlugin] }));
-    expect(ruleSet.rules.find(({ id }) => id === 'demo/no-today')?.rule.meta.docs).toEqual(docs);
+    const resolved = ruleSet.rules.find(({ id }) => id === 'demo/no-today');
+    expect(resolved?.rule.meta.docs).toEqual(docs);
+    expect(resolved?.docsUrl).toBe('https://example.org/no-today');
+  });
+
+  it.each([
+    'https://example.org/rules/a%20b?x=1&y=(2)#part',
+    'http://localhost:8080/rules/no-today',
+    'urn:example:no-today',
+  ])('accepts the docsUrl %s', (docsUrl) => {
+    const value = plugin({ 'no-today': rule({ docsUrl }) });
+    const ruleSet = resolveRuleSet(loaded({ plugins: [value as LintPlugin] }));
+    expect(ruleSet.rules.find(({ id }) => id === 'demo/no-today')?.docsUrl).toBe(docsUrl);
+  });
+
+  it('gives a rule without docsUrl no docsUrl key', () => {
+    const ruleSet = resolveRuleSet(loaded({ plugins: [demoPlugin()] }));
+    expect(ruleSet.rules.find(({ id }) => id === 'demo/no-today')).not.toHaveProperty('docsUrl');
+  });
+
+  it('keeps the docsUrl it validated, never reading it again', () => {
+    const urls = ['https://example.org/no-today', 'not a URL'];
+    const meta = {
+      description: 'Flags today().',
+      defaultSeverity: 'warning',
+      get docsUrl() {
+        return urls.shift() ?? 'not a URL';
+      },
+    };
+    const value = plugin({ 'no-today': { meta, check: () => undefined } });
+    const ruleSet = resolveRuleSet(loaded({ plugins: [value as LintPlugin] }));
+    expect(ruleSet.rules.find(({ id }) => id === 'demo/no-today')?.docsUrl).toBe(
+      'https://example.org/no-today',
+    );
+    expect(urls).toEqual(['not a URL']);
   });
 
   it.each(['sdc', 'lint'])('rejects the reserved namespace %s', (name) => {

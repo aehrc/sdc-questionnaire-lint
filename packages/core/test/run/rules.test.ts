@@ -5,6 +5,7 @@ import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import { lint } from '../../src/index.js';
 import type { LintRule, RuleContext, RuleFinding } from '../../src/plugins/contract.js';
 import type { ResolvedRule } from '../../src/plugins/rule-set.js';
+import { formatJsonReport } from '../../src/report/json.js';
 import { runRules } from '../../src/run/rules.js';
 import { expressionSite, fragmentSite } from '../support/builders.js';
 import { expectValidReport } from '../support/report.js';
@@ -55,6 +56,17 @@ describe('runRules', () => {
 
   it('keeps a severity the rule reports', () => {
     expect(runRules(doc, [resolved('warning', 'info')])).toMatchObject([{ severity: 'info' }]);
+  });
+
+  it("copies the resolved rule's docsUrl into its findings", () => {
+    const rule = { ...resolved('error'), docsUrl: 'https://example.org/every-site' };
+    expect(runRules(doc, [rule])).toMatchObject([{ docsUrl: 'https://example.org/every-site' }]);
+  });
+
+  it('gives no docsUrl key to the findings of a rule without one', () => {
+    const [finding] = runRules(doc, [resolved('error')]);
+    expect(finding).toBeDefined();
+    expect(finding).not.toHaveProperty('docsUrl');
   });
 });
 
@@ -880,6 +892,59 @@ describe('plugin findings in a report', () => {
       },
     ]);
     expect(report.run.plugins.map(({ name }) => name)).toEqual(['demo', 'sdc']);
+  });
+
+  it("carry their rule's docsUrl after note, in a valid report", async () => {
+    const cwd = await tempTree({
+      'sdc-questionnaire-lint.config.mjs': `export default {
+        plugins: [{
+          meta: { name: 'demo', version: '0.0.0' },
+          rules: {
+            documented: {
+              meta: {
+                description: 'Reports the resource.',
+                defaultSeverity: 'warning',
+                docsUrl: 'https://example.org/rules/documented',
+              },
+              check(ctx) {
+                ctx.report({ message: 'Documented.', help: 'h', note: 'n' });
+              },
+            },
+            undocumented: {
+              meta: { description: 'Reports the resource.', defaultSeverity: 'warning' },
+              check(ctx) {
+                ctx.report({ message: 'Undocumented.' });
+              },
+            },
+          },
+        }],
+      };`,
+      'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+        resourceType: 'Questionnaire',
+        id: 'A',
+        status: 'draft',
+      }),
+    });
+    const report = expectValidReport(JSON.parse(formatJsonReport(await lint({ cwd }))));
+    if (report.status !== 'completed') throw new Error('the run failed');
+    const [documented, undocumented] = ['demo/documented', 'demo/undocumented'].map((id) =>
+      report.findings.find(({ ruleId }) => ruleId === id),
+    );
+    expect(Object.keys(documented ?? {})).toEqual([
+      'kind',
+      'ruleId',
+      'severity',
+      'message',
+      'help',
+      'note',
+      'docsUrl',
+      'jsonLocation',
+      'sourceLocation',
+      'fingerprint',
+    ]);
+    expect(documented?.docsUrl).toBe('https://example.org/rules/documented');
+    expect(undocumented).toBeDefined();
+    expect(undocumented).not.toHaveProperty('docsUrl');
   });
 
   it('never runs a plugin rule configured off', async () => {

@@ -96,7 +96,8 @@ export interface LintRule {
   meta: {
     description: string;
     defaultSeverity: Severity;
-    // An absolute URL, shown by sdc-lint explain <rule-id>.
+    // An absolute URL of URI characters (RFC 3986), which the report schema accepts. Shown by
+    // sdc-lint explain <rule-id>, linked from SARIF and copied into each finding of the rule.
     docsUrl?: string;
     docs?: RuleDocs;
   };

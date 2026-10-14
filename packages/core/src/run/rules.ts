@@ -279,7 +279,13 @@ export function runRules(
     };
   }
 
-  function toFinding(id: string, severity: Severity, reported: RuleFinding): QuestionnaireFinding {
+  // docsUrl is the resolved rule's: the value validated when the rule set was resolved.
+  function toFinding(
+    id: string,
+    severity: Severity,
+    docsUrl: string | undefined,
+    reported: RuleFinding,
+  ): QuestionnaireFinding {
     const { site } = reported;
     const location = jsonLocation(reported);
     const { pointer, resource } = location;
@@ -300,6 +306,7 @@ export function runRules(
       message: reported.message,
       ...(reported.help === undefined ? {} : { help: reported.help }),
       ...(reported.note === undefined ? {} : { note: reported.note }),
+      ...(docsUrl === undefined ? {} : { docsUrl }),
       jsonLocation: location,
       sourceLocation: unmapped,
       ...(expression === undefined ? {} : { expression }),
@@ -320,7 +327,7 @@ export function runRules(
   }
 
   for (const resolved of rules) {
-    const { id, namespace, rule, setting, compat } = resolved;
+    const { id, namespace, rule, setting, compat, docsUrl } = resolved;
     if (setting === 'off') continue;
     // report() never throws, so a rule cannot swallow its own invalid finding: the first problem
     // is kept here, later reports are ignored, and the run fails once check returns.
@@ -350,7 +357,7 @@ export function runRules(
           }
           if (typeof checked === 'string') problem = checked;
           else {
-            const finding = toFinding(id, setting, checked);
+            const finding = toFinding(id, setting, docsUrl, checked);
             findings.push(finding);
             origins?.set(finding, {
               document: doc,
