@@ -126,10 +126,10 @@ Inputs: full run; 5 files read, 2 skipped. Expressions: 8 analysed, 1 unchecked.
 Suppressions: 0 applied, 0 stale, 0 not assessed.
 Config: sdc-questionnaire-lint.config.mjs. FSH sources: input/fsh.
 Linter: 0.1.0. Plugins: sdc@0.1.0, smart-forms@0.1.0. SUSHI: 3.20.1.
-Smart Forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.
+Compat smart-forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.
 ```
 
-Versions in examples are illustrative. `SUSHI` names the IG's installed SUSHI, the report's `run.sushi`, and is left out when none is found. The Smart Forms line is present only when that plugin runs; it always names the resolved component versions, including when config uses `latest`.
+Versions in examples are illustrative. `SUSHI` names the IG's installed SUSHI, the report's `run.sushi`, and is left out when none is found. There is a `Compat` line for each plugin with compat, naming its namespace; it always names the resolved component versions, including when config uses `latest`.
 
 - The first line of each finding has a stable format: `file[:line:col]: severity rule-id message`.
 - An unmapped finding names the compiled file without invented coordinates and adds a `location` line containing the resource identity and a file-relative JSON Pointer. For a Bundle or contained resource, include its resource pointer as well. If the resource has no ID, its resource type and pointer identify it. Show the expression excerpt when one is available, and the reason FSH mapping failed. Item text and linkId remain useful context, but are not the only locator.

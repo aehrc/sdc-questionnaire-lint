@@ -24,7 +24,6 @@ export type {
   RunCompat,
   RunMetadata,
   Severity,
-  SmartFormsVersions,
   SourceLocation,
   SourceMapResult,
   SourceTarget,

@@ -330,18 +330,36 @@ describe('formatTextSummary', () => {
     );
   });
 
-  it('adds the Smart Forms line only when its versions were resolved', () => {
-    expect(formatTextSummary(completedReport(), plain)).not.toContain('Smart Forms:');
+  it('adds no compat line without compat', () => {
+    expect(formatTextSummary(completedReport(), plain)).not.toContain('Compat');
+  });
+
+  it('adds a compat line naming the resolved Smart Forms versions', () => {
     expect(formatTextSummary(specReport(), plain).trimEnd().split('\n').at(-1)).toBe(
-      'Smart Forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.',
+      'Compat smart-forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.',
     );
   });
 
-  it('leaves template-extract out of the Smart Forms line when it was not selected', () => {
+  it('leaves template-extract out of the compat line when it was not selected', () => {
     const report = specReport();
     report.run.compat['smart-forms'] = { renderer: '1.4.0', populate: '4.7.1' };
     expect(formatTextSummary(report, plain).trimEnd().split('\n').at(-1)).toBe(
-      'Smart Forms: renderer 1.4.0, populate 4.7.1.',
+      'Compat smart-forms: renderer 1.4.0, populate 4.7.1.',
     );
+  });
+
+  it('adds a compat line per namespace, in key order', () => {
+    const report = completedReport();
+    report.run.compat = { 'smart-forms': { renderer: '1.4.0' }, demo: { engine: '2.0.0' } };
+    expect(formatTextSummary(report, plain).trimEnd().split('\n').slice(-2)).toEqual([
+      'Compat smart-forms: renderer 1.4.0.',
+      'Compat demo: engine 2.0.0.',
+    ]);
+  });
+
+  it('adds no compat line for a namespace with no component', () => {
+    const report = completedReport();
+    report.run.compat = { demo: {} };
+    expect(formatTextSummary(report, plain)).toBe(formatTextSummary(completedReport(), plain));
   });
 });

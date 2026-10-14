@@ -123,12 +123,10 @@ export function runCorpus(
     `${String(current.length)} findings in ${String(questionnaires)} questionnaires. ` +
       `Expressions: ${String(expressions.analysed)} analysed, ${String(expressions.unchecked)} unchecked.`,
   ];
-  const smartForms = report.run.compat['smart-forms'];
-  if (smartForms !== undefined) {
-    const versions = Object.entries(smartForms).map(
-      ([component, version]) => `${component} ${version}`,
-    );
-    lines.push(`Smart Forms: ${versions.join(', ')}.`);
+  // The text summary's compat line; this script runs under plain node, so it can't import src.
+  for (const [namespace, versions] of Object.entries(report.run.compat)) {
+    const components = Object.entries(versions).map(([name, version]) => `${name} ${version}`);
+    if (components.length > 0) lines.push(`Compat ${namespace}: ${components.join(', ')}.`);
   }
   if (!hasSnapshot) lines.push('No snapshot yet, so every finding is listed as added.');
   if (added.length === 0 && removed.length === 0) lines.push('No findings were added or removed.');

@@ -109,18 +109,8 @@ export interface PackageVersion {
   version: string;
 }
 
-// A type alias rather than an interface, so it satisfies RunCompat's index signature.
-export type SmartFormsVersions = {
-  renderer: string;
-  populate: string;
-  // Absent when template extraction is not selected.
-  'template-extract'?: string;
-};
-
-export interface RunCompat {
-  'smart-forms'?: SmartFormsVersions;
-  [namespace: string]: Record<string, string>;
-}
+// Keyed by plugin namespace, then by component in the plugin's order; values are exact versions.
+export type RunCompat = Record<string, Record<string, string>>;
 
 export type RunKind = 'full' | 'targeted';
 

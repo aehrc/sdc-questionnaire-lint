@@ -545,35 +545,12 @@
         }
       ]
     },
-    "smartFormsVersions": {
-      "type": "object",
-      "properties": {
-        "renderer": {
-          "type": "string",
-          "minLength": 1,
-          "not": {
-            "const": "latest"
-          }
-        },
-        "populate": {
-          "type": "string",
-          "minLength": 1,
-          "not": {
-            "const": "latest"
-          }
-        },
-        "template-extract": {
-          "type": "string",
-          "minLength": 1,
-          "not": {
-            "const": "latest"
-          }
-        }
-      },
-      "required": [
-        "renderer",
-        "populate"
-      ]
+    "compatVersion": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "const": "latest"
+      }
     },
     "run": {
       "type": "object",
@@ -601,15 +578,10 @@
         },
         "compat": {
           "type": "object",
-          "properties": {
-            "smart-forms": {
-              "$ref": "#/$defs/smartFormsVersions"
-            }
-          },
           "additionalProperties": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/$defs/text"
+              "$ref": "#/$defs/compatVersion"
             }
           }
         },
