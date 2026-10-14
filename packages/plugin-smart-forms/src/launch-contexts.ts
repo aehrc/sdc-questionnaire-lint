@@ -3,15 +3,15 @@ import { arrayOf, isObject, type Json } from './document.js';
 import { LAUNCH_CONTEXT } from './urls.js';
 
 // The root launchContexts, each read every way Smart Forms reads one (docs/smart-forms-rules.md,
-// P5 Stored names and S16). The reader knows no facts: which reading a component uses, and for
+// Shared plugin infrastructure, launchContexts). The reader knows no facts: which reading a component uses, and for
 // which version, is a runtime fact the caller checks. Only the root extension array is read, as
 // populate and the renderer read it (inputParameters.ts:117-123; extractLaunchContext.ts:5-20), so
 // a launchContext on an item or in the root modifierExtension is not one. Not ctx.declarations:
 // core reads a name by URL, valueCoding.code first, and declares only launchContexts whose name it
 // can read, the root modifierExtension's included.
 
-// A launchContext's name and resource type, from one reading. A name is the sub-extension's valueId,
-// else its valueCoding.code, and an empty one is none.
+// A launchContext's name and resource type, from one reading. A name is the sub-extension's
+// valueId, else its valueCoding.code, and an empty one is none.
 export interface LaunchContextReading {
   readonly name: string | undefined;
   readonly type: string | undefined;

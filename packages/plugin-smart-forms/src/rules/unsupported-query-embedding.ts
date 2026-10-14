@@ -238,8 +238,8 @@ export const unsupportedQueryEmbedding: LintRule = {
     // embeddings only under the name it binds a launch resource under, read by position
     // (launch-context-named-by-position), so a launchContext not in name, type order is read here
     // by URL, as SDC defines it, not as populate reads it: that is aehrc/smart-forms#2161, which an
-    // open item tracks. An empty valueId is left to the Validator (S9). Population supplies only some of them
-    // at run time, which the rule does not check.
+    // open item tracks. An empty valueId is left to the Validator (S9). Population supplies only
+    // some of them at run time, which the rule does not check.
     const launch = launchContextsOf(ctx.document);
     const launchNames = launch.flatMap(({ byUrl }) => byUrl.name ?? []);
     const supplied = new Set(facts.get('evaluated-with-only')?.names ?? []);
