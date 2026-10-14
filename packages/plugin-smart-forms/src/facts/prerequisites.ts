@@ -19,6 +19,8 @@ import {
 import {
   type Evidence,
   getExpressionsFromItem,
+  type Reported,
+  reported,
   populatePrerequisites,
   populateSource,
   rendererSource,
@@ -31,7 +33,7 @@ import { type Component, type FactTable, factsAt } from './versions.js';
 // What a component needs, beyond the location, before it reads an Expression there. A
 // prerequisite never depends on the language: how a component handles the language is a separate
 // fact (languages.ts).
-export interface Prerequisite {
+export interface Prerequisite extends Reported {
   readonly location: Location;
   // What must hold, for maintainers.
   readonly requires: string;
@@ -412,19 +414,22 @@ const populate471: readonly Prerequisite[] = Object.freeze([
       'populate 4.7.1 initialExpression prerequisites > does not evaluate an item in a nested repeating group without its own itemPopulationContext',
     ),
   ),
-  prerequisite(
-    { url: ITEM_POPULATION_CONTEXT },
-    'an item with child items; a root itemPopulationContext is read by nothing',
-    onItemWithChildren,
-    source(readPopulationExpressions, 52, 56),
-    reproduced(
-      populatePrerequisites,
-      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on a leaf item',
+  reported<Prerequisite>(
+    prerequisite(
+      { url: ITEM_POPULATION_CONTEXT },
+      'an item with child items; a root itemPopulationContext is read by nothing',
+      onItemWithChildren,
+      source(readPopulationExpressions, 52, 56),
+      reproduced(
+        populatePrerequisites,
+        'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on a leaf item',
+      ),
+      reproduced(
+        populatePrerequisites,
+        'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on the root',
+      ),
     ),
-    reproduced(
-      populatePrerequisites,
-      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on the root',
-    ),
+    [2168],
   ),
   prerequisite(
     { url: ITEM_POPULATION_CONTEXT },

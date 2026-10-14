@@ -1,11 +1,13 @@
 import {
   type Evidence,
   inAppPopulateSource,
+  type Reported,
   populateEvaluationOrder,
   populatePrerequisites,
   populateSource,
   populateVariableStorage,
   rendererSource,
+  reported,
   reproduced,
   source,
 } from './evidence.js';
@@ -83,13 +85,28 @@ export type VariableBehaviour =
   | 'population-needs-input'
   | 'stale-forward-read';
 
-export interface VariableFact {
+export interface VariableFact extends Reported {
   readonly behaviour: VariableBehaviour;
   readonly evidence: readonly Evidence[];
 }
 
+// The aehrc/smart-forms issues that report a behaviour.
+const upstream: Readonly<Partial<Record<VariableBehaviour, readonly number[]>>> = {
+  'one-value-per-name': [2166],
+  'population-context-stored-by-name': [2166],
+  'item-variable-per-response-item': [2166],
+  'launch-context-named-by-position': [2161],
+  'named-expression-not-stored': [2168],
+  'item-fhirpath-variable-needs-root-extensions': [2162],
+  'population-evaluation-order': [2167],
+  'stale-forward-read': [2167],
+};
+
 function fact(behaviour: VariableBehaviour, ...evidence: Evidence[]): VariableFact {
-  return Object.freeze({ behaviour, evidence: Object.freeze(evidence) });
+  return reported<VariableFact>(
+    Object.freeze({ behaviour, evidence: Object.freeze(evidence) }),
+    upstream[behaviour],
+  );
 }
 
 const fhirpathUtils = `${rendererSource}utils/fhirpath.ts`;

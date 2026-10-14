@@ -1,4 +1,11 @@
-import { type Evidence, extractContexts, extractTemplates, reproduced } from './evidence.js';
+import {
+  type Evidence,
+  extractContexts,
+  extractTemplates,
+  type Reported,
+  reported,
+  reproduced,
+} from './evidence.js';
 
 // How template-extract reads templates and their templateExtractContexts. Template extraction is
 // checked only when compat selects template-extract (S3), so these facts are keyed by its version
@@ -31,13 +38,23 @@ export type ExtractionBehaviour =
   | 'no-context-name'
   | 'template-extract-bundle-unread';
 
-export interface ExtractionFact {
+export interface ExtractionFact extends Reported {
   readonly behaviour: ExtractionBehaviour;
   readonly evidence: readonly Evidence[];
 }
 
+// The aehrc/smart-forms issues that report a behaviour.
+const upstream: Readonly<Partial<Record<ExtractionBehaviour, readonly number[]>>> = {
+  'context-read-only-from-value-string': [2172],
+  'template-selection': [2169],
+  'no-context-name': [2172],
+};
+
 function fact(behaviour: ExtractionBehaviour, ...evidence: Evidence[]): ExtractionFact {
-  return Object.freeze({ behaviour, evidence: Object.freeze(evidence) });
+  return reported<ExtractionFact>(
+    Object.freeze({ behaviour, evidence: Object.freeze(evidence) }),
+    upstream[behaviour],
+  );
 }
 
 const contexts = (name: string): Evidence =>

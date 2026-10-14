@@ -1,12 +1,13 @@
 /// <reference types="vite/client" />
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { type Evidence, sourceBase } from '../src/facts/evidence.js';
+import { type Evidence, type Reported, sourceBase } from '../src/facts/evidence.js';
 import { extractionAt, extractionFacts } from '../src/facts/extraction.js';
 import { type Component, components, type FactTable } from '../src/facts/versions.js';
 import smartForms from '../src/index.js';
 
-type Table = FactTable<readonly { evidence: readonly Evidence[] }[]>;
+type Fact = Reported & { evidence: readonly Evidence[] };
+type Table = FactTable<readonly Fact[]>;
 
 // Whether an export is a table of facts: facts by version for every component.
 function isTable(value: unknown): value is Table {
@@ -29,7 +30,7 @@ const tables: Table[] = Object.values(
   import.meta.glob<Record<string, unknown>>('../src/facts/*.ts', { eager: true }),
 ).flatMap((module) => Object.values(module).filter(isTable));
 
-function* factsOf(component: Component): Generator<{ evidence: readonly Evidence[] }> {
+function* factsOf(component: Component): Generator<Fact> {
   for (const table of tables) {
     for (const facts of Object.values(table[component])) yield* facts;
   }
@@ -76,6 +77,15 @@ describe('runtime facts', () => {
       for (const fact of factsOf(component)) expect(fact.evidence.length).toBeGreaterThan(0);
     }
     for (const fact of extraction) expect(fact.evidence.length).toBeGreaterThan(0);
+  });
+
+  it('name each upstream issue by its number', () => {
+    const facts = [...components.flatMap((component) => [...factsOf(component)]), ...extraction];
+    const issues = facts.flatMap(({ upstream }) => upstream ?? []);
+    expect(issues.length).toBeGreaterThan(0);
+    for (const fact of facts)
+      if (fact.upstream !== undefined) expect(fact.upstream.length).toBeGreaterThan(0);
+    for (const issue of issues) expect(Number.isInteger(issue) && issue > 0).toBe(true);
   });
 
   it('cite the source at the release commit', () => {

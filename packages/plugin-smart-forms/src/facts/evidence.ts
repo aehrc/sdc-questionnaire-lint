@@ -6,6 +6,19 @@ export type Evidence =
   // describe and it titles joined with ' > '.
   | { readonly kind: 'reproduced'; readonly test: string; readonly name: string };
 
+// The aehrc/smart-forms issues that report a fact's behaviour as a Smart Forms bug, by number. A
+// verified version with the fix gets facts without the behaviour, so a fact keeps its issues.
+export interface Reported {
+  readonly upstream?: readonly number[];
+}
+
+// A fact with the issues that report it, or the fact itself when none do.
+export function reported<T extends Reported>(fact: T, issues: readonly number[] = []): T {
+  return issues.length === 0
+    ? fact
+    : Object.freeze({ ...fact, upstream: Object.freeze([...issues]) });
+}
+
 // The release commit of renderer 1.4.0 and populate 4.7.1. Each cited file was checked to be
 // identical there and at the researched checkout 7e64a22f (S11).
 export const releaseCommit = 'f846e2d8fbb97049360e58cbaf6b06bae0a78cb3';

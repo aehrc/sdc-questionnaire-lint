@@ -3,6 +3,8 @@ import {
   inAppPopulateSource,
   populateSource,
   populateSourceQueries,
+  type Reported,
+  reported,
   reproduced,
   source,
 } from './evidence.js';
@@ -35,13 +37,22 @@ export type SourceQueryBehaviour =
   | 'entries-filled-only-from-data'
   | 'contained-fetched-without-launch';
 
-export interface SourceQueryFact {
+export interface SourceQueryFact extends Reported {
   readonly behaviour: SourceQueryBehaviour;
   readonly evidence: readonly Evidence[];
 }
 
+// The aehrc/smart-forms issues that report a behaviour.
+const upstream: Readonly<Partial<Record<SourceQueryBehaviour, readonly number[]>>> = {
+  'entries-filled-only-from-data': [2160],
+  'contained-fetched-without-launch': [2165],
+};
+
 function fact(behaviour: SourceQueryBehaviour, ...evidence: Evidence[]): SourceQueryFact {
-  return Object.freeze({ behaviour, evidence: Object.freeze(evidence) });
+  return reported<SourceQueryFact>(
+    Object.freeze({ behaviour, evidence: Object.freeze(evidence) }),
+    upstream[behaviour],
+  );
 }
 
 const inputParameters = `${inAppPopulateSource}inputParameters.ts`;
