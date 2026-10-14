@@ -157,3 +157,14 @@ Settled before building P8; the reasons are in [smart-forms-rules.md](smart-form
 - **§4.2 rule ID (S17):** `smart-forms/template-extract-context-string-only` is built as `smart-forms/unsupported-template-extract-context`.
 - **§4.2 `smart-forms/unsupported-template-extract-context` scope:** the rule reports a templateExtractContext with a `valueExpression` and no `valueString` only in a template Smart Forms extracts: a top-level contained resource referenced by the first `#id` `template` slice of an item's `templateExtract`. A template referenced only from the Questionnaire root is never extracted by template-extract 1.0.15, so it is not reported. It reports only where the Expression is an expression site, so a context with no `language` is left to the Validator, and only the first templateExtractContext in an `extension` array, outside the template resource's own `extension`.
 - **§6.3 suppressions:** unchanged. Suppression of a finding reported with only a JSON pointer, planned in P8, is deferred to an open item in smart-forms-rules.md.
+
+## From the Smart Forms open-items review (2026-10-14)
+
+Settled after P8; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-open-items-review).
+
+- **§6.3 suppressions and plugin rules (S8):** a suppression of a plugin finding is applied or stale as usual, but a target with no plugin finding is not assessed: plugin rules take part in no completion evidence and never make a site unchecked.
+- **§4.2 Smart Forms rules (S15):** no rule for the renderer's answerExpression fallback, or for `%context` being `{}` at most Smart Forms evaluators.
+- **§4.2 new rule for launchContext order (S16, P10, error):** Smart Forms reads a launchContext's sub-extensions by position, name first and type second, so a launchContext in any other order binds nothing. The rule ID is settled in P10.
+- **§4.2 new rule `smart-forms/unsupported-template-extract-value` (S18, error):** a templateExtractValue with a `valueExpression` and no `valueString` in a template Smart Forms extracts, selected as for `unsupported-template-extract-context`.
+- **§5.2 plugin contract (S19):** `RuleContext.options` is removed; rule options are not built (S7). Findings carry their rule's `docsUrl`.
+- **§7 report (S19):** the compat versions in the report are a generic map from component to version, not fields named after Smart Forms components.
