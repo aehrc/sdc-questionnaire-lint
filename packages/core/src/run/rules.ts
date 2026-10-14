@@ -339,7 +339,6 @@ export function runRules(
         dependenciesOf: (declaration) => analysis.dependencies.get(declaration),
         useOf: (declaration) => analysis.uses.get(declaration),
         compat,
-        options: undefined,
         report: (reported) => {
           if (problem !== undefined) return;
           let checked: RuleFinding | string;

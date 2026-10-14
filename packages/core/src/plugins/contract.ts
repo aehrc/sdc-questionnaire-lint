@@ -78,8 +78,6 @@ export interface RuleContext {
   // with compat, core guarantees a version for every component in compat.required, and for every
   // other verified component unless an explicit config compat object omits it.
   readonly compat: Readonly<Record<string, string>>;
-  // Always undefined: the config cannot pass rule options yet.
-  readonly options: unknown;
   report(finding: RuleFinding): void;
 }
 

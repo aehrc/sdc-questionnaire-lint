@@ -1,4 +1,4 @@
-import { describe, expect, it, onTestFinished } from 'vitest';
+import { describe, expect, expectTypeOf, it, onTestFinished } from 'vitest';
 import { analyseDocument } from '../../src/analysis/document-analysis.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../../src/analysis/expression-site.js';
 import { findExpressionSites } from '../../src/analysis/expression-sites.js';
@@ -423,6 +423,12 @@ describe('runRules on what a rule reports', () => {
       ctx.report({ site: textSite, message: 'Ranged.', range: { startOffset: 0, endOffset: 7 } });
     });
     expect(runRules(inBundle, [rule])).toHaveLength(2);
+  });
+});
+
+describe('RuleContext', () => {
+  it('has no options: rule options are not built (S7 in docs/smart-forms-rules.md)', () => {
+    expectTypeOf<RuleContext>().not.toHaveProperty('options');
   });
 });
 
