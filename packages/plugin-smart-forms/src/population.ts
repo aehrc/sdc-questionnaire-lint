@@ -2,8 +2,10 @@ import type { Declaration, QuestionnaireDocument, RuleContext } from 'sdc-questi
 import { arrayOf, extensionOf, isObject, itemsOf, type Json } from './document.js';
 import { requireCompat, storesVariable } from './eligibility.js';
 import { populationReadsContext, prerequisitesHold } from './facts/prerequisites.js';
+import { sourceQueriesAt } from './facts/source-queries.js';
 import { variableFactsAt } from './facts/variables.js';
 import { launchContextsOf } from './launch-contexts.js';
+import { readSourceQueries, type SourceQuery } from './source-queries.js';
 import { FHIRPATH, SOURCE_QUERIES, VARIABLE, X_FHIR_QUERY } from './urls.js';
 
 // What Smart Forms population binds for one document and the selected populate version, under the
@@ -28,11 +30,27 @@ export interface Binding {
   readonly at: Position | 'never' | 'unknown';
 }
 
+// Something population binds a name with: a declaration, with when it binds it, or a sourceQueries
+// result, with its extension's pointer.
+export type Binder =
+  | { readonly kind: 'declaration'; readonly declaration: Declaration; readonly at: Binding['at'] }
+  | { readonly kind: 'sourceQuery'; readonly query: SourceQuery; readonly pointer: string };
+
 export interface Population {
   // Whether population runs for the form (population-needs-input).
   readonly runs: boolean;
+  // The root sourceQueries whose results population binds, under the supported integration and
+  // assuming external fetches succeed (P4): a #id whose first contained Bundle with that id has an
+  // id and an entry element, and every other non-empty reference as sourceQuery<i>. One whose
+  // name starts with % is left out: population binds #%x as %x, but a reference is written
+  // without %.
+  readonly sourceQueries: readonly SourceQuery[];
   // What population binds for a declaration, or undefined when it stores no name for it.
   bindingOf(declaration: Declaration): Binding | undefined;
+  // Everything population binds a name with: the sourceQueries results in extension order, then
+  // the declarations the model was given, earliest first, those population never evaluates or
+  // whose order is unknown last, in document order.
+  bindersOf(name: string): readonly Binder[];
 }
 
 // An application/x-fhir-query variable population fetches: with a name and expression text.
@@ -89,9 +107,48 @@ function linkIdCounts(items: readonly Json[]): ReadonlyMap<string, number> {
   return counts;
 }
 
-// Built lazily: storedName builds one for each declaration it is asked about.
-export function population(ctx: Pick<RuleContext, 'document' | 'compat'>): Population {
-  const { document } = ctx;
+// The root sourceQueries population binds (Population.sourceQueries).
+function suppliedSourceQueries(
+  document: QuestionnaireDocument,
+  version: string,
+): readonly SourceQuery[] {
+  const facts = sourceQueriesAt('populate', version);
+  if (!facts.has('read-from-root')) return [];
+  const { subjectType } = document.resource;
+  if (
+    facts.has('requires-patient-subject') &&
+    Array.isArray(subjectType) &&
+    subjectType.length > 0 &&
+    !subjectType.includes('Patient')
+  ) {
+    return [];
+  }
+  return readSourceQueries(document).filter(({ reference, name, bundle }) => {
+    if (name === undefined || name.startsWith('%') || reference === undefined) return false;
+    if (reference.startsWith('#')) {
+      return facts.has('contained-named-by-id') && bundle?.bound === true;
+    }
+    return facts.has('reference-named-by-index');
+  });
+}
+
+// Orders bindings earliest first, 'never' and 'unknown' after every position.
+const byPosition = (a: Binding['at'], b: Binding['at']): number =>
+  typeof a === 'string'
+    ? Number(typeof b !== 'string')
+    : typeof b === 'string'
+      ? -1
+      : compare(a, b);
+
+// The model for a rule's ctx or the hostVariables hook's input, which has no declarations, so
+// bindersOf then finds only sourceQueries results. Built lazily: storedName builds one for each
+// declaration it is asked about.
+export function population(
+  ctx: Pick<RuleContext, 'document' | 'compat'> & {
+    readonly declarations?: readonly Declaration[];
+  },
+): Population {
+  const { document, declarations = [] } = ctx;
   const versions = requireCompat(ctx);
   const facts = variableFactsAt('populate', versions.populate);
   let items: readonly Json[] | undefined;
@@ -176,12 +233,17 @@ export function population(ctx: Pick<RuleContext, 'document' | 'compat'>): Popul
   };
 
   let runs: boolean | undefined;
+  let sourceQueries: readonly SourceQuery[] | undefined;
   const bindings = new Map<Declaration, Binding | undefined>();
-  return {
+  let binders: ReadonlyMap<string, readonly Binder[]> | undefined;
+  const model: Population = {
     get runs() {
       return (runs ??=
         !facts.has('population-needs-input') ||
         populationRuns(document, (items ??= itemsOf(document.resource))));
+    },
+    get sourceQueries() {
+      return (sourceQueries ??= suppliedSourceQueries(document, versions.populate));
     },
     bindingOf(declaration) {
       if (bindings.has(declaration)) return bindings.get(declaration);
@@ -190,5 +252,33 @@ export function population(ctx: Pick<RuleContext, 'document' | 'compat'>): Popul
       bindings.set(declaration, binding);
       return binding;
     },
+    bindersOf(name) {
+      binders ??= bindersByName();
+      return binders.get(name) ?? [];
+    },
   };
+
+  const bindersByName = (): ReadonlyMap<string, readonly Binder[]> => {
+    const byName = new Map<string, Binder[]>();
+    const add = (each: string, binder: Binder): void => {
+      const list = byName.get(each);
+      if (list === undefined) byName.set(each, [binder]);
+      else list.push(binder);
+    };
+    for (const query of model.sourceQueries) {
+      if (query.name === undefined) continue;
+      const pointer = `${document.resourcePointer}/extension/${String(query.extensionIndex)}`;
+      add(query.name, { kind: 'sourceQuery', query, pointer });
+    }
+    const bound = declarations.flatMap((declaration) => {
+      const binding = model.bindingOf(declaration);
+      return binding === undefined ? [] : [{ declaration, ...binding }];
+    });
+    bound.sort((a, b) => byPosition(a.at, b.at));
+    for (const { declaration, name, at } of bound)
+      add(name, { kind: 'declaration', declaration, at });
+    return byName;
+  };
+
+  return model;
 }

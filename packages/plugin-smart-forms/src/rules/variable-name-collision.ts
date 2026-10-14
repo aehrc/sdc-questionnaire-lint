@@ -9,7 +9,7 @@ import { elementName } from '../document.js';
 import { requireCompat } from '../eligibility.js';
 import { variableFactsAt } from '../facts/variables.js';
 import { components } from '../facts/versions.js';
-import { suppliedSourceQueries } from '../host-variables.js';
+import { population } from '../population.js';
 import { storedName } from '../stored-names.js';
 
 // A name Smart Forms stores a value under, and where a finding about it is reported.
@@ -110,12 +110,7 @@ export const variableNameCollision: LintRule = {
     for (const [declaration, name] of stored) {
       if (!first.has(name)) first.set(name, { name, declaration });
     }
-    const sourceQueries = new Map<string, string>();
-    for (const { name, extensionIndex } of suppliedSourceQueries(ctx)) {
-      if (name !== undefined && !sourceQueries.has(name)) {
-        sourceQueries.set(name, `${document.resourcePointer}/extension/${String(extensionIndex)}`);
-      }
-    }
+    const pop = population(ctx);
 
     for (const target of targets) {
       const { name, declaration } = target;
@@ -128,7 +123,7 @@ export const variableNameCollision: LintRule = {
           relatedLocations: [{ ...where(earlier), message: `%${name} is also declared here` }],
         });
       }
-      const sourceQuery = sourceQueries.get(name);
+      const sourceQuery = pop.bindersOf(name).find((binder) => binder.kind === 'sourceQuery');
       if (sourceQuery !== undefined) {
         ctx.report({
           ...where(target),
@@ -136,7 +131,7 @@ export const variableNameCollision: LintRule = {
           help: 'rename the declaration',
           relatedLocations: [
             {
-              pointer: sourceQuery,
+              pointer: sourceQuery.pointer,
               message: `%${name} is also the name of this sourceQueries result`,
             },
           ],

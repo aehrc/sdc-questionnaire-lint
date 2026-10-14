@@ -13,8 +13,8 @@ import { readBy, requireCompat } from '../eligibility.js';
 import { populationReadsContext, prerequisitesHold } from '../facts/prerequisites.js';
 import { variableFactsAt } from '../facts/variables.js';
 import { type Component, components } from '../facts/versions.js';
-import { suppliedSourceQueries } from '../host-variables.js';
 import { launchContextsOf } from '../launch-contexts.js';
+import { population } from '../population.js';
 import { storedName } from '../stored-names.js';
 import { ANSWER_EXPRESSION, VARIABLE, X_FHIR_QUERY } from '../urls.js';
 import { extensionName, isLocatedSite, type LocatedSite } from './language-sites.js';
@@ -203,12 +203,7 @@ export const namedExpressionNotReferenceable: LintRule = {
       const key = `${keyOf(declaration)}\n${declaration.name}`;
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
-    const sourceQueries = new Map<string, string>();
-    for (const { name, extensionIndex } of suppliedSourceQueries(ctx)) {
-      if (name !== undefined && !sourceQueries.has(name)) {
-        sourceQueries.set(name, `${document.resourcePointer}/extension/${String(extensionIndex)}`);
-      }
-    }
+    const pop = population(ctx);
 
     // Whether the rule stays silent about a reference to a declaration, because another rule
     // reports its root cause (S9). Each condition is checked here, whatever those rules' settings.
@@ -259,10 +254,12 @@ export const namedExpressionNotReferenceable: LintRule = {
       const others: RuleRelatedLocation[] = declarations
         .filter((other) => other !== declaration && storedName(ctx, other, among) === name)
         .map((other) => ({ ...where(other), message: `%${name} is also declared here` }));
-      const sourceQuery = among.includes('populate') ? sourceQueries.get(name) : undefined;
+      const sourceQuery = among.includes('populate')
+        ? pop.bindersOf(name).find((binder) => binder.kind === 'sourceQuery')
+        : undefined;
       if (sourceQuery !== undefined) {
         others.push({
-          pointer: sourceQuery,
+          pointer: sourceQuery.pointer,
           message: `%${name} is also the name of this sourceQueries result`,
         });
       }

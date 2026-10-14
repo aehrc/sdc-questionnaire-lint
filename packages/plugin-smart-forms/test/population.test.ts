@@ -2,7 +2,7 @@
 // declaration, and when. Forms are JSON, with sites and declarations as core finds them.
 import type { Declaration } from 'sdc-questionnaire-lint';
 import { describe, expect, it } from 'vitest';
-import { type Binding, population } from '../src/population.js';
+import { type Binder, type Binding, population } from '../src/population.js';
 import {
   analyseDeclarations,
   expression,
@@ -41,19 +41,38 @@ const item = (linkId: string | undefined, extension: Json[], item: Json[] = []):
 });
 const leaf = (linkId: string): Json => ({ linkId, type: 'string' });
 
+const sourceQuery = (reference: string): Json => ({
+  url: SOURCE_QUERIES,
+  valueReference: { reference },
+});
+const bundle = (id: string): Json => ({ resourceType: 'Bundle', id, type: 'batch', entry: [] });
+
 // The model of a form, and each of its declarations by name, the first of each name.
 function model(fields: Json): {
   runs: boolean;
+  sourceQueries: readonly (string | undefined)[];
   bindingOf: (name: string, which?: number) => Binding | undefined;
+  // Each binder of a name: a sourceQueries result's pointer, or the pointer of a declaration's
+  // extension and when.
+  bindersOf: (name: string) => readonly (string | [string, Binding['at']])[];
 } {
   const { document, declarations } = analyseDeclarations(questionnaire(fields));
-  const pop = population({ document, compat });
+  const pop = population({ document, compat, declarations });
   const named = (name: string, which = 0): Declaration => {
     const declaration = declarations.filter((each) => each.name === name)[which];
     if (declaration === undefined) throw new Error(`no declaration ${name}`);
     return declaration;
   };
-  return { runs: pop.runs, bindingOf: (name, which) => pop.bindingOf(named(name, which)) };
+  const describe = (binder: Binder): string | [string, Binding['at']] =>
+    binder.kind === 'sourceQuery'
+      ? binder.pointer
+      : [binder.declaration.pointer.replace('/valueExpression/expression', ''), binder.at];
+  return {
+    runs: pop.runs,
+    sourceQueries: pop.sourceQueries.map(({ name }) => name),
+    bindingOf: (name, which) => pop.bindingOf(named(name, which)),
+    bindersOf: (name) => pop.bindersOf(name).map(describe),
+  };
 }
 
 describe('population runs', () => {
@@ -202,5 +221,74 @@ describe('population bindingOf', () => {
     const calculated = ext(`${sdc}calculatedExpression`, expression('text/fhirpath', '1', 'calc'));
     const form = model({ extension: [launch], item: [{ ...leaf('a'), extension: [calculated] }] });
     expect(form.bindingOf('calc')).toBeUndefined();
+  });
+});
+
+describe('population sourceQueries', () => {
+  it('binds a #id with a bound contained Bundle and any other reference by index', () => {
+    const form = model({
+      contained: [bundle('b'), { resourceType: 'Bundle', id: 'empty' }],
+      extension: [
+        sourceQuery('#b'),
+        sourceQuery('#empty'),
+        sourceQuery('#missing'),
+        sourceQuery('Patient?_id=1'),
+        sourceQuery('#%x'),
+      ],
+    });
+    expect(form.sourceQueries).toEqual(['b', 'sourceQuery3']);
+  });
+
+  it('binds none for a subjectType without Patient', () => {
+    const form = model({
+      subjectType: ['Group'],
+      contained: [bundle('b')],
+      extension: [sourceQuery('#b')],
+    });
+    expect(form.sourceQueries).toEqual([]);
+  });
+
+  it('is what the hook works from, without declarations', () => {
+    const { document } = analyseDeclarations(
+      questionnaire({ contained: [bundle('b')], extension: [sourceQuery('#b')] }),
+    );
+    const pop = population({ document, compat });
+    expect(pop.bindersOf('b').map(({ kind }) => kind)).toEqual(['sourceQuery']);
+  });
+});
+
+describe('population bindersOf', () => {
+  it('gives a sourceQueries result first, then the declarations of the name, earliest first', () => {
+    const form = model({
+      contained: [bundle('x')],
+      extension: [sourceQuery('#x'), launch],
+      item: [
+        item('g', [fhirPath('x')], [item('c', [fhirPath('x')])]),
+        item('d', [fhirPath('x')]),
+        item('d', [fhirPath('x')]),
+        item('h', [context('x')], [leaf('a')]),
+      ],
+    });
+    expect(form.bindersOf('x')).toEqual([
+      '/extension/0',
+      ['/item/0/item/0/extension/0', [3, 0, 0]],
+      ['/item/0/extension/0', [3, 1, 0]],
+      ['/item/3/extension/0', [4, 0, 0]],
+      ['/item/1/extension/0', 'unknown'],
+      ['/item/2/extension/0', 'unknown'],
+    ]);
+  });
+
+  it('gives no binder for a name nothing binds', () => {
+    expect(model({ extension: [launch, fhirPath('a')] }).bindersOf('b')).toEqual([]);
+  });
+
+  it('leaves out a declaration population stores no name for', () => {
+    const calculated = ext(`${sdc}calculatedExpression`, expression('text/fhirpath', '1', 'x'));
+    const form = model({
+      extension: [launch, fhirPath('x')],
+      item: [{ ...leaf('a'), extension: [calculated] }],
+    });
+    expect(form.bindersOf('x')).toEqual([['/extension/1', [2, 0, 1]]]);
   });
 });

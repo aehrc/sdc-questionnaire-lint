@@ -6,7 +6,6 @@ import {
 } from 'sdc-questionnaire-lint';
 import { elementName } from '../document.js';
 import { readBy } from '../eligibility.js';
-import { suppliedSourceQueries } from '../host-variables.js';
 import { type Binding, compare, type Position, population } from '../population.js';
 import { FHIRPATH, INITIAL_EXPRESSION, ITEM_POPULATION_CONTEXT } from '../urls.js';
 
@@ -93,9 +92,6 @@ export const forwardVariableReference: LintRule = {
     const positionOf = (declaration: Declaration): Binding['at'] =>
       pop.bindingOf(declaration)?.at ?? 'never';
 
-    // The names population binds before any FHIRPath, from sourceQueries.
-    const sourceQueryNames = new Set(suppliedSourceQueries(ctx).map(({ name }) => name));
-
     // How many declarations each name has on each element, of any kind.
     const placeOf = ({ item }: Declaration): string => item?.pointer ?? '';
     const nameKey = (declaration: Declaration): string =>
@@ -171,14 +167,14 @@ export const forwardVariableReference: LintRule = {
       // Something population evaluates earlier binds the name, and the reference reads its value;
       // smart-forms/variable-name-collision reports the pair. One on an item whose linkId makes
       // the order unreliable may be earlier.
-      if (sourceQueryNames.has(name)) return true;
-      return declarations.some((other) => {
-        if (other === declaration || pop.bindingOf(other)?.name !== name) {
-          return false;
-        }
-        const position = positionOf(other);
-        return position === 'unknown' || (position !== 'never' && compare(position, at) < 0);
-      });
+      return pop
+        .bindersOf(name)
+        .some(
+          (binder) =>
+            binder.kind === 'sourceQuery' ||
+            (binder.declaration !== declaration &&
+              (binder.at === 'unknown' || (binder.at !== 'never' && compare(binder.at, at) < 0))),
+        );
     };
 
     for (const variable of declarations) {
