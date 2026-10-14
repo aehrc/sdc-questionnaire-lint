@@ -174,6 +174,17 @@ export default withMermaid(
                 },
               ],
             },
+            {
+              text: 'Lint cases',
+              link: '/docs/lint-cases/',
+              collapsed: true,
+              items: [
+                { text: 'Case config', link: '/docs/lint-cases/config' },
+                { text: 'FSH generation', link: '/docs/lint-cases/fsh' },
+                { text: 'Compiled project', link: '/docs/lint-cases/project' },
+                { text: 'Case tests', link: '/docs/lint-cases/tests' },
+              ],
+            },
           ],
         },
         {
