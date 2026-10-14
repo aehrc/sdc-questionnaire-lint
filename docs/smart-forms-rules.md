@@ -4,7 +4,7 @@ Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §
 
 **Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6, and S12 and S17 for P7, on 2026-10-13; P5's design questions were settled on 2026-10-13 ([P5](#settled-in-the-p5-review)), two of P6's the same day ([P6](#settled-in-the-p6-review)), six of P7's ([P7](#settled-in-the-p7-review)), and four of P8's ([P8](#settled-in-the-p8-review)); S8, S15 and S16 were accepted, and S18 and S19 added, on 2026-10-14, when the open items were triaged ([open-items review](#settled-in-the-open-items-review)); S18 was withdrawn the same day, and seven of P12's design questions were settled ([P12](#settled-in-the-p12-review)). Every other decision is accepted. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
-P0 to P8 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable`, `unsupported-query-embedding`, `variable-name-collision`, `repeating-group-variable`, `named-expression-not-referenceable`, `forward-variable-reference` and `unsupported-template-extract-context`, plugin rules receive core's references, each marked conditional where fhirpath.js may skip it, available variables, declarations, dependencies, uses and input reads, the plugin supplies the sourceQueries result names population binds through core's `hostVariables` hook, and population facts, the embedding, sourceQueries, variable storage and evaluation order facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`, and the template extraction facts against `@aehrc/sdc-template-extract@1.0.15`. Left: P12, planned for the first release in the open-items review, and the optional renderer harness, P9. P10 and P11 were dropped the same day: the launchContext order is a Smart Forms bug, reported upstream, and SDC allows a templateExtractValue only as `valueString`.
+P0 to P8 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable`, `unsupported-query-embedding`, `variable-name-collision`, `repeating-group-variable`, `named-expression-not-referenceable`, `forward-variable-reference` and `unsupported-template-extract-context`, plugin rules receive core's references, each marked conditional where fhirpath.js may skip it, available variables, declarations, dependencies, uses and input reads, the plugin supplies the sourceQueries result names population binds through core's `hostVariables` hook, and population facts, the embedding, sourceQueries, variable storage and evaluation order facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`, and the template extraction facts against `@aehrc/sdc-template-extract@1.0.15`. P12, planned for the first release in the open-items review, is done too: core's public contract names no Smart Forms component, and findings carry their rule's `docsUrl` (S19). Left: the optional renderer harness, P9. P10 and P11 were dropped the same day: the launchContext order is a Smart Forms bug, reported upstream, and SDC allows a templateExtractValue only as `valueString`.
 
 ## How to work on a slice
 
@@ -35,7 +35,7 @@ One PR per slice, in this order.
 | [P9](#p9-renderer-reproduction-harness-optional) | Renderer reproduction harness; upgrades renderer facts from source-only | – | P1 | optional |
 | [P10](#p10-launchcontext-sub-extension-order) | A rule for a launchContext whose sub-extensions are not in name, type order (S16) | error | P5 | dropped |
 | [P11](#p11-smart-formsunsupported-template-extract-value) | `smart-forms/unsupported-template-extract-value` (S18) | error | P8 | dropped |
-| [P12](#p12-release-contract) | Generic compat versions in the report, no `RuleContext.options`, the resolved compat in `explain`, `docsUrl` on findings (S19) | – | – | todo |
+| [P12](#p12-release-contract) | Generic compat versions in the report, no `RuleContext.options`, the resolved compat in `explain`, `docsUrl` on findings (S19) | – | – | done |
 
 P1 is the tracer bullet: it exercises the plugin package, the compat resolution, the report and the corpus run, and needs only small exports from core. P2 is the first slice that publishes analysis.
 
@@ -179,7 +179,7 @@ Each fact names its evidence (S4, S10). When a harness exists, the evidence is a
 
 ### Public API stages (S5)
 
-`RuleContext` today gives a plugin `document`, the flat frozen `sites` and `declarations`, `compat`, `referencesAt` and `variablesAt`, `options: undefined` and `report()` with `relatedLocations`. Everything else is internal to core (`DocumentAnalysis`, `plugins/core-rule.ts`). Each stage is plumbing in `run/rules.ts` from an analysis core already computes once per document, plus exported readonly types in `index.ts` and a section in [architecture.md](architecture.md).
+`RuleContext` today gives a plugin `document`, the flat frozen `sites` and `declarations`, `compat`, `referencesAt` and `variablesAt`, and `report()` with `relatedLocations`. Everything else is internal to core (`DocumentAnalysis`, `plugins/core-rule.ts`). Each stage is plumbing in `run/rules.ts` from an analysis core already computes once per document, plus exported readonly types in `index.ts` and a section in [architecture.md](architecture.md).
 
 | Stage | Slice | Adds to `RuleContext` | Exported types and functions |
 | :- | :- | :- | :- |
@@ -270,7 +270,7 @@ P0 resolves the compatibility target; it adds no Smart Forms findings and runs n
 - Runner: a synthetic plugin rule receives its own namespace's versions as a frozen copy; a plugin without compat receives `{}`; with two compat plugins, neither sees the other's versions.
 - Report: text and JSON show the versions, with and without template-extract.
 
-**Done when** `npm run check` passes, `npm run corpus -- --smart-forms` prints `Smart Forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.`, and its findings are identical to the core-only run's.
+**Done when** `npm run check` passes, `npm run corpus -- --smart-forms` prints `Compat smart-forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.` (a Smart Forms line until P12), and its findings are identical to the core-only run's.
 
 ### P1. Language rules
 
@@ -806,7 +806,7 @@ Core changes before the first release (S19). Not a Smart Forms bug: they clean u
 - **W. `explain` prints compat after the config line:** the listing, every plugin's line; a rule's page, its own namespace's line, and none for `sdc` and `lint` rules or a plugin without compat.
 - **X. The additive items stay in P12.** Rejected: shipping only the breaking items before the release; the rest is about 30 lines of code.
 - **Y. A finding's `docsUrl` is the value validated when the rule set is resolved,** kept in `ResolvedRule.docsUrl`. Rejected: reading `rule.meta.docsUrl` again, when the rule set is built or a finding is, where a plugin's getter can return a value that was never validated.
-- **Z. A plugin rule's `meta.docsUrl` must be a URI the report schema accepts:** `URL.canParse` and only RFC 3986 characters; otherwise loading the plugin fails, as an invalid `docsUrl` does today. `URL.canParse` alone accepts `https://example.org/rules/a b`, which the schema's `format: uri` rejects, so copying it would make the JSON report invalid; SARIF's `helpUri` has the same gap today. Rejected: copying the normalized `new URL(…).href`, which still keeps characters such as `|` and `^`, and which would differ from the `helpUri` SARIF prints.
+- **Z. A plugin rule's `meta.docsUrl` must be a URI the report schema accepts:** `URL.canParse` and only RFC 3986 characters; otherwise loading the plugin fails, as an invalid `docsUrl` does today. `URL.canParse` alone accepts `https://example.org/rules/a b`, which the schema's `format: uri` rejects, so copying it would make the JSON report invalid; SARIF's `helpUri` has the same gap today. Rejected: copying the normalized `new URL(…).href`, which still keeps characters such as `|` and `^`, and which would differ from the `helpUri` SARIF prints. Built stricter than RFC 3986 characters alone, which `format: uri` still rejects in a malformed percent-encoding (`%zz`), a `[` or `]` outside an IPv6 host, a second `#` and a scheme with nothing after it (`urn:`): the check requires each of those to be well formed, and rejects `[` and `]` everywhere.
 
 ## Decisions
 
@@ -891,7 +891,7 @@ Triaged on 2026-10-14 ([open-items review](#settled-in-the-open-items-review)). 
 | Template-extract misextracts a templateExtractContext in the template resource's own `extension`, even as `valueString`. Not reproduced: reproduce it before planning a rule. | Nothing in v1. |
 | Features no Smart Forms component reads, whatever the language: `templateExtractBundle` (reproduced), and candidateExpression, contextExpression, itemExtractionContext, the root `_title` cqf-expression and a root itemPopulationContext ([Languages by location](#languages-by-location)). A rule for unsupported features, beside the unsupported-language rule? | Nothing in v1. |
 | Embedding limits P3 does not check: substituted values are not URL-encoded, an object or several results give `[object Object]` or only the first, and the order in which embeddings are replaced across queries. | Nothing in v1. |
-| `run.rules` (rule metadata, effective severities, `docsUrl`) and a config-only `run.hostVariables` in the JSON report. SARIF already renders the rule set (#31); `docsUrl` on findings is in P12. | Nothing in v1. |
+| `run.rules` (rule metadata, effective severities, `docsUrl`) and a config-only `run.hostVariables` in the JSON report. SARIF already renders the rule set (#31). | Nothing in v1. |
 | Built-in rules have no `meta.docsUrl`, so their findings, `explain` and SARIF link no documentation. Give each one its page's URL when the documentation site is published (P12 review, decision V). | Nothing in v1. |
 
 ### Settled in the open-items review
@@ -923,7 +923,7 @@ Apply with the first slice that relies on each fact.
 - **core-rules.md, sourceQueries.** The name of a `#id` reference is chosen before resolution; a value is supplied only for the first contained Bundle of that id with an `entry` element; `i` in `sourceQuery<i>` counts every extension with a `valueReference`. Applied in P4.
 - **core-rules.md, Plugin follow-ups, "Smart Forms ignores `text/x-fhir-query` (D11)".** Applied in P1. Only at filtering locations. At targetConstraint, answerOptionsToggleExpression, initialExpression and itemPopulationContext it is evaluated as FHIRPath. `application/x-fhir-query` is also ignored everywhere except `variable`. D11's attribution should cover both P1 rules.
 - **core-rules.md, x-fhir-query embeddings, "reproduce one before a plugin check rejects an expression".** Applied in P3. Reproduced: populate builds an unescaped regular expression from each embedding and applies it to every query. Replace "`%context` and `%ucum` can still resolve" with the full list in P3 check 6, and note there is no model.
-- **report-format.md, "invalid rule options".** Cannot happen (S7); remove or mark as reserved.
+- **report-format.md, "invalid rule options".** Cannot happen (S7); remove or mark as reserved. Removed in P12.
 - **report schema, `smartFormsVersions`.** `template-extract` becomes optional. Applied in P0.
 - **plugin `package.json`, `files: ["dist", "compat"]`.** Fixed in P0.
 

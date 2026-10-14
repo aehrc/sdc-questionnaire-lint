@@ -326,6 +326,8 @@ sdc-lint explain smart-forms/repeating-group-variable --config ig/sdc-questionna
 
 With no rule ID, list all registered rules, including rules configured `off`, plugin rules from the selected config, and `lint/stale-suppression`. Sort by rule ID and show the one-line description, default severity, effective severity (or `off`), and enabled status. A named rule can be explained even when it is configured `off`. Rules from plugins not loaded by the selected config are not registered.
 
+After the config line, the listing prints the resolved compat of each plugin with compat, in the text summary's format, such as `Compat smart-forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.` A rule's page prints the line of its own plugin, and none for `sdc` and `lint` rules or a plugin without compat.
+
 An unknown rule ID exits 2. Suggest a similar registered ID when one exists; for an unknown external namespace, explain that its plugin must be listed in the selected `.mjs` config.
 
 ```text

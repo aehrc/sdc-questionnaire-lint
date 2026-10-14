@@ -21,7 +21,7 @@ A completed report cannot contain `failure`. A failed report cannot contain `run
 | :- | :- |
 | `tool` | `{ "name": "sdc-questionnaire-lint", "version": "…" }` |
 | `plugins` | Array of `{ "name": "…", "version": "…" }`, including built-in `sdc`, sorted by namespace |
-| `compat` | The component versions selected by plugin namespace, which enabled plugin rules run against; `{}` without a compatibility plugin. Their presence does not mean any rule checked them. For Smart Forms, `smart-forms` contains exact `renderer` and `populate` versions, and `template-extract` when template extraction is selected; never `latest` |
+| `compat` | The component versions selected by plugin namespace, which enabled plugin rules run against; `{}` without a compatibility plugin. Their presence does not mean any rule checked them. Each namespace maps components, in the plugin's order, to exact versions, never `latest`; which components are present is checked when compat is resolved. For Smart Forms, `smart-forms` contains `renderer` and `populate`, and `template-extract` when template extraction is selected |
 | `selection` | `full` when using configured/default inputs; `targeted` when CLI paths are supplied |
 | `sushi` | Optional. `{ "version": "…" }`: the version of the `fsh-sushi` package installed for the IG; absent when it is unknown |
 
@@ -53,7 +53,7 @@ Expression counts describe coverage, not correctness: a syntax check that comple
 
 ## Findings and locations
 
-Every finding has stable `ruleId`, `severity`, `message`, `fingerprint` and `kind` fields. `help`, `note`, `docsUrl`, `expression`, `relatedLocations` and `suggestions` are optional. Omit an unavailable optional field instead of inventing data. Messages state the problem; help states an action. Fingerprints use rule, resource and stable site identity, or for a launchContext or extractAllocateId its element and name, plus the text of the finding's expression range when it has one; never source line numbers or offsets. Configuration fingerprints use the suppression selector and rule rather than its current array index. A fingerprint is unique within a report: when two findings share every part, such as two reports of the same text at one site or two suppression entries with the same rule and selectors, the later ones get a distinct fingerprint from their order.
+Every finding has stable `ruleId`, `severity`, `message`, `fingerprint` and `kind` fields. `help`, `note`, `docsUrl`, `expression`, `relatedLocations` and `suggestions` are optional. `docsUrl` is the rule's `meta.docsUrl`, absent for configuration findings and for a rule without one; no built-in rule has one yet. Omit an unavailable optional field instead of inventing data. Messages state the problem; help states an action. Fingerprints use rule, resource and stable site identity, or for a launchContext or extractAllocateId its element and name, plus the text of the finding's expression range when it has one; never source line numbers or offsets. Configuration fingerprints use the suppression selector and rule rather than its current array index. A fingerprint is unique within a report: when two findings share every part, such as two reports of the same text at one site or two suppression entries with the same rule and selectors, the later ones get a distinct fingerprint from their order.
 
 | Kind | Required location fields |
 | :- | :- |
@@ -97,7 +97,7 @@ Prefer FSH source edits when FSH is the maintained source. A JSON-string target 
 | Code | Meaning |
 | :- | :- |
 | `USAGE_ERROR` | Invalid arguments after a valid JSON-format selection |
-| `CONFIG_INVALID` | Missing, unreadable, ambiguous or invalid config, including a `hostVariables` entry that FHIRPath, FHIR or SDC defines, a `compat` entry for an unlisted plugin or a plugin without compatibility versions, an unknown or missing required component, and an unverified version; plugin loading failure. Invalid rule options are reserved: the config cannot pass rule options yet |
+| `CONFIG_INVALID` | Missing, unreadable, ambiguous or invalid config, including a `hostVariables` entry that FHIRPath, FHIR or SDC defines, a `compat` entry for an unlisted plugin or a plugin without compatibility versions, an unknown or missing required component, and an unverified version; plugin loading failure |
 | `INPUT_NOT_FOUND` | Selected literal input does not exist |
 | `INPUT_PATTERN_UNMATCHED` | Selected glob or directory yields no files after exclusions |
 | `INPUT_UNREADABLE` | Selected input cannot be read, or required input existence/traversal checks cannot complete |

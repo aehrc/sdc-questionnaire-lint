@@ -50,7 +50,7 @@ export const myRule: LintRule = {
     description: 'Reports …', // one line, shown by sdc-lint explain
     defaultSeverity: 'warning', // error, warning or info
     docs: { checks: '…', why: '…', exampleMessage: '…', fix: '…', limitations: '…' },
-    // docsUrl: 'https://…', // optional, an absolute URL
+    // docsUrl: 'https://…', // optional, an absolute URL of URI characters, copied into each finding
   },
   check(ctx) {
     for (const site of ctx.sites) {
@@ -77,7 +77,6 @@ A rule has no ID of its own. Its ID is `<plugin meta.name>/<key>`, the key it is
 | `referencesAt(site)` | The `%name` references in a site's FHIRPath, fragments included; `[]` when the text parses and references nothing. Each is `complete` unless a `defineVariable` with a computed name may bind it, and `conditional` where fhirpath.js may skip evaluating it, as in an `iif` branch |
 | `variablesAt(site)` | The names an expression can reference at a site, and `resolve(name)`, the variable a name resolves to |
 | `compat` | The component versions the run selected for the rule's namespace, such as `{ renderer: '1.4.0', populate: '4.7.1' }`; `{}` for a plugin without `compat` |
-| `options` | Always `undefined`: see [Not yet available](#10-not-yet-available) |
 | `report(finding)` | Reports one finding; see [section 3](#3-findings-and-messages) |
 
 `referencesAt` and `variablesAt` are core's name analysis. Each returns `undefined` where core cannot analyse the site: `referencesAt` for a site whose language is not `text/fhirpath`, that has no text, or whose text does not parse; `variablesAt` for an uncatalogued site. Both return `undefined` for an object that is not one of `ctx.sites`: they compare by identity, so a copy of a site is not one. A rule treats `undefined` as "cannot check" and reports nothing there, never as "no references".
@@ -272,6 +271,5 @@ For a plugin outside this repository, run your own tests, then list the plugin i
 
 The contract does not offer these yet. Don't build on them; each will be documented here when it lands.
 
-- **Rule options.** `ctx.options` exists in the contract but is always `undefined`: a config cannot pass options to a rule.
 - **Stability.** There is no `stability` field (`preview` or `stable`) in `meta`; every rule runs as it is.
 - **Suggested edits.** `RuleFinding` has no field for a suggested edit, although the report format has `suggestions`. Put the fix in `help`.

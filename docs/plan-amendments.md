@@ -171,4 +171,4 @@ Settled after P8; the reasons are in [smart-forms-rules.md](smart-forms-rules.md
 
 Settled before building P12; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-p12-review).
 
-- **§5.2 plugin contract (Z):** a rule's `meta.docsUrl` must be an absolute URL of RFC 3986 characters, which the report schema's `format: uri` accepts; otherwise loading the plugin fails.
+- **§5.2 plugin contract (Z):** a rule's `meta.docsUrl` must be an absolute URL that the report schema's `format: uri` accepts: RFC 3986 characters, well-formed percent-encodings, no `[` or `]`, at most one `#` and something after the scheme; otherwise loading the plugin fails.
