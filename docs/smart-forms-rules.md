@@ -2,9 +2,9 @@
 
 Builds the Smart Forms compatibility plugin from [core-plan.md](core-plan.md) §2.1, §2.3, §4.2, §4.3 and §5, and the [plugin follow-ups](core-rules.md#plugin-follow-ups-not-in-this-plan) of the core rules plan. Researched on 2026-10-09 against Smart Forms commit `7e64a22f` (renderer 1.4.0, sdc-populate 4.7.1, sdc-template-extract 1.0.15). Revised the same day after a review: its runtime claims were checked against the source, and the population claims were reproduced with the published `@aehrc/sdc-populate@4.7.1`.
 
-**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6, and S12 and S17 for P7, on 2026-10-13; P5's design questions were settled on 2026-10-13 ([P5](#settled-in-the-p5-review)), two of P6's the same day ([P6](#settled-in-the-p6-review)), six of P7's ([P7](#settled-in-the-p7-review)), and four of P8's ([P8](#settled-in-the-p8-review)); S8, S15 and S16 were accepted, and S18 and S19 added, on 2026-10-14, when the open items were triaged ([open-items review](#settled-in-the-open-items-review)). Every decision is accepted. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
+**Status: in progress.** S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6, and S12 and S17 for P7, on 2026-10-13; P5's design questions were settled on 2026-10-13 ([P5](#settled-in-the-p5-review)), two of P6's the same day ([P6](#settled-in-the-p6-review)), six of P7's ([P7](#settled-in-the-p7-review)), and four of P8's ([P8](#settled-in-the-p8-review)); S8, S15 and S16 were accepted, and S18 and S19 added, on 2026-10-14, when the open items were triaged ([open-items review](#settled-in-the-open-items-review)); S18 was withdrawn the same day, and seven of P12's design questions were settled ([P12](#settled-in-the-p12-review)). Every other decision is accepted. A slice merges once every decision it cites is accepted; record each accepted override of core-plan in [plan-amendments.md](plan-amendments.md). Decision IDs are stable once other docs cite them.
 
-P0 to P8 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable`, `unsupported-query-embedding`, `variable-name-collision`, `repeating-group-variable`, `named-expression-not-referenceable`, `forward-variable-reference` and `unsupported-template-extract-context`, plugin rules receive core's references, each marked conditional where fhirpath.js may skip it, available variables, declarations, dependencies, uses and input reads, the plugin supplies the sourceQueries result names population binds through core's `hostVariables` hook, and population facts, the embedding, sourceQueries, variable storage and evaluation order facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`, and the template extraction facts against `@aehrc/sdc-template-extract@1.0.15`. Left: P10 to P12, planned for the first release in the open-items review, and the optional renderer harness, P9.
+P0 to P8 and H are done: config `compat` is resolved against the plugin's verified versions, the report names them in `run.compat`, the plugin has the two language rules, `questionnaire-variable-unavailable`, `unsupported-query-embedding`, `variable-name-collision`, `repeating-group-variable`, `named-expression-not-referenceable`, `forward-variable-reference` and `unsupported-template-extract-context`, plugin rules receive core's references, each marked conditional where fhirpath.js may skip it, available variables, declarations, dependencies, uses and input reads, the plugin supplies the sourceQueries result names population binds through core's `hostVariables` hook, and population facts, the embedding, sourceQueries, variable storage and evaluation order facts included, are reproduced against `@aehrc/sdc-populate@4.7.1`, and the template extraction facts against `@aehrc/sdc-template-extract@1.0.15`. Left: P12, planned for the first release in the open-items review, and the optional renderer harness, P9. P10 and P11 were dropped the same day: the launchContext order is a Smart Forms bug, reported upstream, and SDC allows a templateExtractValue only as `valueString`.
 
 ## How to work on a slice
 
@@ -33,8 +33,8 @@ One PR per slice, in this order.
 | [P7](#p7-smart-formsforward-variable-reference) | API stage D (`conditional` flag on references), the `sort(…)` crash fix, `smart-forms/forward-variable-reference` (new, S12) | warning | P5, P6 | done |
 | [P8](#p8-smart-formsunsupported-template-extract-context) | Template-extract reproduction harness, `smart-forms/unsupported-template-extract-context` | error | P0 | done |
 | [P9](#p9-renderer-reproduction-harness-optional) | Renderer reproduction harness; upgrades renderer facts from source-only | – | P1 | optional |
-| [P10](#p10-launchcontext-sub-extension-order) | A rule for a launchContext whose sub-extensions are not in name, type order (S16) | error | P5 | todo |
-| [P11](#p11-smart-formsunsupported-template-extract-value) | `smart-forms/unsupported-template-extract-value` (S18) | error | P8 | todo |
+| [P10](#p10-launchcontext-sub-extension-order) | A rule for a launchContext whose sub-extensions are not in name, type order (S16) | error | P5 | dropped |
+| [P11](#p11-smart-formsunsupported-template-extract-value) | `smart-forms/unsupported-template-extract-value` (S18) | error | P8 | dropped |
 | [P12](#p12-release-contract) | Generic compat versions in the report, no `RuleContext.options`, the resolved compat in `explain`, `docsUrl` on findings (S19) | – | – | todo |
 
 P1 is the tracer bullet: it exercises the plugin package, the compat resolution, the report and the corpus run, and needs only small exports from core. P2 is the first slice that publishes analysis.
@@ -535,7 +535,7 @@ Not stored, so never reported: `allocateId`, `namedExpression` (P6), and any nam
 
 - **A. sourceQueries names collide.** Included in `variable-name-collision`, because no core rule can see them. Rejected: an open item, or a separate rule for the same runtime problem.
 - **B. Reserved names stay with `sdc/reserved-name`.** Core exports `definerOf`. Rejected: co-firing, which repeats the same fix against S9, and a plugin copy of the list, which drifts.
-- **C. launchContext names as Smart Forms reads them.** Rejected: `Declaration.name`, which can claim a collision that does not happen, and skipping launchContexts where the readings differ. A launchContext written type-first stays an open item (S16).
+- **C. launchContext names as Smart Forms reads them.** Rejected: `Declaration.name`, which can claim a collision that does not happen, and skipping launchContexts where the readings differ. A launchContext written type-first is not reported (S16).
 - **D. A same-element duplicate is not a collision target.** Rejected: two findings with one fix on it, dropping every collision of an element with a duplicate, and one finding per element, which changes locations and fingerprints.
 - **E. Same-item dependencies count in either order.** Rejected: deferring to P7, which is about population order, and ignoring the case.
 - **F. `readsInput` excludes reads of the input's `linkId` only.** Rejected: accepting the false warnings, excluding `text` and `definition` as well, whose values can differ, and moving the exclusion into the plugin with a richer core API, which Codex preferred.
@@ -562,7 +562,7 @@ The consuming site and the declaration are checked separately: a reference in a 
 - the resolved declaration's name is declared more than once on its element, of any kind: `sdc/duplicate-declaration` reports it, whatever its setting. Core resolves to the first one in document order, so skipping only later duplicates is not enough (reproduced: a named calculatedExpression `x` before a variable `x` on one item resolves to the calculatedExpression; population binds the variable);
 - `definerOf(name)` is defined: `sdc/reserved-name` reports the declaration;
 - a variable in a language no component stores, such as `text/cql`: `smart-forms/unsupported-expression-language` reports the variable, which is the root cause;
-- a launchContext: whether population binds it depends on the resources the host supplies (patient always; user, encounter and fhirContext resources only when supplied, PI`inputParameters.ts:338-374`). A type-first launchContext binds nothing (reproduced) and stays the open item of S16;
+- a launchContext: whether population binds it depends on the resources the host supplies (patient always; user, encounter and fhirContext resources only when supplied, PI`inputParameters.ts:338-374`). A type-first launchContext binds nothing (reproduced) and is not reported (S16);
 - an itemPopulationContext that population reads although a later one of the same name replaces it: `smart-forms/variable-name-collision` reports the pair.
 
 **Another value of the name.** Smart Forms keeps one value for each name, so a reference to an unavailable declaration can still get a value: from a declaration of the name that is available, anywhere in the form, or from a sourceQueries result P4 supplies (reproduced: a named expression `x` and a `#x` Bundle; an initialExpression reading `%x` gets the Bundle). Report it all the same, with each such declaration (`%{name} is also declared here`) and the sourceQueries extension (`%{name} is also the name of this sourceQueries result`) as further related locations. Never say which value the reference gets: item variables are evaluated in linkId key order, not document order (reproduced: items `a` then `2` give `a`'s value, items `b` then `c` give `c`'s). A name config `hostVariables` or assembleContext supplies gets the general message (settled).
@@ -775,35 +775,42 @@ Extraction also skips a template, with a warning, when the response has no item 
 
 ### P10. launchContext sub-extension order
 
-- Populate and the renderer read a launchContext's `extension[0]` as its name and `extension[1]` as its type (S16). SDC slices are unordered, so a launchContext in any other order is valid FHIR, but binds nothing in Smart Forms: description before type is reproduced (`populate-variable-storage.test.ts`). Reproduce type-first as well; the renderer side stays `source-only` until P9.
-- Report at the launchContext, a declaration, so suppressions that target declarations apply (D22). Stay silent where core or the Validator reports a missing name or type (S9).
-- The message states that Smart Forms reads the sub-extensions by position; `help` asks for `name` first and `type` second. The rule ID is settled in the slice review (S17).
-- Decide in the review whether references to the unbound name also get a finding from `named-expression-not-referenceable` or `questionnaire-variable-unavailable`, and keep one finding per root cause (S9).
+**Dropped** on 2026-10-14. Reading a launchContext by position is a Smart Forms bug, not a form problem: SDC slices the sub-extensions by `url`, unordered, and populate's own `isLaunchContext` finds them by URL before `createLaunchContextParam` reads them by position (PI`inputParameters.ts:97-115,346-351`). Type-first and description before type are reproduced (`populate-variable-storage.test.ts`, the fact `launch-context-named-by-position`). Reported upstream as [aehrc/smart-forms#2161](https://github.com/aehrc/smart-forms/issues/2161); no rule, as for #2160 ([open items](#open-items)).
 
-**Done when** the rule reports every order other than name, type with reproduction evidence, and the corpus run shows only the expected findings.
+The fact stays: `variable-name-collision`, `named-expression-not-referenceable` and `forward-variable-reference` read launchContext names as population does through it.
 
 ### P11. `smart-forms/unsupported-template-extract-value`
 
-- template-extract reads templateExtractValue only from `valueString` (T`walkTemplate.ts:216-241,358-372`): a `valueExpression` value is dropped, the template's static value kept, the extension left in the output, and the warning wrongly says "TemplateExtractContext".
-- A sibling of `unsupported-template-extract-context` (S18): the same template selection (the first `#id` `template` slice of an item's `templateExtract`), the same silence for a value with no `language` (P8 review, decision O). Share P8's helpers rather than copy them.
-- Reproduce the value facts in `extract-templates.test.ts` or a new file before the rule relies on them.
+**Dropped** on 2026-10-14, and S18 withdrawn: the slice rested on a wrong premise. SDC types a templateExtractValue's `value[x]` as `string` only, in 4.0.0 and in the CI build of 2026-09-19, while a templateExtractContext allows `string` and `Expression`. A `valueExpression` value is invalid FHIR, which the Validator reports, so the rule would be silent on every one (S9). template-extract reads a value only from `valueString`, as the spec defines it, so this is not a Smart Forms bug either. The corpus has none: all 127 templateExtractValues are `valueString`.
 
-**Done when** the rule reports a `valueExpression`-only templateExtractValue in an extracted template, with reproduction evidence, and `npm run check` passes.
+Only template-extract's warning for such a value is wrong: it names TemplateExtractContext ([Template extraction](#template-extraction)). Cosmetic, and not reported upstream.
 
 ### P12. Release contract
 
-Core changes, before the first release, so none of them is a breaking change later (S19):
+Core changes before the first release (S19). Not a Smart Forms bug: they clean up core's own public contract. The first two are breaking once released; the other two are additive, and ship with them (decision X).
 
-- The report's `smartFormsVersions` becomes a generic map from component to version, per plugin, in `report/types.ts` and the schema. Which components a plugin requires stays in compat resolution.
-- Remove `RuleContext.options` (`plugins/contract.ts:82`, set to `undefined` in `run/rules.ts:342`): rule options are not built (S7). It can be added back without breaking a plugin.
-- `explain` prints the resolved compat, which it already resolves (`cli/explain.ts`).
-- Copy the rule's `meta.docsUrl` into each finding of the JSON report. SARIF already takes it from the resolved rules (#31).
+- The report's compat versions become a generic map, by plugin namespace, of exact versions by component: `SmartFormsVersions` and the `'smart-forms'` key of `RunCompat` (`report/types.ts:112-122`) and `$defs/smartFormsVersions` in the schema go. The JSON is already generic, so the report examples do not change. The text summary, which the GitHub job summary reuses (`report/github.ts:128`), and `scripts/corpus.ts` print one line per namespace (decision T). Which components a plugin requires stays in compat resolution (decision U).
+- Remove `RuleContext.options` (`plugins/contract.ts:82`, set to `undefined` in `run/rules.ts:342`): rule options are not built (S7), and config already rejects a non-string rule setting (`config/validate.ts:226-231`). It can be added back without breaking a plugin.
+- `explain` prints the resolved compat, which it already resolves (`plugins/rule-set.ts:35-36`), with the text summary's formatter (decision W).
+- Copy the rule's `meta.docsUrl` into each Questionnaire finding: the value validated when the rule set is resolved (decision Y), which must be a URI the report schema accepts (decision Z). SARIF already takes it from the resolved rules (#31). No built-in rule has one yet (decision V).
 
-**Done when** the schema, the report examples, report-format.md, architecture.md and cli.md match, and `npm run check` passes.
+**Done when** the schema, types, reporters, `explain`, report-format.md, architecture.md, adding-a-rule.md and cli.md match, the report examples validate against the schema in a test, the corpus's JSON report is byte-identical, and `npm run check` passes.
+
+#### Settled in the P12 review
+
+2026-10-14, with a review of the implementation plan by Codex. Letters continue from P8's, skipping S, which names this plan's decisions.
+
+- **T. One compat line per namespace** in the text and GitHub summaries and the corpus script, components in the plugin's order: `Compat smart-forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.` A namespace with no selected component prints none. Rejected: one line for all namespaces, harder to read with two plugins, and a display name in plugin `meta`, more API surface for one line.
+- **U. Every compat version in the schema is a non-empty string other than `latest`,** in any namespace. Which components must be present stays a resolution check (`CONFIG_INVALID`), and a namespace's map may be empty. Rejected: a schema per plugin, which core cannot know.
+- **V. Built-in rules get no `docsUrl` in P12:** no documentation site is published. An open item.
+- **W. `explain` prints compat after the config line:** the listing, every plugin's line; a rule's page, its own namespace's line, and none for `sdc` and `lint` rules or a plugin without compat.
+- **X. The additive items stay in P12.** Rejected: shipping only the breaking items before the release; the rest is about 30 lines of code.
+- **Y. A finding's `docsUrl` is the value validated when the rule set is resolved,** kept in `ResolvedRule.docsUrl`. Rejected: reading `rule.meta.docsUrl` again, when the rule set is built or a finding is, where a plugin's getter can return a value that was never validated.
+- **Z. A plugin rule's `meta.docsUrl` must be a URI the report schema accepts:** `URL.canParse` and only RFC 3986 characters; otherwise loading the plugin fails, as an invalid `docsUrl` does today. `URL.canParse` alone accepts `https://example.org/rules/a b`, which the schema's `format: uri` rejects, so copying it would make the JSON report invalid; SARIF's `helpUri` has the same gap today. Rejected: copying the normalized `new URL(…).href`, which still keeps characters such as `|` and `^`, and which would differ from the `helpUri` SARIF prints.
 
 ## Decisions
 
-Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6, and S12 and S17 for P7, on 2026-10-13, and S8, S15 and S16, with S18 and S19 added, on 2026-10-14; they are recorded in [plan-amendments.md](plan-amendments.md).
+Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were accepted on 2026-10-09, S2, S5, S9 and S10 with P1, and S13 with P2, the same day, and S6 for P4 on 2026-10-12, and S14 for P6, and S12 and S17 for P7, on 2026-10-13, and S8, S15 and S16, with S18 and S19 added, on 2026-10-14; S18 was withdrawn the same day. The accepted ones are recorded in [plan-amendments.md](plan-amendments.md).
 
 ### Model
 
@@ -848,8 +855,8 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
   _Why:_ `hostVariables` cannot express it (config rejects built-in names) and names no component, and rule options are not built (S7).
 - **S15. No rule for the answerExpression fallback or for `%context` being `{}`.** The names an answerExpression references are checked by P6 (P6 review, decision H); the fallback itself is not. The fallback runs only when answerValueSet produced no codings, supplies only the first `%name` found by string operations, and has one FHIRPath answerExpression in the corpus. `%context` is `{}` at most renderer and populate evaluators, but the result is a silent empty value and the corpus has no real case. Record both as facts; revisit with corpus evidence.
   _Why:_ low value now.
-- **S16. A launchContext is read by position in Smart Forms.** Populate and the renderer read `extension[0]` and `[1]` of a launchContext, while core finds sub-extensions by URL. A launchContext in any order other than name, type binds nothing: description before type is reproduced. A rule reports it (P10).
-  _Why:_ SDC slices are unordered, so the form is valid and the author cannot see why the name is missing; the check is deterministic and cheap.
+- **S16. A launchContext is read by position in Smart Forms.** Populate and the renderer read `extension[0]` and `[1]` of a launchContext, while core finds sub-extensions by URL. A launchContext in any order other than name, type binds nothing: type-first and description before type are reproduced. No rule reports it: it is a Smart Forms bug, reported upstream as [aehrc/smart-forms#2161](https://github.com/aehrc/smart-forms/issues/2161) (P10, dropped on 2026-10-14). The plugin's rules read launchContext names by position, as population does.
+  _Why:_ SDC slices are unordered, so the form is valid and only Smart Forms can fix the reading.
 - **S17. Rule IDs name the author's problem and avoid report vocabulary.** Five IDs differ from core-plan §4.2:
   - `unchecked-language-evaluated-as-fhirpath` → `expression-evaluated-as-fhirpath`: "unchecked" already means a site an applicable check could not complete (`expressions.unchecked`).
   - `x-fhir-query-embedding-shape` → `unsupported-query-embedding`: "shape" does not say what is wrong.
@@ -857,12 +864,12 @@ Proposed on 2026-10-09 and revised after review. S1, S3, S4, S7 and S11 were acc
   - The new D8 rule is `forward-variable-reference`, not `variable-evaluation-order`.
   - `template-extract-context-string-only` → `unsupported-template-extract-context`: names the author's problem, like the other `unsupported-*` rules, and covers a `reference`-only Expression (P8 review, decision Q).
   The reference flag is `conditional`, not `lazy`: it marks a reference fhirpath.js may not evaluate, at the positions P7 lists, and nothing about whether the branch is meant to guard it (P7 review, decision I). Use the glossary terms available variables, declarations, host variables and expression sites throughout.
-- **S18. Add `smart-forms/unsupported-template-extract-value` (error) as a sibling of `unsupported-template-extract-context`** (P11).
-  _Why:_ template-extract drops a `valueExpression` templateExtractValue as it drops a context, and silently keeps the template's static value. A sibling rule keeps P8's ID precise (S17).
+- **S18. Withdrawn on 2026-10-14.** It proposed `smart-forms/unsupported-template-extract-value` (error), a sibling of `unsupported-template-extract-context` for a `valueExpression` templateExtractValue (P11, dropped).
+  _Why withdrawn:_ SDC allows a templateExtractValue only as `valueString`, so a `valueExpression` value is invalid FHIR, which the Validator reports (S9), and template-extract follows the spec.
 
 ## Open items
 
-Triaged on 2026-10-14 ([open-items review](#settled-in-the-open-items-review)). Items planned for the first release became P10 to P12.
+Triaged on 2026-10-14 ([open-items review](#settled-in-the-open-items-review)). Items planned for the first release became P10 to P12; P10 and P11 were then dropped.
 
 | Item | Blocks |
 | :- | :- |
@@ -874,6 +881,7 @@ Triaged on 2026-10-14 ([open-items review](#settled-in-the-open-items-review)). 
 | Built-in names other than `%questionnaire` and `%qitem`, such as `%resource`, are not supplied to an answerExpression either: fhirpath.js adds only `%context`, `%ucum` and `%factory` (P6). Extend `questionnaire-variable-unavailable`? | Nothing in v1. |
 | A plugin diagnostic for a sourceQueries reference population never binds under a usable name: a `#id` with no first contained Bundle with `entry`, an empty or display-only reference, and `#%x`, which binds under the literal name `%x` that no plain `%x` reference reaches (`populate-source-queries.test.ts`). A pointer finding at the extension, so it waits for suppression by exact pointer. Stay silent on references the Validator reports (S9). It cannot prove every binding failure: a fetched reference can still fail at run time. | Nothing in v1. |
 | Populate 4.7.1 leaves `%<sourceQueries Bundle>.entry.resource` empty for every fetched entry in the app: its contained-batch path takes only a `{ data }` result (P`createFhirPathContext.ts:432-437`), while its other fetch paths, its documented `FetchResourceCallback` and every first-party callback use the resource itself ([sourceQueries](#environments)). All 48 `%PrePopQuery` references in the corpus are affected. No rule: the form is correct and only populate can fix it. Reported upstream as [aehrc/smart-forms#2160](https://github.com/aehrc/smart-forms/issues/2160); track the fix. | Nothing. |
+| Populate 4.7.1 and the renderer read a launchContext's name from `extension[0]` and its type from `extension[1]` (S16), so a valid launchContext in any other order binds nothing, and every expression that uses its name prefills nothing; population still reports success. No rule: the form is valid FHIR and only Smart Forms can fix it (P10, dropped). Reported upstream as [aehrc/smart-forms#2161](https://github.com/aehrc/smart-forms/issues/2161); track the fix. | Nothing. |
 | A search entry's `resource` in a sourceQueries Bundle is a searchset Bundle, so `%PrePopQuery.entry.resource.where(resourceType = 'Observation')` is empty even when the entry resolves; it needs `.entry.resource.entry.resource`. Only a read entry, such as `Patient/{{%patient.id}}`, holds the resource itself. A rule? | Nothing in v1. |
 | Host names, from config or a plugin, are available at extraction sites (D19), but template-extract receives none. Report them at extraction sites when template carriers become sites, or in a template-extract rule. When built, cover assembleContext names and other named contexts as well, only at locations template-extract reads. | Nothing in v1. |
 | Template expressions written as `valueString` (templateExtractContext, templateExtractValue) are not expression sites, so they get no syntax, function or name checks at all. | Nothing in v1. |
@@ -884,6 +892,7 @@ Triaged on 2026-10-14 ([open-items review](#settled-in-the-open-items-review)). 
 | Features no Smart Forms component reads, whatever the language: `templateExtractBundle` (reproduced), and candidateExpression, contextExpression, itemExtractionContext, the root `_title` cqf-expression and a root itemPopulationContext ([Languages by location](#languages-by-location)). A rule for unsupported features, beside the unsupported-language rule? | Nothing in v1. |
 | Embedding limits P3 does not check: substituted values are not URL-encoded, an object or several results give `[object Object]` or only the first, and the order in which embeddings are replaced across queries. | Nothing in v1. |
 | `run.rules` (rule metadata, effective severities, `docsUrl`) and a config-only `run.hostVariables` in the JSON report. SARIF already renders the rule set (#31); `docsUrl` on findings is in P12. | Nothing in v1. |
+| Built-in rules have no `meta.docsUrl`, so their findings, `explain` and SARIF link no documentation. Give each one its page's URL when the documentation site is published (P12 review, decision V). | Nothing in v1. |
 
 ### Settled in the open-items review
 
@@ -896,6 +905,8 @@ Triaged on 2026-10-14 ([open-items review](#settled-in-the-open-items-review)). 
 - Every other item stays for after the first release; the two repeating-group items are merged, and the template-root context is split from the ignored second context.
 - Added: search entries in sourceQueries Bundles, template `valueString` checks, unsupported features, and embedding limits.
 - Removed: the `smartFormsVersions` and `RuleContext.options` items (P12), the launchContext item (P10) and the templateExtractValue item (P11).
+- Later the same day, P10 was dropped: reading a launchContext by position is a Smart Forms bug, reported upstream as [aehrc/smart-forms#2161](https://github.com/aehrc/smart-forms/issues/2161), with no rule, as for #2160. It is an open item again, to track the fix.
+- Also later that day, P11 was dropped and S18 withdrawn: SDC allows a templateExtractValue only as `valueString`, so a `valueExpression` value is invalid FHIR, which the Validator reports, and template-extract follows the spec. The removed templateExtractValue item does not come back.
 
 ## Corrections to existing docs
 
@@ -979,7 +990,7 @@ All _reproduced_ with `populateQuestionnaire`, a `patient` launchContext and an 
 Cited at template-extract's release commit `0fca4c36` (S11), where these files are identical to `7e64a22f`. Reproduced against `@aehrc/sdc-template-extract@1.0.15` in `test/reproduction/extract-contexts.test.ts` and `extract-templates.test.ts` (P8).
 
 - templateExtractContext is read only from a truthy `valueString`, and only the first one in each `extension` array (T`walkTemplate.ts:89-111`); otherwise the warning `Template <id>: TemplateExtractContext extension found on <path> but no valueString found.` is returned (T`populateIntoTemplates.ts:46-50,158-161`) and extraction goes on. The values below are evaluated against an enclosing context, or else against the response item of the item that references the template, once per repetition (T`templateExtractPath.ts:50-81`; T`evaluateTemplateExtractPath.ts:35-70`), and the extension is not removed (T`removeTemplateArtifacts.ts:29-35`). `valueString` wins when both are present. No context binds a name: the only names are `%resource`, `%rootResource` and the extractAllocateId names (T`createFhirPathContext.ts:10-19`).
-- templateExtractValue is read only from `valueString` too; a `valueExpression` value is dropped with the same warning text (T`walkTemplate.ts:216-241,358-372`).
+- templateExtractValue is read only from `valueString` too, the only type SDC allows for it; a `valueExpression` value, which is invalid FHIR, is dropped with the same warning text, which names TemplateExtractContext (T`walkTemplate.ts:216-241,358-372`).
 - Templates are found by the first `#id` `template` slice of a `templateExtract` on an item (a `#` alone is such a slice, and gives no template), in the Questionnaire's top-level `contained` (T`templateExtractRef.ts:131-186,228-240`; T`templateMap.ts:43-110`). A root `templateExtract` is keyed `QuestionnaireLevel`, which names no item unless an item has that linkId, so its template is otherwise never extracted, without a warning (`extract-templates.test.ts`). A template referenced from several items is extracted for the last; a `#id` matching nothing is ignored. `templateExtractBundle` has no reader.
 
 ### Packages for reproduction

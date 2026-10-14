@@ -164,7 +164,11 @@ Settled after P8; the reasons are in [smart-forms-rules.md](smart-forms-rules.md
 
 - **§6.3 suppressions and plugin rules (S8):** a suppression of a plugin finding is applied or stale as usual, but a target with no plugin finding is not assessed: plugin rules take part in no completion evidence and never make a site unchecked.
 - **§4.2 Smart Forms rules (S15):** no rule for the renderer's answerExpression fallback, or for `%context` being `{}` at most Smart Forms evaluators.
-- **§4.2 new rule for launchContext order (S16, P10, error):** Smart Forms reads a launchContext's sub-extensions by position, name first and type second, so a launchContext in any other order binds nothing. The rule ID is settled in P10.
-- **§4.2 new rule `smart-forms/unsupported-template-extract-value` (S18, error):** a templateExtractValue with a `valueExpression` and no `valueString` in a template Smart Forms extracts, selected as for `unsupported-template-extract-context`.
 - **§5.2 plugin contract (S19):** `RuleContext.options` is removed; rule options are not built (S7). Findings carry their rule's `docsUrl`.
 - **§7 report (S19):** the compat versions in the report are a generic map from component to version, not fields named after Smart Forms components.
+
+## From the Smart Forms P12 review (2026-10-14)
+
+Settled before building P12; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-p12-review).
+
+- **§5.2 plugin contract (Z):** a rule's `meta.docsUrl` must be an absolute URL of RFC 3986 characters, which the report schema's `format: uri` accepts; otherwise loading the plugin fails.
