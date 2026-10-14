@@ -184,7 +184,7 @@ Each fact names its evidence (S4, S10). When a harness exists, the evidence is a
 | Stage | Slice | Adds to `RuleContext` | Exported types and functions |
 | :- | :- | :- | :- |
 | 0 | P0 | `compat: Readonly<Record<string, string>>`, the resolved versions for the rule's own namespace | – |
-| A | P1 | – | The query-language predicate, the SDC allowed-languages lookup and the six value-set codes (`isQueryLanguage`, `languagesAllowedAt`) |
+| A | P1 | – | The query-language predicate, the SDC allowed-languages lookup and the six value-set codes (`isQueryLanguage`, `languagesAllowedAt`, `definedLanguages`) |
 | B | P2 | `referencesAt(site)`, `variablesAt(site)`; replaces the `scopeAt` stub and `Scope` | `VariableReference { name, startOffset, endOffset, complete }`; `AvailableVariables` with `resolve(name)` giving `{ name, origin, declaration? }`; `Variable`; `Declaration { name, kind, pointer, item?, useCases, site? }` |
 | B2 | H | `declarations`: every declaration in the document, in document order, frozen; identical to the objects `variablesAt` resolves to | – |
 | C | P5 | `dependenciesOf(declaration)`, `useOf(declaration)`, `readsInput(site)` | `Dependencies`, `DeclarationUse`; `definerOf` and `BuiltinDefiner` |

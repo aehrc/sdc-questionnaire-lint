@@ -46,8 +46,8 @@ export type {
   QuestionnaireDocument,
   SiteItem,
 } from './analysis/expression-site.js';
-// Core's name analysis for plugin rules (API stages B and C, docs/architecture.md § What a plugin
-// can import).
+// Core's name analysis for plugin rules (API stages B, B2, C and D, docs/architecture.md § What a
+// plugin can import).
 export { definerOf } from './analysis/available-variables.js';
 export type {
   AvailableVariables,
