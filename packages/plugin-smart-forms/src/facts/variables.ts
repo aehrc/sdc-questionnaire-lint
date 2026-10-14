@@ -25,7 +25,8 @@ import { type Component, type FactTable, factsAt } from './versions.js';
 // - launch-context-named-by-position: a root launchContext with a name sub-extension that has a
 //   valueId or a valueCoding.code, and a type sub-extension with a valueCode, stores its resource
 //   under the name its first sub-extension gives: valueId, else valueCoding.code. The resource type
-//   is its second sub-extension's valueCode, so without one it stores nothing.
+//   is its second sub-extension's valueCode, so without one it stores nothing. An empty valueId
+//   beside a valueCoding.code makes population run but stores nothing.
 // - item-variable-per-response-item: an item variable is evaluated once for each response item of
 //   its item's linkId, in document order, and keeps the last value, so a variable on or below a
 //   repeating group keeps one repetition's value.
@@ -207,6 +208,9 @@ const populate471: readonly VariableFact[] = Object.freeze([
     launchTest('prefers valueId to valueCoding.code in the first sub-extension'),
     launchTest(
       'reads the resource type from the second sub-extension, so a description before the type binds nothing',
+    ),
+    launchTest(
+      'runs population for a launchContext whose first sub-extension has an empty valueId and a valueCoding.code, but binds nothing',
     ),
   ),
   fact(

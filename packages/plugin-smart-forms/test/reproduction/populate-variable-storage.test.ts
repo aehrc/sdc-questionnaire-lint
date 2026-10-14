@@ -259,6 +259,23 @@ describe('populate 4.7.1 launchContext names', () => {
     expect(context).not.toHaveProperty('subject');
   });
 
+  it('runs population for a launchContext whose first sub-extension has an empty valueId and a valueCoding.code, but binds nothing', async () => {
+    const { success, context, response } = await populate(
+      questionnaire({
+        extension: [
+          launchContext(
+            { url: 'name', valueId: '', valueCoding: { code: 'patient' } },
+            patientType,
+          ),
+        ],
+        item: [question('a', "'x'")],
+      }),
+    );
+    expect(success).toBe(true);
+    expect(answersOf(response, 'a')).toEqual([{ valueString: 'x' }]);
+    expect(context).not.toHaveProperty('patient');
+  });
+
   it('reads the resource type from the second sub-extension, so a description before the type binds nothing', async () => {
     const { context } = await populate(
       questionnaire({
