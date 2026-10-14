@@ -144,6 +144,7 @@ export default withMermaid(
             { text: 'Inputs', link: '/docs/core/inputs' },
             { text: 'Expression discovery', link: '/docs/core/discovery' },
             { text: 'Expression parsing', link: '/docs/core/parsing' },
+            { text: 'Name analysis', link: '/docs/core/names' },
           ],
         },
         {
