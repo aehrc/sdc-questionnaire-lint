@@ -25,7 +25,10 @@ import { FHIRPATH, SOURCE_QUERIES, VARIABLE, X_FHIR_QUERY } from './urls.js';
 // When population binds a name (population-evaluation-order): its step, then its item's place in
 // population's key order, then its place in its extension array. Step 1 binds the launch
 // resources, the sourceQueries results and the application/x-fhir-query variables; step 2 the root
-// text/fhirpath variables; step 3 the item ones; step 4 the itemPopulationContexts.
+// text/fhirpath variables; step 3 the item ones; step 4 the itemPopulationContexts. In step 1 the
+// key is a sub-step and the index an order within it: the launch resources (0), the contained #id
+// Bundles (1), then the fetched references, the sourceQueries (2) before the query variables (3)
+// (createFhirPathContext.ts:60-98; inputParameters.ts:154-192,244-277).
 export type Position = readonly [step: 1 | 2 | 3 | 4, key: number, index: number];
 
 export const compare = (a: Position, b: Position): number =>
@@ -40,11 +43,16 @@ export interface Binding {
   readonly at: Position | 'never' | 'unknown';
 }
 
-// Something population binds a name with: a declaration, with when it binds it, or a sourceQueries
-// result, with its extension's pointer.
+// Something population binds a name with, and when: a declaration, or a sourceQueries result, with
+// its extension's pointer.
 export type Binder =
   | { readonly kind: 'declaration'; readonly declaration: Declaration; readonly at: Binding['at'] }
-  | { readonly kind: 'sourceQuery'; readonly query: SourceQuery; readonly pointer: string };
+  | {
+      readonly kind: 'sourceQuery';
+      readonly query: SourceQuery;
+      readonly pointer: string;
+      readonly at: Position;
+    };
 
 export interface Population {
   // Whether population runs for the form (population-needs-input).
@@ -59,9 +67,9 @@ export interface Population {
   // not depend on runs: under the supported integration (S1) the form is populated, and a missing
   // input is a gap in the form, not a reason to hide a name problem.
   bindingOf(declaration: Declaration): Binding | undefined;
-  // Everything population binds a name with: the sourceQueries results in extension order, then
-  // the declarations the model was given, earliest first, those population never evaluates or
-  // whose order is unknown last, in document order.
+  // Everything population binds a name with: its sourceQueries results and the declarations the
+  // model was given, earliest first, so the last one with a Position wins; those population never
+  // evaluates or whose order is unknown come last, in document order.
   bindersOf(name: string): readonly Binder[];
   // Whether population reads an itemPopulationContext site, or why not (P6). One it reads may still
   // be replaced by a later one of its name.
@@ -69,7 +77,7 @@ export interface Population {
 }
 
 // An application/x-fhir-query variable population fetches: with a name and expression text.
-const isQueryInput = (extension: unknown): boolean => {
+const isQueryInput = (extension: unknown): extension is Json => {
   if (!isObject(extension) || extension.url !== VARIABLE) return false;
   const { valueExpression: expression } = extension;
   return (
@@ -122,6 +130,22 @@ function keyOrder(document: QuestionnaireDocument): ReadonlyMap<string, number> 
   return new Map(Object.keys(keys).map((key, index) => [key, index]));
 }
 
+// The application/x-fhir-query variables population fetches, in the order it binds them: the
+// root's in array order, then each item's after its child items' (inputParameters.ts:154-192).
+function queryInputs(document: QuestionnaireDocument): readonly Json[] {
+  const found: Json[] = [];
+  const visit = (items: unknown): void => {
+    for (const item of arrayOf(items)) {
+      if (!isObject(item)) continue;
+      visit(item.item);
+      found.push(...arrayOf(item.extension).filter(isQueryInput));
+    }
+  };
+  found.push(...arrayOf(document.resource.extension).filter(isQueryInput));
+  visit(document.resource.item);
+  return found;
+}
+
 // How many items have each linkId, by String(linkId), the key population gives an item.
 function linkIdCounts(items: readonly Json[]): ReadonlyMap<string, number> {
   const counts = new Map<string, number>();
@@ -167,9 +191,11 @@ export function population(
   const { document, declarations = [] } = ctx;
   const versions = requireCompat(ctx);
   const facts = variableFactsAt('populate', versions.populate);
+  const sourceFacts = sourceQueriesAt('populate', versions.populate);
   let items: readonly Json[] | undefined;
   let counts: ReadonlyMap<string, number> | undefined;
   let keys: ReadonlyMap<string, number> | undefined;
+  let queries: readonly Json[] | undefined;
 
   // A linkId population's order can be read from: present, and the key of no other item.
   const reliable = (linkId: string | undefined): linkId is string =>
@@ -226,10 +252,20 @@ export function population(
     const { kind, site, item } = declaration;
     if (!facts.has('population-evaluation-order')) return 'unknown';
     if (!inForm(declaration)) return 'never';
-    if (kind === 'launchContext') return [1, 0, 0];
+    if (kind === 'launchContext') {
+      const launch = launchContextsOf(document).find(
+        ({ pointer }) => pointer === declaration.pointer,
+      );
+      return launch === undefined ? 'never' : [1, 0, launch.index];
+    }
     if (site === undefined) return 'never';
-    // A query variable is fetched first, but only with expression text.
-    if (site.language === X_FHIR_QUERY) return site.text ? [1, 0, 0] : 'never';
+    // A query variable is fetched in step 1, but only with expression text.
+    if (site.language === X_FHIR_QUERY) {
+      const extension = extensionOf(document, site)?.holder.extension;
+      const index =
+        extension === undefined ? -1 : (queries ??= queryInputs(document)).indexOf(extension);
+      return index === -1 ? 'never' : [1, 3, index];
+    }
     // A linkId __proto__ sets the prototype of population's object instead of adding a key, so
     // population never evaluates the item's variables.
     if (kind === 'variable' && item?.linkId === '__proto__') return 'never';
@@ -275,25 +311,40 @@ export function population(
     readsContext: (site) => contextReadReason(document, site),
   };
 
-  const bindersByName = (): ReadonlyMap<string, readonly Binder[]> => {
-    const byName = new Map<string, Binder[]>();
-    const add = (each: string, binder: Binder): void => {
-      const list = byName.get(each);
-      if (list === undefined) byName.set(each, [binder]);
-      else list.push(binder);
-    };
+  // A contained #id Bundle is bound after the launch resources. Without one, population also
+  // fetches the #id with the other references and binds the result over the Bundle
+  // (contained-fetched-without-launch), assuming the fetch succeeds.
+  const containedStep = (): number =>
+    sourceFacts.has('contained-fetched-without-launch') &&
+    !launchContextsOf(document).some(({ boundName }) => boundName !== undefined)
+      ? 2
+      : 1;
+
+  const bindersByName = (): ReadonlyMap<string, readonly (Binder & { name: string })[]> => {
+    const all: (Binder & { name: string })[] = [];
     for (const query of model.sourceQueries) {
       if (query.name === undefined) continue;
       const pointer = `${document.resourcePointer}/extension/${String(query.extensionIndex)}`;
-      add(query.name, { kind: 'sourceQuery', query, pointer });
+      const step = query.reference?.startsWith('#') === true ? containedStep() : 2;
+      all.push({
+        kind: 'sourceQuery',
+        name: query.name,
+        query,
+        pointer,
+        at: [1, step, query.index],
+      });
     }
-    const bound = declarations.flatMap((declaration) => {
+    for (const declaration of declarations) {
       const binding = model.bindingOf(declaration);
-      return binding === undefined ? [] : [{ declaration, ...binding }];
-    });
-    bound.sort((a, b) => byPosition(a.at, b.at));
-    for (const { declaration, name, at } of bound)
-      add(name, { kind: 'declaration', declaration, at });
+      if (binding !== undefined) all.push({ kind: 'declaration', declaration, ...binding });
+    }
+    all.sort((a, b) => byPosition(a.at, b.at));
+    const byName = new Map<string, (Binder & { name: string })[]>();
+    for (const binder of all) {
+      const list = byName.get(binder.name);
+      if (list === undefined) byName.set(binder.name, [binder]);
+      else list.push(binder);
+    }
     return byName;
   };
 

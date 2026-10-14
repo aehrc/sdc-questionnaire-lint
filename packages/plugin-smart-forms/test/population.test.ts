@@ -11,7 +11,7 @@ import {
   type Population,
   population,
 } from '../src/population.js';
-import { populate, undefinedVariable } from './reproduction/populate.js';
+import { patient, populate, undefinedVariable } from './reproduction/populate.js';
 import {
   analyseDeclarations,
   expression,
@@ -194,8 +194,8 @@ describe('population bindingOf', () => {
       extension: [launch, query('q', 'Patient'), query('empty', '')],
       item: [item('g', [query('r', 'Observation')])],
     });
-    expect(form.bindingOf('q')).toEqual({ name: 'q', at: [1, 0, 0] });
-    expect(form.bindingOf('r')).toEqual({ name: 'r', at: [1, 0, 0] });
+    expect(form.bindingOf('q')).toEqual({ name: 'q', at: [1, 3, 0] });
+    expect(form.bindingOf('r')).toEqual({ name: 'r', at: [1, 3, 1] });
     expect(form.bindingOf('empty')).toEqual({ name: 'empty', at: 'never' });
   });
 
@@ -296,6 +296,44 @@ describe('population bindersOf', () => {
       ['/item/1/extension/0', 'unknown'],
       ['/item/2/extension/0', 'unknown'],
     ]);
+  });
+
+  it('orders step 1: launch resources, contained Bundles, references, then query variables', () => {
+    const form = model({
+      contained: [bundle('patient')],
+      extension: [
+        query('patient', 'Patient'),
+        sourceQuery('Patient?_id=1'),
+        sourceQuery('#patient'),
+        launch,
+      ],
+      item: [
+        item('g', [query('patient', 'Observation')], [item('c', [query('patient', 'Encounter')])]),
+      ],
+    });
+    expect(form.bindersOf('patient')).toEqual([
+      ['/extension/3', [1, 0, 3]],
+      '/extension/2',
+      ['/extension/0', [1, 3, 0]],
+      ['/item/0/item/0/extension/0', [1, 3, 1]],
+      ['/item/0/extension/0', [1, 3, 2]],
+    ]);
+  });
+
+  it('binds a contained Bundle with the references when no launch resource is bound', () => {
+    const form = model({
+      contained: [bundle('x')],
+      extension: [sourceQuery('#x'), query('x', 'Patient')],
+    });
+    expect(form.bindersOf('x')).toEqual(['/extension/0', ['/extension/1', [1, 3, 0]]]);
+    const { document, declarations } = analyseDeclarations(
+      questionnaire({
+        contained: [bundle('x')],
+        extension: [query('y', 'Patient'), sourceQuery('Patient?_id=1'), sourceQuery('#x')],
+      }),
+    );
+    const pop = population({ document, compat, declarations });
+    expect(pop.bindersOf('x')).toMatchObject([{ kind: 'sourceQuery', at: [1, 2, 1] }]);
   });
 
   it('gives no binder for a name nothing binds', () => {
@@ -466,13 +504,51 @@ describe('population against populate 4.7.1', () => {
       form: { subjectType: ['Group'], extension: [launch, fhirPath('a', "'a'")] },
     },
     { title: 'no input', form: { extension: [fhirPath('a', "'a'")] } },
+    {
+      title: 'a launchContext and a contained sourceQueries Bundle of one name',
+      form: { contained: [bundle('patient')], extension: [sourceQuery('#patient'), launch] },
+    },
+    {
+      title: 'a sourceQueries reference and query variables of its name',
+      form: {
+        extension: [launch, query('sourceQuery0', 'Observation'), sourceQuery('Patient?_id=1')],
+        item: [item('g', [query('sourceQuery0', 'Encounter')], [leaf('a')])],
+      },
+    },
+    // The contained Bundle is bound before the references with a launch resource, and fetched
+    // with them, in index order, without one.
+    ...[[launch], []].map((launches) => ({
+      title: `a reference and a later contained Bundle of its name, ${launches.length === 0 ? 'without' : 'with'} a launch resource`,
+      form: {
+        contained: [bundle('sourceQuery0')],
+        extension: [...launches, sourceQuery('Patient?_id=1'), sourceQuery('#sourceQuery0')],
+      },
+    })),
   ];
+
+  // Each fetch returns a resource that names its URL, so a fetched value tells which binder won.
+  const fetched = (url: string): Json => ({ resourceType: 'Basic', code: { text: url } });
+
+  // The value population binds for a binder, when the test can tell it.
+  const valueOf = (binder: Binder | undefined): unknown => {
+    if (binder === undefined) return undefined;
+    if (binder.kind === 'sourceQuery') {
+      const { reference, bundle: contained } = binder.query;
+      return binder.at[1] === 1 ? contained?.resource : fetched(reference ?? '');
+    }
+    const { declaration } = binder;
+    if (declaration.kind === 'launchContext') return patient;
+    const text = declaration.site?.text ?? '';
+    if (declaration.site?.language === 'application/x-fhir-query') return fetched(text);
+    const tag = /^'(.*)'$/.exec(text)?.[1];
+    return tag === undefined ? undefined : [tag];
+  };
 
   it.each(forms)('binds what populate binds: $title', async ({ form }) => {
     const resource = questionnaire(form);
     const { document, declarations } = analyseDeclarations(resource);
     const pop = population({ document, compat, declarations });
-    const { context } = await populate(resource);
+    const { context } = await populate(resource, { fetch: fetched });
     const ran = context !== undefined && Object.keys(context).length > 0;
     expect(pop.runs).toBe(ran);
     if (context === undefined || !ran) return;
@@ -490,12 +566,8 @@ describe('population against populate 4.7.1', () => {
         (binder) => binder.kind === 'sourceQuery' || binder.at !== 'never',
       );
       expect(Object.hasOwn(context, name), name).toBe(bound.length > 0);
-      const last = bound.at(-1);
-      const tag =
-        last?.kind === 'declaration'
-          ? /^'(.*)'$/.exec(last.declaration.site?.text ?? '')?.[1]
-          : undefined;
-      if (binders.length > 1 && tag !== undefined) expect(context[name], name).toEqual([tag]);
+      const value = valueOf(bound.at(-1));
+      if (binders.length > 1 && value !== undefined) expect(context[name], name).toEqual(value);
     }
   });
 
