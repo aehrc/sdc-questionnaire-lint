@@ -253,4 +253,4 @@ A plugin rule that stays silent where a core rule reports the same root cause ch
 
 ## Tests
 
-Rules are tested with lint cases, which the private `packages/lint-cases` package compiles with SUSHI and lints; Smart Forms runtime facts have reproduction tests against the pinned packages. [AGENTS.md](../AGENTS.md#tests) describes the layout, and [adding-a-rule.md](adding-a-rule.md) how to test a rule.
+Rules are tested with [lint cases](lint-cases/index.md), which the private `packages/lint-cases` package compiles with SUSHI and lints; Smart Forms runtime facts have reproduction tests against the pinned packages. [AGENTS.md](../AGENTS.md#tests) describes the layout, and [adding-a-rule.md](adding-a-rule.md) how to test a rule.

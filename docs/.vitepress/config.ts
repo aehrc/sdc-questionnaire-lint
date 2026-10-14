@@ -110,6 +110,7 @@ export default withMermaid(
       nav: [
         { text: 'Guide', link: '/' },
         { text: 'Rules', link: '/docs/rules/' },
+        { text: 'Core', link: '/docs/core/' },
         { text: 'CLI', link: '/docs/cli' },
         { text: 'Report format', link: '/docs/report-format' },
         { text: 'Architecture', link: '/docs/architecture' },
@@ -131,6 +132,59 @@ export default withMermaid(
               collapsed: true,
               items: rules.map(({ id, link }) => ({ text: id, link })),
             })),
+          ],
+        },
+        {
+          text: 'Packages',
+          items: [
+            {
+              text: 'Core',
+              link: '/docs/core/',
+              collapsed: true,
+              items: [
+                { text: 'CLI', link: '/docs/core/cli' },
+                { text: 'Config', link: '/docs/core/config' },
+                { text: 'Plugins and rule set', link: '/docs/core/plugins' },
+                { text: 'Inputs', link: '/docs/core/inputs' },
+                { text: 'Expression discovery', link: '/docs/core/discovery' },
+                { text: 'Expression parsing', link: '/docs/core/parsing' },
+                { text: 'Name analysis', link: '/docs/core/names' },
+                { text: 'Rule runner', link: '/docs/core/runner' },
+                { text: 'Suppressions and fingerprints', link: '/docs/core/suppressions' },
+                { text: 'Source mapping', link: '/docs/core/source-mapping' },
+                { text: 'Report and formatters', link: '/docs/core/report' },
+                { text: 'Failures', link: '/docs/core/failures' },
+              ],
+            },
+            {
+              text: 'Smart Forms plugin',
+              link: '/docs/plugin-smart-forms/',
+              collapsed: true,
+              items: [
+                { text: 'Entry and compat', link: '/docs/plugin-smart-forms/entry-and-compat' },
+                { text: 'Runtime facts', link: '/docs/plugin-smart-forms/facts' },
+                { text: 'Site eligibility', link: '/docs/plugin-smart-forms/eligibility' },
+                { text: 'Population model', link: '/docs/plugin-smart-forms/population' },
+                { text: 'Form readers', link: '/docs/plugin-smart-forms/readers' },
+                { text: 'Supplied names', link: '/docs/plugin-smart-forms/supplied-names' },
+                { text: 'Rules', link: '/docs/plugin-smart-forms/rules' },
+                {
+                  text: 'Evidence and reproduction',
+                  link: '/docs/plugin-smart-forms/evidence',
+                },
+              ],
+            },
+            {
+              text: 'Lint cases',
+              link: '/docs/lint-cases/',
+              collapsed: true,
+              items: [
+                { text: 'Case config', link: '/docs/lint-cases/config' },
+                { text: 'FSH generation', link: '/docs/lint-cases/fsh' },
+                { text: 'Compiled project', link: '/docs/lint-cases/project' },
+                { text: 'Case tests', link: '/docs/lint-cases/tests' },
+              ],
+            },
           ],
         },
         {
