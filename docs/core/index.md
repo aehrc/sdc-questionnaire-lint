@@ -37,7 +37,7 @@ A block without a link has no page yet.
 | 3 | [Plugins and rule set](plugins.md) | `plugins/` | Checks the plugins and decides which rules run, at which severity |
 | 4 | [Inputs](inputs.md) | `inputs/` | Finds the compiled JSON files and reads the Questionnaires out of them and out of Bundles |
 | 5 | [Expression discovery](discovery.md) | `analysis/expression-sites.ts` | Finds every expression in a form and records what kind it is |
-| 6 | Expression parsing | `analysis/fhirpath.ts` | Parses FHIRPath and x-fhir-query |
+| 6 | [Expression parsing](parsing.md) | `analysis/fhirpath.ts` | Reads FHIRPath and x-fhir-query: syntax errors, function calls and references |
 | 7 | Name analysis | `analysis/declarations.ts` | Works out which variables and linkIds exist, where they can be used and what depends on what |
 | 8 | Rule runner | `run/rules.ts` | Runs each rule on each form and checks every finding it returns |
 | 9 | Suppressions and fingerprints | `run/suppressions.ts` | Gives each finding a stable ID, applies suppressions and reports the ones that no longer match anything |

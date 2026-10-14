@@ -143,6 +143,7 @@ export default withMermaid(
             { text: 'Plugins and rule set', link: '/docs/core/plugins' },
             { text: 'Inputs', link: '/docs/core/inputs' },
             { text: 'Expression discovery', link: '/docs/core/discovery' },
+            { text: 'Expression parsing', link: '/docs/core/parsing' },
           ],
         },
         {
