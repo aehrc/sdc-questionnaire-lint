@@ -156,6 +156,14 @@ export default withMermaid(
                 { text: 'Failures', link: '/docs/core/failures' },
               ],
             },
+            {
+              text: 'Smart Forms plugin',
+              link: '/docs/plugin-smart-forms/',
+              collapsed: true,
+              items: [
+                { text: 'Entry and compat', link: '/docs/plugin-smart-forms/entry-and-compat' },
+              ],
+            },
           ],
         },
         {
