@@ -148,6 +148,7 @@ export default withMermaid(
             { text: 'Rule runner', link: '/docs/core/runner' },
             { text: 'Suppressions and fingerprints', link: '/docs/core/suppressions' },
             { text: 'Source mapping', link: '/docs/core/source-mapping' },
+            { text: 'Report and formatters', link: '/docs/core/report' },
           ],
         },
         {
