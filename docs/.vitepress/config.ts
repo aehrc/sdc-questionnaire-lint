@@ -147,6 +147,7 @@ export default withMermaid(
             { text: 'Name analysis', link: '/docs/core/names' },
             { text: 'Rule runner', link: '/docs/core/runner' },
             { text: 'Suppressions and fingerprints', link: '/docs/core/suppressions' },
+            { text: 'Source mapping', link: '/docs/core/source-mapping' },
           ],
         },
         {
