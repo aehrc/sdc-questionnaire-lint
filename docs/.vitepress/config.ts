@@ -142,6 +142,7 @@ export default withMermaid(
             { text: 'Config', link: '/docs/core/config' },
             { text: 'Plugins and rule set', link: '/docs/core/plugins' },
             { text: 'Inputs', link: '/docs/core/inputs' },
+            { text: 'Expression discovery', link: '/docs/core/discovery' },
           ],
         },
         {
