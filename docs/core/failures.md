@@ -2,7 +2,7 @@
 
 Handles a run that cannot finish. The run stops, reports no findings, explains the cause and exits with code 2. Findings, even errors, are not failures: a run that completes exits 0 or 1.
 
-Any block can raise a `LintFailure`, which carries a stable code, a message about this occurrence and a help line with the next step. It may also name the file involved and, for a rule crash, the rule. Anything else thrown during the run is reported as `INTERNAL_ERROR`. A stack trace is never part of the output.
+Any block can raise a `LintFailure`, which carries a stable code, a message about this occurrence and a help line with the next step. It may also name the file involved and, for a rule crash, the rule, or for a plugin crash, the plugin. Anything else thrown during the run is reported as `INTERNAL_ERROR`. A stack trace is never part of the output.
 
 | Code | Raised by | When |
 | :- | :- | :- |
@@ -14,6 +14,7 @@ Any block can raise a `LintFailure`, which carries a stable code, a message abou
 | `INPUT_INVALID_JSON` | Inputs | A file is not valid JSON |
 | `NO_QUESTIONNAIRES` | Inputs | The files hold no Questionnaire |
 | `RULE_CRASH` | Rule runner | A rule throws, returns a promise or reports an invalid finding |
+| `PLUGIN_CRASH` | Name analysis, through a plugin's `hostVariables` hook | The hook throws, returns a promise or returns something other than a list of names |
 | `INTERNAL_ERROR` | Any | Anything else: a bug in the linter |
 
 Codes are stable and never reused for another cause, so scripts branch on the code, not on the message.
@@ -53,4 +54,5 @@ flowchart TD
 
 - [`failure.ts`](../../packages/core/src/failure.ts): the failure codes, the `LintFailure` class, `asLintFailure` for anything else thrown, `renderFailureText` for stderr, and `renderFailureOutput` for stdout in each format.
 - [`cli/run.ts`](../../packages/core/src/cli/run.ts): `writeFailure` writes it and returns exit code 2.
+- [`run/host-variables.ts`](../../packages/core/src/run/host-variables.ts): raises `PLUGIN_CRASH` when a plugin's `hostVariables` hook fails.
 - [`report/github.ts`](../../packages/core/src/report/github.ts) and [`report/sarif.ts`](../../packages/core/src/report/sarif.ts): the GitHub and SARIF output of a failure.

@@ -5,15 +5,15 @@ Runs every enabled rule on every Questionnaire, checks each finding a rule repor
 For each Questionnaire, `runRules` calls `check(ctx)` once for each rule that is not `off`. A check is synchronous. Through `ctx`, a rule gets:
 
 - `document` and `sites`: the Questionnaire and its expression sites, frozen;
-- `declarations`, `referencesAt(site)` and `variablesAt(site)`: answers from [Name analysis](names.md);
+- `declarations`, `referencesAt(site)`, `variablesAt(site)`, `dependenciesOf(declaration)`, `useOf(declaration)` and `readsInput(site)`: answers from [Name analysis](names.md);
 - `compat`: the runtime versions selected for the rule's plugin;
 - `report(finding)`: reports a finding at a site or a JSON Pointer, with a message and, optionally, help, a note, a range in the text and related locations.
 
-An `sdc` rule also receives core's full analysis of the form as a second argument; plugin rules get only `ctx`.
+An `sdc` rule also receives core's full analysis of the form, the linkId analysis included, as a second argument; plugin rules get only `ctx`.
 
 Each finding is checked before it is accepted: its site must be one of `ctx.sites`, its pointer must lie in the resource, and its range in the expression's text. A rule that throws, returns a promise or reports an invalid finding stops the run with `RULE_CRASH`, which names the rule. A finding takes the rule's severity, unless the finding sets its own.
 
-An accepted finding gets its JSON location, an excerpt of the expression, its related locations and a fingerprint. A finding in a query fragment is shown within its whole query. Its FSH location is filled in later, by [Source mapping](source-mapping.md).
+An accepted finding gets its JSON location, an excerpt of the expression, its related locations, a fingerprint, and its rule's `docsUrl` when the rule has one. A finding in a query fragment is shown within its whole query. Its FSH location is filled in later, by [Source mapping](source-mapping.md).
 
 [Adding a rule](../adding-a-rule.md) explains how to write a rule, and the [rules library](../rules/index.md) has a page for each one.
 

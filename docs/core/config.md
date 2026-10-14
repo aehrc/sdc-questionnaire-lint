@@ -10,7 +10,7 @@ Every key is checked, and an unknown key is an error, so a mistyped setting is n
 | :- | :- | :- |
 | `files` | The compiled files or globs to lint | `fsh-generated/resources` |
 | `source.fsh` | The FSH directories used to trace findings to source | `input/fsh` |
-| `hostVariables` | Names the application running the form supplies | none |
+| `hostVariables` | Names the application running the form supplies, written without `%`. A name FHIRPath, FHIR or SDC defines is an error. | none |
 | `plugins` | Plugins to load, in an `.mjs` config only | none |
 | `compat` | The runtime versions each plugin checks against | `latest` |
 | `rules` | A severity, or `off`, for each rule | each rule's own severity |
