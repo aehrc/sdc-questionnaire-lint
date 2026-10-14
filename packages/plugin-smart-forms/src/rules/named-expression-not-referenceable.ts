@@ -8,9 +8,13 @@ import {
   type Variable,
   type VariableReference,
 } from 'sdc-questionnaire-lint';
-import { elementName, extensionOf, isObject, itemOf } from '../document.js';
+import { elementName, isObject } from '../document.js';
 import { readBy, requireCompat } from '../eligibility.js';
-import { populationReadsContext, prerequisitesHold } from '../facts/prerequisites.js';
+import {
+  populationReadsContext,
+  prerequisitesHold,
+  type UnreadReason,
+} from '../facts/prerequisites.js';
 import { variableFactsAt } from '../facts/variables.js';
 import { type Component, components } from '../facts/versions.js';
 import { launchContextsOf } from '../launch-contexts.js';
@@ -76,23 +80,14 @@ const keyOf = ({ item }: Declaration): string => item?.pointer ?? '';
 const where = (declaration: Declaration): Pick<RuleRelatedLocation, 'site' | 'pointer'> =>
   declaration.site === undefined ? { pointer: declaration.pointer } : { site: declaration.site };
 
-// Why population does not read an itemPopulationContext, as the message gives it: the first of its
-// URL on an item with child items, with expression text (P6, reproduced). It has a name, as a
-// declaration.
-function unreadReason(document: QuestionnaireDocument, site: ExpressionSite): string {
-  if (site.item === undefined) return ', because it is on the Questionnaire root';
-  const children = itemOf(document, site.item)?.item;
-  if (!Array.isArray(children) || children.length === 0) {
-    return ', because the item has no child items';
-  }
-  const holder = extensionOf(document, site)?.holder;
-  const first = holder?.siblings.findIndex(
-    (each) => isObject(each) && each.url === holder.extension.url,
-  );
-  return first !== holder?.index
-    ? ', because another itemPopulationContext comes first on the item'
-    : ', because it has no expression text';
-}
+// Why population does not read an itemPopulationContext, as the message gives it (P6, reproduced).
+const unreadReasons: Readonly<Record<UnreadReason, string>> = {
+  'on-root': ', because it is on the Questionnaire root',
+  'no-child-items': ', because the item has no child items',
+  'not-first': ', because another itemPopulationContext comes first on the item',
+  'no-name': ', because it has no name',
+  'no-text': ', because it has no expression text',
+};
 
 const unavailable = (name: string, extension: string, element: string, reason: string): string =>
   `%${name} refers to the ${extension} on ${element}, which Smart Forms does not make available ` +
@@ -249,8 +244,8 @@ export const namedExpressionNotReferenceable: LintRule = {
       ) {
         return;
       }
-      const reason =
-        declaration.kind === 'itemPopulationContext' ? unreadReason(document, own) : '';
+      const read = declaration.kind === 'itemPopulationContext' ? pop.readsContext(own) : true;
+      const reason = read === true ? '' : unreadReasons[read];
       const others: RuleRelatedLocation[] = declarations
         .filter((other) => other !== declaration && storedName(ctx, other, among) === name)
         .map((other) => ({ ...where(other), message: `%${name} is also declared here` }));

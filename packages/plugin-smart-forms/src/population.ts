@@ -1,7 +1,17 @@
-import type { Declaration, QuestionnaireDocument, RuleContext } from 'sdc-questionnaire-lint';
+import type {
+  Declaration,
+  ExpressionSite,
+  QuestionnaireDocument,
+  RuleContext,
+} from 'sdc-questionnaire-lint';
 import { arrayOf, extensionOf, isObject, itemsOf, type Json } from './document.js';
 import { requireCompat, storesVariable } from './eligibility.js';
-import { populationReadsContext, prerequisitesHold } from './facts/prerequisites.js';
+import {
+  contextReadReason,
+  populationReadsContext,
+  prerequisitesHold,
+  type UnreadReason,
+} from './facts/prerequisites.js';
 import { sourceQueriesAt } from './facts/source-queries.js';
 import { variableFactsAt } from './facts/variables.js';
 import { launchContextsOf } from './launch-contexts.js';
@@ -51,6 +61,9 @@ export interface Population {
   // the declarations the model was given, earliest first, those population never evaluates or
   // whose order is unknown last, in document order.
   bindersOf(name: string): readonly Binder[];
+  // Whether population reads an itemPopulationContext site, or why not (P6). One it reads may still
+  // be replaced by a later one of its name.
+  readsContext(site: ExpressionSite): true | UnreadReason;
 }
 
 // An application/x-fhir-query variable population fetches: with a name and expression text.
@@ -257,6 +270,7 @@ export function population(
       binders ??= bindersByName();
       return binders.get(name) ?? [];
     },
+    readsContext: (site) => contextReadReason(document, site),
   };
 
   const bindersByName = (): ReadonlyMap<string, readonly Binder[]> => {

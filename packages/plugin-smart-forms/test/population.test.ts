@@ -2,7 +2,7 @@
 // declaration, and when. Forms are JSON, with sites and declarations as core finds them.
 import type { Declaration } from 'sdc-questionnaire-lint';
 import { describe, expect, it } from 'vitest';
-import { type Binder, type Binding, population } from '../src/population.js';
+import { type Binder, type Binding, type Population, population } from '../src/population.js';
 import {
   analyseDeclarations,
   expression,
@@ -300,5 +300,58 @@ describe('population bindersOf', () => {
       item: [{ ...leaf('a'), extension: [calculated] }],
     });
     expect(form.bindersOf('x')).toEqual([['/extension/1', [2, 0, 1]]]);
+  });
+});
+
+describe('population readsContext', () => {
+  // The reason population gives for the itemPopulationContext named ctx, the first of the name.
+  const readsContext = (fields: Json): ReturnType<Population['readsContext']> => {
+    const { document, sites } = analyseDeclarations(questionnaire(fields));
+    const site = sites.find(({ name }) => name === 'ctx');
+    if (site === undefined) throw new Error('no site ctx');
+    return population({ document, compat }).readsContext(site);
+  };
+
+  it('reads the first itemPopulationContext on an item with child items', () => {
+    expect(readsContext({ item: [item('g', [context('ctx')], [leaf('a')])] })).toBe(true);
+  });
+
+  it('reads one a later one of its name replaces', () => {
+    expect(
+      readsContext({
+        item: [item('g', [context('ctx')], [leaf('a')]), item('h', [context('ctx')], [leaf('b')])],
+      }),
+    ).toBe(true);
+  });
+
+  it('does not read one on the root', () => {
+    expect(readsContext({ extension: [context('ctx')] })).toBe('on-root');
+  });
+
+  it('does not read one on an item without child items', () => {
+    expect(readsContext({ item: [item('g', [context('ctx')])] })).toBe('no-child-items');
+  });
+
+  it('does not read one after another on the item', () => {
+    expect(
+      readsContext({ item: [item('g', [context('first'), context('ctx')], [leaf('a')])] }),
+    ).toBe('not-first');
+  });
+
+  it('does not read one without expression text', () => {
+    expect(readsContext({ item: [item('g', [context('ctx', '')], [leaf('a')])] })).toBe('no-text');
+  });
+
+  it('does not read one without a name', () => {
+    const { document, sites } = analyseDeclarations(
+      questionnaire({
+        item: [
+          item('g', [ext(ITEM_POPULATION_CONTEXT, expression('text/fhirpath', '%p'))], [leaf('a')]),
+        ],
+      }),
+    );
+    const site = sites.find(({ location }) => location?.url === ITEM_POPULATION_CONTEXT);
+    if (site === undefined) throw new Error('no itemPopulationContext site');
+    expect(population({ document, compat }).readsContext(site)).toBe('no-name');
   });
 });

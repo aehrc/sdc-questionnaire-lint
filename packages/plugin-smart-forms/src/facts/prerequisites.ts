@@ -231,6 +231,24 @@ function isFirstNamedContext(document: QuestionnaireDocument, site: ExpressionSi
   );
 }
 
+// Why populate does not read an itemPopulationContext.
+export type UnreadReason = 'on-root' | 'no-child-items' | 'not-first' | 'no-name' | 'no-text';
+
+// Whether populate reads an itemPopulationContext site, or why not, from the prerequisites
+// readBy checks: the first of its URL on an item with child items, with a name and text.
+export function contextReadReason(
+  document: QuestionnaireDocument,
+  site: ExpressionSite,
+): true | UnreadReason {
+  if (!onItemWithChildren(document, site)) {
+    return site.item === undefined ? 'on-root' : 'no-child-items';
+  }
+  if (isFirstNamedContext(document, site)) return true;
+  const holder = holderOf(document, site);
+  if (holder === undefined || !isFirstOfItsUrl(holder)) return 'not-first';
+  return nonEmptyString(site.name) ? 'no-text' : 'no-name';
+}
+
 // Whether populate reads an itemPopulationContext site: the first of its URL on an item with child
 // items, with a name and text. A later one of the same name in the form replaces it and is evaluated
 // instead, so its group is built from the later one's values (readPopulationExpressions.ts:47-63).
@@ -239,9 +257,7 @@ export function populationReadsContext(
   site: ExpressionSite,
 ): boolean {
   return (
-    site.location?.url === ITEM_POPULATION_CONTEXT &&
-    onItemWithChildren(document, site) &&
-    isFirstNamedContext(document, site)
+    site.location?.url === ITEM_POPULATION_CONTEXT && contextReadReason(document, site) === true
   );
 }
 
