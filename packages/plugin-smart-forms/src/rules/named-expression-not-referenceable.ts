@@ -14,7 +14,8 @@ import { populationReadsContext, prerequisitesHold } from '../facts/prerequisite
 import { variableFactsAt } from '../facts/variables.js';
 import { type Component, components } from '../facts/versions.js';
 import { suppliedSourceQueries } from '../host-variables.js';
-import { launchContextName, storedName } from '../stored-names.js';
+import { launchContextsOf } from '../launch-contexts.js';
+import { storedName } from '../stored-names.js';
 import { ANSWER_EXPRESSION, VARIABLE, X_FHIR_QUERY } from '../urls.js';
 import { extensionName, isLocatedSite, type LocatedSite } from './language-sites.js';
 
@@ -282,16 +283,16 @@ export const namedExpressionNotReferenceable: LintRule = {
     };
 
     // Whether the renderer gives an answerExpression a value for its head: a root launchContext
-    // under its Smart Forms name, or an application/x-fhir-query variable that gets the expanded
-    // ValueSet, which the renderer looks up by name wherever it is declared.
+    // under the name population binds it under, read from the root extension array as the
+    // renderer reads it (answer-expression-head-only), whether or not core declares it, or an
+    // application/x-fhir-query variable that gets the expanded ValueSet, which the renderer looks
+    // up by name wherever it is declared.
+    const launchNames = new Set(
+      launchContextsOf(document).flatMap(({ boundName }) => boundName ?? []),
+    );
     let valueSetNames: ReadonlySet<string> | undefined;
     const supplied = (head: string): boolean =>
-      declarations.some(
-        (declaration) =>
-          declaration.kind === 'launchContext' &&
-          declaration.item === undefined &&
-          launchContextName(document, declaration) === head,
-      ) || (valueSetNames ??= valueSetVariables(document)).has(head);
+      launchNames.has(head) || (valueSetNames ??= valueSetVariables(document)).has(head);
 
     // The declaration a reference resolves to, as related location; none for a supplied name.
     const related = (

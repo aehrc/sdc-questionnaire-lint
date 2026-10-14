@@ -1,0 +1,25 @@
+# A launchContext core does not declare, because its first name sub-extension has no name, but
+# Smart Forms reads by position and binds as patient: it supplies the answerExpression head, so %v
+# has no value there.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "x"'
+  - 'extension[=].extension[=].valueId = "patient"'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+  - 'extension[=].extension[+].url = "name"'
+  - 'extension[=].extension[+].url = "name"'
+  - 'extension[=].extension[=].valueId = "y"'
+extensions:
+  - url: variable
+    name: v
+    expression: "'Smith'"
+items:
+  - linkId: answers
+    type: coding
+    text: Answers
+    extensions:
+      - url: answerExpression
+        expression: '%patient.name.where(family = %v).given'

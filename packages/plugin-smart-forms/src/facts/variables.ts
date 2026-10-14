@@ -42,6 +42,10 @@ import { type Component, type FactTable, factsAt } from './versions.js';
 // - answer-expression-head-only: an answerExpression is evaluated with one name, the text between
 //   its first % and its first ., and only when that names a launch context the SMART launch
 //   supplies or an application/x-fhir-query variable whose ValueSet expanded; with no other name.
+//   A launch context is looked up under the name population binds it under: a root launchContext
+//   with name and type sub-extensions found by URL, named by its first sub-extension, valueId else
+//   valueCoding.code, an empty name skipped; its resource is chosen from the SMART launch by its
+//   type, read from its second sub-extension, not by its name.
 //   Of two such variables with one ValueSet URL, only the later one, root variables first and an
 //   item's after its child items', gets the expansion.
 // - population-evaluation-order: population binds names in five steps: the launch resources, the
@@ -117,10 +121,12 @@ const renderer140: readonly VariableFact[] = Object.freeze([
     'answer-expression-head-only',
     source(`${rendererSource}hooks/useValueSetCodings.ts`, 66, 112),
     source(`${rendererSource}utils/questionnaireStoreUtils/extractLaunchContext.ts`, 5, 20),
+    source(`${rendererSource}utils/populateContexts.ts`, 21, 39),
     source(`${rendererSource}utils/questionnaireStoreUtils/extractVariables.ts`, 22, 38),
     source(`${rendererSource}utils/questionnaireStoreUtils/extractOtherExtensions.ts`, 190, 201),
     source(`${rendererSource}utils/valueSet.ts`, 39, 40),
-    source(`${rendererSource}utils/valueSet.ts`, 184, 213),
+    source(`${rendererSource}utils/valueSet.ts`, 184, 195),
+    source(`${rendererSource}utils/valueSet.ts`, 197, 213),
     source(`${rendererSource}utils/questionnaireStoreUtils/resolveValueSets.ts`, 37, 66),
   ),
   fact(

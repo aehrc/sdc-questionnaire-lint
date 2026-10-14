@@ -1,0 +1,23 @@
+# Smart Forms reads launchContexts only from the root extension array, so a patient launchContext in
+# the root modifierExtension supplies no answerExpression head. Core declares it, and whether
+# population binds a launchContext depends on the host, so the head is not reported, and neither
+# is %v, since the answerExpression is never evaluated.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'modifierExtension[0].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'modifierExtension[=].extension[0].url = "name"'
+  - 'modifierExtension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'modifierExtension[=].extension[+].url = "type"'
+  - 'modifierExtension[=].extension[=].valueCode = #Patient'
+extensions:
+  - url: variable
+    name: v
+    expression: "'Smith'"
+items:
+  - linkId: answers
+    type: coding
+    text: Answers
+    extensions:
+      - url: answerExpression
+        expression: '%patient.name.where(family = %v).given'
