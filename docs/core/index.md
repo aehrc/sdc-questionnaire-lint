@@ -39,7 +39,7 @@ A block without a link has no page yet.
 | 5 | [Expression discovery](discovery.md) | `analysis/expression-sites.ts` | Finds every expression in a form and records what kind it is |
 | 6 | [Expression parsing](parsing.md) | `analysis/fhirpath.ts` | Reads FHIRPath and x-fhir-query: syntax errors, function calls and references |
 | 7 | [Name analysis](names.md) | `analysis/document-analysis.ts` | Works out which variables and linkIds exist, where they can be used and what depends on what |
-| 8 | Rule runner | `run/rules.ts` | Runs each rule on each form and checks every finding it returns |
+| 8 | [Rule runner](runner.md) | `run/rules.ts` | Runs each rule on each form and checks every finding it returns |
 | 9 | Suppressions and fingerprints | `run/suppressions.ts` | Gives each finding a stable ID, applies suppressions and reports the ones that no longer match anything |
 | 10 | Source mapping | `source/` | Traces a finding in the compiled JSON back to a line and column in the FSH |
 | 11 | Report and formatters | `report/` | Builds the counts, then prints the report as text, JSON, GitHub annotations or SARIF |
