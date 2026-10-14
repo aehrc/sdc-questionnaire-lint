@@ -220,7 +220,7 @@ export const namedExpressionNotReferenceable: LintRule = {
       // sdc/reserved-name.
       if (definerOf(name) !== undefined) return true;
       // smart-forms/unsupported-expression-language: a variable no component stores.
-      if (kind === 'variable') return storedName(ctx, versions, declaration) === undefined;
+      if (kind === 'variable') return storedName(ctx, declaration) === undefined;
       // Whether population binds it depends on what the host supplies.
       if (kind === 'launchContext') return launchContexts;
       // smart-forms/variable-name-collision: population reads it, but a later one replaces it.
@@ -250,16 +250,14 @@ export const namedExpressionNotReferenceable: LintRule = {
         own === undefined ||
         !isLocatedSite(own) ||
         silent(declaration, true) ||
-        storedName(ctx, versions, declaration, among) !== undefined
+        storedName(ctx, declaration, among) !== undefined
       ) {
         return;
       }
       const reason =
         declaration.kind === 'itemPopulationContext' ? unreadReason(document, own) : '';
       const others: RuleRelatedLocation[] = declarations
-        .filter(
-          (other) => other !== declaration && storedName(ctx, versions, other, among) === name,
-        )
+        .filter((other) => other !== declaration && storedName(ctx, other, among) === name)
         .map((other) => ({ ...where(other), message: `%${name} is also declared here` }));
       const sourceQuery = among.includes('populate') ? sourceQueries.get(name) : undefined;
       if (sourceQuery !== undefined) {

@@ -84,7 +84,7 @@ export const variableNameCollision: LintRule = {
     // element: a launchContext's by its Smart Forms name, when it stores one.
     const stored = new Map<Declaration, string>();
     for (const declaration of declarations) {
-      const name = storedName(ctx, versions, declaration);
+      const name = storedName(ctx, declaration);
       if (name !== undefined) stored.set(declaration, name);
     }
     const nameOf = (declaration: Declaration): string =>

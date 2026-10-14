@@ -1,11 +1,10 @@
 import type { Declaration, QuestionnaireDocument, RuleContext } from 'sdc-questionnaire-lint';
 import { arrayOf, extensionOf, isObject, itemsOf, type Json } from './document.js';
-import { requireCompat } from './eligibility.js';
-import { prerequisitesHold } from './facts/prerequisites.js';
+import { requireCompat, storesVariable } from './eligibility.js';
+import { populationReadsContext, prerequisitesHold } from './facts/prerequisites.js';
 import { variableFactsAt } from './facts/variables.js';
 import { launchContextsOf } from './launch-contexts.js';
-import { storedName } from './stored-names.js';
-import { SOURCE_QUERIES, VARIABLE, X_FHIR_QUERY } from './urls.js';
+import { FHIRPATH, SOURCE_QUERIES, VARIABLE, X_FHIR_QUERY } from './urls.js';
 
 // What Smart Forms population binds for one document and the selected populate version, under the
 // supported integration (docs/smart-forms-rules.md, S1 and Shared plugin infrastructure,
@@ -117,6 +116,38 @@ export function population(ctx: Pick<RuleContext, 'document' | 'compat'>): Popul
     );
   };
 
+  // The name population stores a declaration's value under (P5 Stored names): a variable in a
+  // language it runs, except an item FHIRPath variable when the root has no extensions; an
+  // itemPopulationContext it reads, one a later one of its name replaces included; and a root
+  // launchContext under the name it binds the launch resource under, read from the root extension
+  // array, so not one core declares in the root modifierExtension. No other named expression
+  // stores a name.
+  const storedName = (declaration: Declaration): string | undefined => {
+    const { kind, site, item, name } = declaration;
+    if (kind === 'launchContext') {
+      return facts.has('launch-context-named-by-position')
+        ? launchContextsOf(document).find(({ pointer }) => pointer === declaration.pointer)
+            ?.boundName
+        : undefined;
+    }
+    if (site === undefined) return undefined;
+    if (kind === 'variable') {
+      const skipped =
+        facts.has('item-fhirpath-variable-needs-root-extensions') &&
+        item !== undefined &&
+        site.language === FHIRPATH &&
+        arrayOf(document.resource.extension).length === 0;
+      return !skipped && storesVariable(ctx, site, 'populate') ? name : undefined;
+    }
+    if (kind === 'itemPopulationContext') {
+      return facts.has('population-context-stored-by-name') &&
+        populationReadsContext(document, site)
+        ? name
+        : undefined;
+    }
+    return undefined;
+  };
+
   // When population evaluates a declaration it stores a name for.
   const evaluatedAt = (declaration: Declaration): Binding['at'] => {
     const { kind, site, item } = declaration;
@@ -154,7 +185,7 @@ export function population(ctx: Pick<RuleContext, 'document' | 'compat'>): Popul
     },
     bindingOf(declaration) {
       if (bindings.has(declaration)) return bindings.get(declaration);
-      const name = storedName(ctx, versions, declaration, ['populate']);
+      const name = storedName(declaration);
       const binding = name === undefined ? undefined : { name, at: evaluatedAt(declaration) };
       bindings.set(declaration, binding);
       return binding;
