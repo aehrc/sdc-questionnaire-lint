@@ -140,6 +140,7 @@ export default withMermaid(
             { text: 'Overview', link: '/docs/core/' },
             { text: 'CLI', link: '/docs/core/cli' },
             { text: 'Config', link: '/docs/core/config' },
+            { text: 'Plugins and rule set', link: '/docs/core/plugins' },
           ],
         },
         {

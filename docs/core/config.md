@@ -22,7 +22,7 @@ Every key is checked, and an unknown key is an error, so a mistyped setting is n
 
 ```mermaid
 flowchart TD
-  file(["--config, or the config in the working directory"]) --> load["loadConfig<br/>load.ts"]
+  file(["config file"]) --> load["loadConfig<br/>load.ts"]
   load --> validate["validateConfig<br/>validate.ts"]
   validate -.->|CONFIG_INVALID| failures["Failures"]
   validate --> loaded(["LoadedConfig"])
