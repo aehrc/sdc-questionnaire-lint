@@ -18,7 +18,9 @@ import {
   inAppPopulateSource,
   populateLanguages,
   populateSource,
+  type Reported,
   rendererSource,
+  reported,
   reproduced,
   source,
 } from './evidence.js';
@@ -38,22 +40,30 @@ export interface Location {
   readonly element?: string;
 }
 
-export interface LanguageFact {
+export interface LanguageFact extends Reported {
   readonly location: Location;
   readonly handling: LanguageHandling;
   readonly evidence: readonly Evidence[];
 }
+
+// The aehrc/smart-forms issues that report a handling.
+const upstream: Readonly<Partial<Record<LanguageHandling, readonly number[]>>> = {
+  'any-as-fhirpath': [2164],
+};
 
 function fact(
   location: Location,
   handling: LanguageHandling,
   ...evidence: Evidence[]
 ): LanguageFact {
-  return Object.freeze({
-    location: Object.freeze(location),
-    handling,
-    evidence: Object.freeze(evidence),
-  });
+  return reported<LanguageFact>(
+    Object.freeze({
+      location: Object.freeze(location),
+      handling,
+      evidence: Object.freeze(evidence),
+    }),
+    upstream[handling],
+  );
 }
 
 // The renderer reads root and item variables, the filtering locations, the unchecked

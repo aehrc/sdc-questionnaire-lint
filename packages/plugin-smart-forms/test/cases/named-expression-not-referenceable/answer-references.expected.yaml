@@ -1,0 +1,26 @@
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-answer-references.fsh:24:98
+  message: Smart Forms gives an answerExpression only %patient, the name it starts with, so %system has no value here, and the answers on item "Answers" (answers) are not computed from this expression when the reference is evaluated.
+  help: compute the answers from %patient alone
+  expression:
+    text: '%patient.extension.value.coding.where(system = %system and code != %user.id and code != %patient.id)'
+    range:
+      startOffset: 47
+      endOffset: 54
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%system is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-answer-references.fsh:24:118
+  message: Smart Forms gives an answerExpression only %patient, the name it starts with, so %user has no value here, and the answers on item "Answers" (answers) are not computed from this expression when the reference is evaluated.
+  help: compute the answers from %patient alone
+  expression:
+    text: '%patient.extension.value.coding.where(system = %system and code != %user.id and code != %patient.id)'
+    range:
+      startOffset: 67
+      endOffset: 72
+  related:
+    - at: /extension/2 (source-unavailable)
+      message: '%user is declared here'

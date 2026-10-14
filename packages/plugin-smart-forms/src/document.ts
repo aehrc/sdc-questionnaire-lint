@@ -9,6 +9,24 @@ export function isObject(value: unknown): value is Json {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+// The value when it is an array, else [].
+export const arrayOf = (value: unknown): readonly unknown[] => (Array.isArray(value) ? value : []);
+
+// The items below an owner, the Questionnaire or an item, at any depth, in pre-order, through item
+// only, as population and template extraction walk them.
+export function itemsOf(owner: Json): Json[] {
+  const found: Json[] = [];
+  const visit = (items: unknown): void => {
+    for (const item of arrayOf(items)) {
+      if (!isObject(item)) continue;
+      found.push(item);
+      visit(item.item);
+    }
+  };
+  visit(owner.item);
+  return found;
+}
+
 function segmentsOf(pointer: string): string[] {
   return pointer === ''
     ? []

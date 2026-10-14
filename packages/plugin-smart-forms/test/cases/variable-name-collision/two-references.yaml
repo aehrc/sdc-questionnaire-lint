@@ -1,0 +1,20 @@
+# Two sourceQueries reference one Bundle: one name, so the variable %prepop has one finding.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: prepop
+    expression: '1'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries"'
+  - 'extension[=].valueReference.reference = "#prepop"'
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries"'
+  - 'extension[=].valueReference.reference = "#prepop"'
+  - 'contained[0].resourceType = "Bundle"'
+  - 'contained[0].id = "prepop"'
+  - 'contained[0].type = #batch'
+  - 'contained[0].entry[0].request.method = #GET'
+  - 'contained[0].entry[0].request.url = "Observation?code=1"'
+items:
+  - linkId: q
+    type: string

@@ -1,0 +1,32 @@
+# Template references that are not #id: a full URL, and # alone. Smart Forms extracts neither.
+items:
+  - linkId: bp
+    type: group
+    text: 'Blood pressure'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtract"'
+      - 'extension[=].extension[0].url = "template"'
+      - 'extension[=].extension[=].valueReference.reference = "http://example.org/fhir/Observation/not-an-id"'
+    items:
+      - linkId: systolic
+        type: decimal
+  - linkId: bp-hash
+    type: group
+    text: 'Blood pressure again'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtract"'
+      - 'extension[=].extension[0].url = "template"'
+      - 'extension[=].extension[=].valueReference.reference = "#"'
+    items:
+      - linkId: bp-hash-systolic
+        type: decimal
+contained:
+  - resourceType: Observation
+    fsh:
+      - 'id = "not-an-id"'
+      - 'status = #final'
+      - 'code.text = "Blood pressure"'
+      - 'component[0].code.text = "Systolic"'
+      - 'component[0].extension[0].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtractContext"'
+      - 'component[0].extension[0].valueExpression.language = #text/fhirpath'
+      - 'component[0].extension[0].valueExpression.expression = "item.where(linkId = ''systolic'')"'

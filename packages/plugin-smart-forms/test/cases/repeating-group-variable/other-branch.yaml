@@ -1,0 +1,23 @@
+# %v is referenced only from another branch, which SDC scoping does not allow: its use is
+# unreferenced, and the reference is sdc/undefined-variable's.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: 'item.answer.value'
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: "'x'"
+  - linkId: b
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '%v'

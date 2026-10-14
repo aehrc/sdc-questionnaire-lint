@@ -1,0 +1,10 @@
+- ruleId: sdc/unresolved-linkid
+  severity: warning
+  at: input/fsh/unresolved-linkid-sort-selector.fsh:9:101
+  message: No item in this Questionnaire has linkId 'x'.
+  help: "an item with a similar linkId exists: 'a'"
+  expression:
+    text: "%resource.item.sort(%resource.item.where(linkId = 'x').answer.value).first().linkId"
+    range:
+      startOffset: 50
+      endOffset: 53

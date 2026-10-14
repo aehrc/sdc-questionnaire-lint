@@ -1,3 +1,4 @@
+import { definerOf } from '../analysis/available-variables.js';
 import { LintFailure } from '../failure.js';
 import { jsonPointerPattern, toPointer } from '../json-pointer.js';
 import { isObject } from '../object.js';
@@ -38,6 +39,35 @@ function describeValue(value: unknown): string {
   if (value === null) return 'null';
   if (Array.isArray(value)) return 'an array';
   return typeof value === 'object' ? 'an object' : `a ${typeof value}`;
+}
+
+// What is wrong with one host variable name, from config hostVariables or a plugin's hostVariables
+// hook, or undefined when it is a name: a non-empty string without %. A space is allowed, as in
+// %`a b`.
+export function hostVariableProblem(name: unknown): { problem: string; help: string } | undefined {
+  if (typeof name !== 'string' || name === '') {
+    return {
+      problem: `expected a non-empty string, got ${describeValue(name)}`,
+      help: 'list the host variable names as strings',
+    };
+  }
+  if (name.startsWith('%')) {
+    return {
+      problem: `${name} is written with %`,
+      help: `write the name without %, as ${name.slice(1)}`,
+    };
+  }
+  return undefined;
+}
+
+// The help for a host variable FHIRPath, FHIR or SDC defines. No component of the supported
+// integration supplies %questionnaire or %qitem, so an application that does records it in a
+// suppression (S13).
+function builtinHostVariableHelp(name: string): string {
+  return name === 'questionnaire' || name === 'qitem'
+    ? `remove ${name}; if the application running the form supplies %${name}, suppress the ` +
+        'findings about it with a reason that names the application'
+    : `remove ${name}: %${name} is always available`;
 }
 
 // Checks the config's shape. Rule IDs and plugins are checked by the rule set, which knows them.
@@ -109,25 +139,31 @@ export function validateConfig(
         'list at least one name the host supplies, or remove hostVariables',
       );
     }
-    expectStrings(config.hostVariables, ['hostVariables'], 'host variable names');
-    // expectStrings has checked the entries; it does not check that they are unique.
-    const names = config.hostVariables as string[];
-    names.forEach((name, index) => {
-      if (name.startsWith('%')) {
-        fail(
-          ['hostVariables', index],
-          `${name} is written with %`,
-          `write the name without %, as ${name.slice(1)}`,
+    const names: readonly unknown[] = Array.isArray(config.hostVariables)
+      ? config.hostVariables
+      : fail(
+          ['hostVariables'],
+          `expected an array of strings, got ${describeValue(config.hostVariables)}`,
+          'list the host variable names as an array of strings',
         );
-      }
+    // By index, not forEach, which skips the holes of a sparse array.
+    for (let index = 0; index < names.length; index++) {
+      const name = names[index];
+      const at = ['hostVariables', index];
+      const shape = hostVariableProblem(name);
+      if (shape !== undefined) fail(at, shape.problem, shape.help);
       if (names.indexOf(name) !== index) {
+        fail(at, `${String(name)} is listed more than once`, 'list each host variable once');
+      }
+      const definer = definerOf(String(name));
+      if (definer !== undefined) {
         fail(
-          ['hostVariables', index],
-          `${name} is listed more than once`,
-          'list each host variable once',
+          at,
+          `${String(name)} is defined by ${definer}, so it is not a host variable`,
+          builtinHostVariableHelp(String(name)),
         );
       }
-    });
+    }
   }
 
   if (config.source !== undefined) {

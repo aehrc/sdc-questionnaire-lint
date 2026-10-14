@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ConfigFinding, QuestionnaireFinding, Report, RunCompat } from '../../src/index.js';
+import type { ConfigFinding, QuestionnaireFinding, Report } from '../../src/index.js';
 import { docsDir, readJson } from '../support/report.js';
 
 // Type-level contract test: each literal is copied from docs/examples/reports/, so a field-name
@@ -353,6 +353,4 @@ export const typeErrors = [
     configLocation: { file: 'c.json', pointer: '/suppress/0' },
   } satisfies ConfigFinding,
   undefinedHelp,
-  // @ts-expect-error Smart Forms compat needs the renderer and populate versions.
-  { 'smart-forms': { renderer: '1.0.0', 'template-extract': '1.0.0' } } satisfies RunCompat,
 ];

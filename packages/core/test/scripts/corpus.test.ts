@@ -143,7 +143,7 @@ describe('runCorpus', () => {
     const result = runCorpus(corpus, true, mode);
     expect(result.code).toBe(0);
     expect(result.stdout).toContain(
-      'Smart Forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.',
+      'Compat smart-forms: renderer 1.4.0, populate 4.7.1, template-extract 1.0.15.',
     );
     expect(result.stdout).toContain('sdc/parse-error: 1 added');
     expect(existsSync(path.join(corpus, 'findings.smart-forms.json'))).toBe(true);

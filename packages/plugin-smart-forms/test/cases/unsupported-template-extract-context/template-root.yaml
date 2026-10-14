@@ -1,0 +1,22 @@
+# A context in the template resource's own extension, which Smart Forms misextracts even as valueString.
+items:
+  - linkId: bp
+    type: group
+    text: 'Blood pressure'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtract"'
+      - 'extension[=].extension[0].url = "template"'
+      - 'extension[=].extension[=].valueReference.reference = "#template-root"'
+    items:
+      - linkId: systolic
+        type: decimal
+contained:
+  - resourceType: Observation
+    fsh:
+      - 'id = "template-root"'
+      - 'status = #final'
+      - 'code.text = "Blood pressure"'
+      - 'component[0].code.text = "Systolic"'
+      - 'extension[0].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtractContext"'
+      - 'extension[0].valueExpression.language = #text/fhirpath'
+      - 'extension[0].valueExpression.expression = "item.where(linkId = ''systolic'')"'

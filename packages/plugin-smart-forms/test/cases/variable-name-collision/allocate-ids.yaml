@@ -1,0 +1,14 @@
+# extractAllocateIds of one name on two items store nothing in the renderer or population.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-extractAllocateId"'
+      - 'extension[=].valueString = "newId"'
+  - linkId: b
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-extractAllocateId"'
+      - 'extension[=].valueString = "newId"'

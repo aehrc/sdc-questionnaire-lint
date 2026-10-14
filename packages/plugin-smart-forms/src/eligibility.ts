@@ -2,6 +2,7 @@ import type { ExpressionSite, RuleContext } from 'sdc-questionnaire-lint';
 import { type LanguageHandling, languageFactAt } from './facts/languages.js';
 import { prerequisitesHold } from './facts/prerequisites.js';
 import { type Component, components } from './facts/versions.js';
+import { FHIRPATH, X_FHIR_QUERY } from './urls.js';
 
 // A selected component that reads a site, and how it handles the site's language.
 export interface Reader {
@@ -29,6 +30,13 @@ export function requireCompat(ctx: Pick<RuleContext, 'compat'>): Record<Componen
   return versions;
 }
 
+// The selected template-extract version, or undefined when compat does not select it: template
+// extraction is checked only when selected (S3). Read defensively, like requireCompat.
+export function templateExtractVersion(ctx: Pick<RuleContext, 'compat'>): string | undefined {
+  const compat = ctx.compat as Readonly<Record<string, string>> | undefined;
+  return compat?.['template-extract'];
+}
+
 // The selected components that read a site, whatever its language: those with a language fact for
 // its location whose prerequisites hold there. None for an uncatalogued site, a fragment site or a
 // location nothing reads, such as candidateExpression, contextExpression, itemExtractionContext,
@@ -48,4 +56,28 @@ export function readBy(
       ? [{ component, handling: fact.handling }]
       : [];
   });
+}
+
+// Whether a component that handles a variable's language so stores its name.
+const binds = (handling: LanguageHandling, language: string | undefined): boolean =>
+  handling === 'any-as-fhirpath' ||
+  language === FHIRPATH ||
+  (handling === 'fhirpath-or-query' && language === X_FHIR_QUERY);
+
+// Whether a component stores a value under a variable's name: it evaluates the variable, and reads
+// its site in a language it stores a name for (docs/smart-forms-rules.md, P5 Stored names).
+export function storesVariable(
+  ctx: Pick<RuleContext, 'document' | 'compat'>,
+  site: ExpressionSite,
+  component: Component,
+): boolean {
+  // The renderer sets an application/x-fhir-query variable's name to [] even without text, such
+  // as one with only a reference; a FHIRPath variable without text is never evaluated.
+  const evaluated = (site.text !== undefined && site.text !== '') || site.language === X_FHIR_QUERY;
+  return (
+    evaluated &&
+    readBy(ctx, site).some(
+      (reader) => reader.component === component && binds(reader.handling, site.language),
+    )
+  );
 }

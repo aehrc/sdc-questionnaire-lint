@@ -1,0 +1,75 @@
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-answer-heads.fsh:22:51
+  message: Smart Forms computes an answerExpression only when it starts with a launch context or with an application/x-fhir-query variable that expands a ValueSet, and %codes is neither, so the answers on item "FHIRPath variable" (fhirpath-variable) are never computed from this expression.
+  help: start the expression with a launch context, or with an application/x-fhir-query variable whose expression is a ValueSet URL, or list the answers with answerOption or answerValueSet
+  expression:
+    text: '%codes.where(%search.exists())'
+    range:
+      startOffset: 0
+      endOffset: 6
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%codes is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-answer-heads.fsh:33:59
+  message: Smart Forms computes an answerExpression only when it starts with a launch context or with an application/x-fhir-query variable that expands a ValueSet, and %rows is neither, so the answers on item population-context-answer are never computed from this expression.
+  help: start the expression with a launch context, or with an application/x-fhir-query variable whose expression is a ValueSet URL, or list the answers with answerOption or answerValueSet
+  expression:
+    text: '%rows.answer.value'
+    range:
+      startOffset: 0
+      endOffset: 5
+  related:
+    - at: /item/1/extension/0/valueExpression/expression (source-unavailable)
+      message: '%rows is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-answer-heads.fsh:38:51
+  message: Smart Forms computes an answerExpression only when it starts with a launch context or with an application/x-fhir-query variable that expands a ValueSet, and %search is neither, so the answers on item search-query are never computed from this expression.
+  help: start the expression with a launch context, or with an application/x-fhir-query variable whose expression is a ValueSet URL, or list the answers with answerOption or answerValueSet
+  expression:
+    text: '%search.entry.resource.code.coding'
+    range:
+      startOffset: 0
+      endOffset: 7
+  related:
+    - at: /extension/1/valueExpression/expression (source-unavailable)
+      message: '%search is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-answer-heads.fsh:43:51
+  message: Smart Forms computes an answerExpression only when it starts with a launch context or with an application/x-fhir-query variable that expands a ValueSet, and %lookup is neither, so the answers on item lookup-query are never computed from this expression.
+  help: start the expression with a launch context, or with an application/x-fhir-query variable whose expression is a ValueSet URL, or list the answers with answerOption or answerValueSet
+  expression:
+    text: '%lookup.parameter.value'
+    range:
+      startOffset: 0
+      endOffset: 7
+  related:
+    - at: /extension/2/valueExpression/expression (source-unavailable)
+      message: '%lookup is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-answer-heads.fsh:52:54
+  message: Smart Forms computes an answerExpression only when it starts with a launch context or with an application/x-fhir-query variable that expands a ValueSet, and %calculated is neither, so the answers on item named-expression are never computed from this expression.
+  help: start the expression with a launch context, or with an application/x-fhir-query variable whose expression is a ValueSet URL, or list the answers with answerOption or answerValueSet
+  expression:
+    text: '%calculated.first()'
+    range:
+      startOffset: 0
+      endOffset: 11
+  related:
+    - at: /item/4/extension/0/valueExpression/expression (source-unavailable)
+      message: '%calculated is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-answer-heads.fsh:57:51
+  message: Smart Forms computes an answerExpression only when it starts with a launch context or with an application/x-fhir-query variable that expands a ValueSet, and %hostCodes is neither, so the answers on item host-name are never computed from this expression.
+  help: start the expression with a launch context, or with an application/x-fhir-query variable whose expression is a ValueSet URL, or list the answers with answerOption or answerValueSet
+  expression:
+    text: '%hostCodes.coding'
+    range:
+      startOffset: 0
+      endOffset: 10

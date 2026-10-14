@@ -1,0 +1,11 @@
+# A named calculatedExpression stores no name, so an enableWhenExpression that references it fails.
+items:
+  - linkId: score
+    type: integer
+    text: Score
+    extensions:
+      - url: calculatedExpression
+        name: score
+        expression: '1 + 1'
+      - url: enableWhenExpression
+        expression: '%score > 0'

@@ -1,0 +1,16 @@
+# A launchContext named by valueId, as population reads it, and an item variable of that name.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueId = "patient"'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: patient
+        expression: "'not a patient'"

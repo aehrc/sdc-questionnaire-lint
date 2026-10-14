@@ -10,6 +10,7 @@ import { type ResolvedRule, resolveRuleSet } from './plugins/rule-set.js';
 import { summarizeExpressionCoverage } from './report/expression-coverage.js';
 import { buildSummary } from './report/summary.js';
 import type { CompletedReport } from './report/types.js';
+import { suppliedHostVariables } from './run/host-variables.js';
 import { runRules, type FindingOrigins } from './run/rules.js';
 import { findFshSources } from './run/sources.js';
 import { findSushiVersion } from './run/sushi-version.js';
@@ -57,14 +58,16 @@ export async function lintWithRules(options: LintOptions): Promise<LintRun> {
   });
   const sources = await findFshSources(runPaths, cwd);
   const sushiVersion = await findSushiVersion(runPaths.base);
+  const configNames = loaded?.config.hostVariables ?? [];
+  // Every document is analysed before any rule runs, so a hook's crash wins over a rule's.
   const analysedDocuments: AnalysedDocument[] = documents.map(({ input, document }) => {
+    // Called whether or not the plugin's rules are on: listing a plugin activates its names.
+    const hostVariables = [
+      ...configNames,
+      ...ruleSet.hostVariableHooks.flatMap((hook) => suppliedHostVariables(hook, document)),
+    ];
     const sites = findExpressionSites(document);
-    return {
-      input,
-      document,
-      sites,
-      analysis: analyseDocument(document, sites, loaded?.config.hostVariables ?? []),
-    };
+    return { input, document, sites, analysis: analyseDocument(document, sites, hostVariables) };
   });
   const origins: FindingOrigins = new WeakMap();
   const outcome = await applySuppressions({

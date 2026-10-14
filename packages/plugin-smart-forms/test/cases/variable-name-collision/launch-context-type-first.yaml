@@ -1,0 +1,17 @@
+# A launchContext written type-first: population reads its name from the first sub-extension and
+# stores nothing, so the item variable %patient collides with nothing. Core still declares it.
+rules:
+  sdc/unused-declaration: 'off'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+  - 'extension[=].extension[+].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: patient
+        expression: "'not a patient'"

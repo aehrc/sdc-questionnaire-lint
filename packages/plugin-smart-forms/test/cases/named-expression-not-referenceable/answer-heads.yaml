@@ -1,0 +1,61 @@
+# An answerExpression whose head is neither a launch context nor a ValueSet query variable is never
+# computed: reported once at the head, for a FHIRPath variable, an itemPopulationContext, a search
+# query variable, a $lookup query variable, a named calculatedExpression and a configured host name.
+rules:
+  sdc/unused-declaration: 'off'
+hostVariables:
+  - hostCodes
+extensions:
+  - url: variable
+    name: codes
+    expression: '%resource.item.answer.value'
+  - url: variable
+    name: search
+    language: application/x-fhir-query
+    expression: 'Observation?code=1'
+  - url: variable
+    name: lookup
+    language: application/x-fhir-query
+    expression: 'CodeSystem/$lookup?system=http://loinc.org&code=1-8'
+items:
+  - linkId: fhirpath-variable
+    type: coding
+    text: FHIRPath variable
+    extensions:
+      - url: answerExpression
+        expression: '%codes.where(%search.exists())'
+  - linkId: population-context
+    type: group
+    extensions:
+      - url: itemPopulationContext
+        name: rows
+        expression: '%resource.item'
+    items:
+      - linkId: population-context-answer
+        type: coding
+        extensions:
+          - url: answerExpression
+            expression: '%rows.answer.value'
+  - linkId: search-query
+    type: coding
+    extensions:
+      - url: answerExpression
+        expression: '%search.entry.resource.code.coding'
+  - linkId: lookup-query
+    type: coding
+    extensions:
+      - url: answerExpression
+        expression: '%lookup.parameter.value'
+  - linkId: named-expression
+    type: coding
+    extensions:
+      - url: calculatedExpression
+        name: calculated
+        expression: '%resource.item.answer.value'
+      - url: answerExpression
+        expression: '%calculated.first()'
+  - linkId: host-name
+    type: coding
+    extensions:
+      - url: answerExpression
+        expression: '%hostCodes.coding'

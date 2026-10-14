@@ -1,0 +1,23 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-launch-context-not-declared.fsh:22:51
+  message: '%patient is not available on item "Answers" (answers).'
+  help: declare it on this item, an ancestor item or the root, or list it in hostVariables if the application running the form supplies it
+  expression:
+    text: '%patient.name.where(family = %v).given'
+    range:
+      startOffset: 0
+      endOffset: 8
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-launch-context-not-declared.fsh:22:80
+  message: Smart Forms gives an answerExpression only %patient, the name it starts with, so %v has no value here, and the answers on item "Answers" (answers) are not computed from this expression when the reference is evaluated.
+  help: compute the answers from %patient alone
+  expression:
+    text: '%patient.name.where(family = %v).given'
+    range:
+      startOffset: 29
+      endOffset: 31
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%v is declared here'

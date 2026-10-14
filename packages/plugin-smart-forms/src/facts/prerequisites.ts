@@ -19,6 +19,8 @@ import {
 import {
   type Evidence,
   getExpressionsFromItem,
+  type Reported,
+  reported,
   populatePrerequisites,
   populateSource,
   rendererSource,
@@ -31,7 +33,7 @@ import { type Component, type FactTable, factsAt } from './versions.js';
 // What a component needs, beyond the location, before it reads an Expression there. A
 // prerequisite never depends on the language: how a component handles the language is a separate
 // fact (languages.ts).
-export interface Prerequisite {
+export interface Prerequisite extends Reported {
   readonly location: Location;
   // What must hold, for maintainers.
   readonly requires: string;
@@ -217,6 +219,50 @@ function holderOf(
   return extensionOf(document, site)?.holder;
 }
 
+function onItemWithChildren(document: QuestionnaireDocument, site: ExpressionSite): boolean {
+  return site.item !== undefined && children(itemOf(document, site.item)).length > 0;
+}
+
+function isFirstNamedContext(document: QuestionnaireDocument, site: ExpressionSite): boolean {
+  const holder = holderOf(document, site);
+  return (
+    holder !== undefined &&
+    isFirstOfItsUrl(holder) &&
+    nonEmptyString(site.name) &&
+    nonEmptyString(site.text)
+  );
+}
+
+// Why populate does not read an itemPopulationContext.
+export type UnreadReason = 'on-root' | 'no-child-items' | 'not-first' | 'no-name' | 'no-text';
+
+// Whether populate reads an itemPopulationContext site, or why not, from the prerequisites
+// readBy checks: the first of its URL on an item with child items, with a name and text.
+export function contextReadReason(
+  document: QuestionnaireDocument,
+  site: ExpressionSite,
+): true | UnreadReason {
+  if (!onItemWithChildren(document, site)) {
+    return site.item === undefined ? 'on-root' : 'no-child-items';
+  }
+  if (isFirstNamedContext(document, site)) return true;
+  const holder = holderOf(document, site);
+  if (holder === undefined || !isFirstOfItsUrl(holder)) return 'not-first';
+  return nonEmptyString(site.name) ? 'no-text' : 'no-name';
+}
+
+// Whether populate reads an itemPopulationContext site: the first of its URL on an item with child
+// items, with a name and text. A later one of the same name in the form replaces it and is evaluated
+// instead, so its group is built from the later one's values (readPopulationExpressions.ts:47-63).
+export function populationReadsContext(
+  document: QuestionnaireDocument,
+  site: ExpressionSite,
+): boolean {
+  return (
+    site.location?.url === ITEM_POPULATION_CONTEXT && contextReadReason(document, site) === true
+  );
+}
+
 const readPopulationExpressions = `${populateSource}readPopulationExpressions.ts`;
 const constructResponse = `${populateSource}constructResponse.ts`;
 // The key of a targetConstraint extension the renderer builds, or undefined when it builds none.
@@ -368,32 +414,27 @@ const populate471: readonly Prerequisite[] = Object.freeze([
       'populate 4.7.1 initialExpression prerequisites > does not evaluate an item in a nested repeating group without its own itemPopulationContext',
     ),
   ),
-  prerequisite(
-    { url: ITEM_POPULATION_CONTEXT },
-    'an item with child items; a root itemPopulationContext is read by nothing',
-    (document, site) => site.item !== undefined && children(itemOf(document, site.item)).length > 0,
-    source(readPopulationExpressions, 52, 56),
-    reproduced(
-      populatePrerequisites,
-      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on a leaf item',
+  reported<Prerequisite>(
+    prerequisite(
+      { url: ITEM_POPULATION_CONTEXT },
+      'an item with child items; a root itemPopulationContext is read by nothing',
+      onItemWithChildren,
+      source(readPopulationExpressions, 52, 56),
+      reproduced(
+        populatePrerequisites,
+        'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on a leaf item',
+      ),
+      reproduced(
+        populatePrerequisites,
+        'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on the root',
+      ),
     ),
-    reproduced(
-      populatePrerequisites,
-      'populate 4.7.1 itemPopulationContext prerequisites > does not evaluate one on the root',
-    ),
+    [2168],
   ),
   prerequisite(
     { url: ITEM_POPULATION_CONTEXT },
     'the first itemPopulationContext on the item, with a name and text',
-    (document, site) => {
-      const holder = holderOf(document, site);
-      return (
-        holder !== undefined &&
-        isFirstOfItsUrl(holder) &&
-        nonEmptyString(site.name) &&
-        nonEmptyString(site.text)
-      );
-    },
+    isFirstNamedContext,
     source(readPopulationExpressions, 53, 63),
     source(readPopulationExpressions, 128, 141),
     reproduced(

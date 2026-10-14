@@ -1,0 +1,7 @@
+# A reference in an argument of sort, which fhirpath.js parses without a parameter list.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        expression: '(1|2).sort(%x)'

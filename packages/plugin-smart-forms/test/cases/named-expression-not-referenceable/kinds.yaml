@@ -1,0 +1,89 @@
+# Each other kind of named expression stores no name: an initialExpression, an enableWhenExpression,
+# an answerExpression, a candidateExpression, a contextExpression, an answerOptionsToggleExpression,
+# a targetConstraint and a cqf-expression on text, each referenced from a calculatedExpression on
+# its item.
+items:
+  - linkId: initial
+    type: string
+    extensions:
+      - url: initialExpression
+        name: init
+        expression: "'a'"
+      - url: calculatedExpression
+        expression: '%init'
+  - linkId: enable-when
+    type: boolean
+    extensions:
+      - url: enableWhenExpression
+        name: shown
+        expression: 'true'
+      - url: calculatedExpression
+        expression: '%shown'
+  - linkId: answer
+    type: coding
+    extensions:
+      - url: answerExpression
+        name: answers
+        expression: '%resource.item.answer.value'
+      - url: calculatedExpression
+        expression: '%answers.first()'
+  - linkId: candidate
+    type: string
+    extensions:
+      - url: candidateExpression
+        name: candidates
+        expression: "'a' | 'b'"
+      - url: calculatedExpression
+        expression: '%candidates.first()'
+  - linkId: context
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-contextExpression"'
+      - 'extension[=].extension[0].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.name = "ctx"'
+      - 'extension[=].extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].extension[=].valueExpression.expression = "%resource.id"'
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression"'
+      - 'extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].valueExpression.expression = "%ctx"'
+  - linkId: toggle
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerOptionsToggleExpression"'
+      - 'extension[=].extension[0].url = "option"'
+      - 'extension[=].extension[=].valueCoding = http://example.org/codes#a'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.name = "toggled"'
+      - 'extension[=].extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].extension[=].valueExpression.expression = "true"'
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression"'
+      - 'extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].valueExpression.expression = "%toggled.toString()"'
+  - linkId: constraint
+    type: string
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/StructureDefinition/targetConstraint"'
+      - 'extension[=].extension[0].url = "key"'
+      - 'extension[=].extension[=].valueId = "tc-1"'
+      - 'extension[=].extension[+].url = "severity"'
+      - 'extension[=].extension[=].valueCode = #error'
+      - 'extension[=].extension[+].url = "expression"'
+      - 'extension[=].extension[=].valueExpression.name = "valid"'
+      - 'extension[=].extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].extension[=].valueExpression.expression = "true"'
+      - 'extension[=].extension[+].url = "human"'
+      - 'extension[=].extension[=].valueString = "Check the answer"'
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression"'
+      - 'extension[=].valueExpression.language = #text/fhirpath'
+      - 'extension[=].valueExpression.expression = "%valid.toString()"'
+  - linkId: label
+    type: string
+    text: Label
+    extensions:
+      - url: calculatedExpression
+        expression: '%label'
+    fsh:
+      - 'text.extension.url = "http://hl7.org/fhir/StructureDefinition/cqf-expression"'
+      - 'text.extension.valueExpression.name = "label"'
+      - 'text.extension.valueExpression.language = #text/fhirpath'
+      - 'text.extension.valueExpression.expression = "''Label''"'

@@ -1,0 +1,15 @@
+# As same-element, with sdc/duplicate-declaration off: still silent.
+rules:
+  sdc/duplicate-declaration: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        name: x
+        expression: "'a'"
+      - url: variable
+        name: x
+        expression: "'b'"
+      - url: enableWhenExpression
+        expression: "%x = 'b'"

@@ -1,6 +1,14 @@
-# A name listed in hostVariables is still reported, because built-in names resolve first.
-hostVariables:
-  - questionnaire
+# Text that does not parse has no references; the silence holds with sdc/parse-error off.
+rules:
+  sdc/parse-error: 'off'
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    expression: '%y.where('
+  - url: variable
+    name: y
+    expression: '1'
 fsh:
   - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
   - 'extension[=].extension[0].url = "name"'
@@ -8,8 +16,8 @@ fsh:
   - 'extension[=].extension[+].url = "type"'
   - 'extension[=].extension[=].valueCode = #Patient'
 items:
-  - linkId: age
+  - linkId: q
     type: string
     extensions:
-      - url: calculatedExpression
-        expression: '%questionnaire.title'
+      - url: initialExpression
+        expression: '%x'

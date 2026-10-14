@@ -11,7 +11,7 @@ import {
   renderFailureText,
 } from '../src/failure.js';
 import type { SarifLog } from '../src/report/sarif.js';
-import { expectValidReport } from './support/report.js';
+import { expectValidReport, validateReportSchema } from './support/report.js';
 import { expectValidSarif } from './support/sarif.js';
 
 const codes: FailureCode[] = [
@@ -23,14 +23,22 @@ const codes: FailureCode[] = [
   'INPUT_INVALID_JSON',
   'NO_QUESTIONNAIRES',
   'RULE_CRASH',
+  'PLUGIN_CRASH',
   'INTERNAL_ERROR',
 ];
 
 function failureFor(code: FailureCode): LintFailure {
   const fields = { message: `Something failed (${code}).`, help: 'Do the next thing.' };
-  return new LintFailure(
-    code === 'RULE_CRASH' ? { ...fields, code, ruleId: 'test/crashes' } : { ...fields, code },
-  );
+  if (code === 'RULE_CRASH') return new LintFailure({ ...fields, code, ruleId: 'test/crashes' });
+  if (code === 'PLUGIN_CRASH') {
+    return new LintFailure({
+      ...fields,
+      code,
+      plugin: { name: 'test', version: '1.0.0' },
+      path: 'questionnaires/a.json',
+    });
+  }
+  return new LintFailure({ ...fields, code });
 }
 
 describe('renderFailureJson', () => {
@@ -40,6 +48,28 @@ describe('renderFailureJson', () => {
     expect(document).not.toHaveProperty('run');
     expect(document).not.toHaveProperty('findings');
     expect(document).not.toHaveProperty('summary');
+  });
+
+  it('includes the plugin of a PLUGIN_CRASH', () => {
+    expect(JSON.parse(renderFailureJson(failureFor('PLUGIN_CRASH')))).toEqual({
+      schemaVersion: 1,
+      status: 'failed',
+      failure: {
+        code: 'PLUGIN_CRASH',
+        path: 'questionnaires/a.json',
+        plugin: { name: 'test', version: '1.0.0' },
+        message: 'Something failed (PLUGIN_CRASH).',
+        help: 'Do the next thing.',
+      },
+    });
+  });
+
+  it.each(['plugin', 'path'])('makes the schema reject a PLUGIN_CRASH without %s', (field) => {
+    const document = JSON.parse(renderFailureJson(failureFor('PLUGIN_CRASH'))) as {
+      failure: Record<string, unknown>;
+    };
+    Reflect.deleteProperty(document.failure, field);
+    expect(validateReportSchema(document)).toBe(false);
   });
 
   it('omits absent optional fields rather than writing null', () => {
@@ -105,6 +135,14 @@ describe('LintFailure', () => {
     const init = { code: 'RULE_CRASH', message: 'x', help: 'y' } as unknown as LintFailureInit;
     expect(() => new LintFailure(init)).toThrow(/requires a ruleId/);
   });
+
+  it.each([
+    ['a plugin', { path: 'a.json' }],
+    ['a path', { plugin: { name: 'test', version: '1.0.0' } }],
+  ])('rejects a PLUGIN_CRASH without %s', (_, fields) => {
+    const init = { code: 'PLUGIN_CRASH', message: 'x', help: 'y', ...fields } as LintFailureInit;
+    expect(() => new LintFailure(init)).toThrow(/requires a plugin and a path/);
+  });
 });
 
 describe('renderFailureOutput', () => {
@@ -134,7 +172,10 @@ describe('renderFailureOutput', () => {
     const { stdout = '' } = renderFailureOutput('github', failureFor(code), cwd);
     expect(stdout.split('\n')).toHaveLength(2);
     expect(stdout).toMatch(
-      new RegExp(`^::error title=sdc-lint failed%3A ${code}::Something failed \\(${code}\\)\\.`),
+      // A PLUGIN_CRASH always names its file.
+      new RegExp(
+        `^::error (?:file=questionnaires/a\\.json,)?title=sdc-lint failed%3A ${code}::Something failed \\(${code}\\)\\.`,
+      ),
     );
     expect(stdout.endsWith('%0Ahelp: Do the next thing.\n')).toBe(true);
   });
@@ -177,6 +218,17 @@ describe('renderFailureOutput', () => {
             descriptor: { id: code },
             ...(code === 'RULE_CRASH' ? { associatedRule: { id: 'test/crashes' } } : {}),
             message: { text: `Something failed (${code}).\nhelp: Do the next thing.` },
+            ...(code === 'PLUGIN_CRASH'
+              ? {
+                  locations: [
+                    {
+                      physicalLocation: {
+                        artifactLocation: { uri: 'questionnaires/a.json', uriBaseId: '%SRCROOT%' },
+                      },
+                    },
+                  ],
+                }
+              : {}),
             properties: { help: 'Do the next thing.' },
           },
         ],

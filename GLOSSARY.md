@@ -33,7 +33,7 @@ The names an expression can reference at its site; the site alone determines the
 _Avoid_: Visibility, context (FHIRPath's `%context` is something else), scope
 
 **Reference**:
-One `%name` in an expression's FHIRPath, fragments included; it resolves to the available variable of that name at its site. A reference is complete unless an earlier step of its chain is a `defineVariable` with a computed name, which may bind it.
+One `%name` in an expression's FHIRPath, fragments included; it resolves to the available variable of that name at its site. A reference is complete unless an earlier step of its chain is a `defineVariable` with a computed name, which may bind it. It is conditional when fhirpath.js may skip evaluating it: in an `iif` branch, a `coalesce` argument after the first, or an argument evaluated once per item of a function's target, such as `where`'s.
 _Avoid_: Usage, variable use
 
 **Built-in name**:

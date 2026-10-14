@@ -3,6 +3,8 @@ import {
   inAppPopulateSource,
   populateEmbeddings,
   populateSource,
+  type Reported,
+  reported,
   reproduced,
   source,
 } from './evidence.js';
@@ -29,23 +31,31 @@ export type EmbeddingBehaviour =
   | 'head-is-launch-context'
   | 'evaluated-with-only';
 
-export interface EmbeddingFact {
+export interface EmbeddingFact extends Reported {
   readonly behaviour: EmbeddingBehaviour;
   // Set only for evaluated-with-only: the names the remainder can reference.
   readonly names?: readonly string[];
   readonly evidence: readonly Evidence[];
 }
 
+// The aehrc/smart-forms issues that report a behaviour.
+const upstream: Readonly<Partial<Record<EmbeddingBehaviour, readonly number[]>>> = {
+  'replaced-by-unescaped-pattern': [2163],
+};
+
 function fact(
   behaviour: EmbeddingBehaviour,
   names: readonly string[] | undefined,
   ...evidence: Evidence[]
 ): EmbeddingFact {
-  return Object.freeze({
-    behaviour,
-    ...(names === undefined ? {} : { names: Object.freeze([...names]) }),
-    evidence: Object.freeze(evidence),
-  });
+  return reported<EmbeddingFact>(
+    Object.freeze({
+      behaviour,
+      ...(names === undefined ? {} : { names: Object.freeze([...names]) }),
+      evidence: Object.freeze(evidence),
+    }),
+    upstream[behaviour],
+  );
 }
 
 const embeddings = `${populateSource}createFhirPathContext.ts`;

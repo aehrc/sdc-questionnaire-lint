@@ -1,0 +1,23 @@
+# A variable in a nested repeating group is reported with the inner group as related location.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    items:
+      - linkId: h
+        type: group
+        text: Dose
+        fsh:
+          - 'repeats = true'
+        extensions:
+          - url: variable
+            name: v
+            expression: 'item.answer.value'
+        items:
+          - linkId: a
+            type: string
+            extensions:
+              - url: calculatedExpression
+                expression: '%v'

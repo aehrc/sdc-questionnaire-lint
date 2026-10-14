@@ -1,10 +1,11 @@
-import { describe, expect, it, onTestFinished } from 'vitest';
+import { describe, expect, expectTypeOf, it, onTestFinished } from 'vitest';
 import { analyseDocument } from '../../src/analysis/document-analysis.js';
 import type { ExpressionSite, QuestionnaireDocument } from '../../src/analysis/expression-site.js';
 import { findExpressionSites } from '../../src/analysis/expression-sites.js';
 import { lint } from '../../src/index.js';
 import type { LintRule, RuleContext, RuleFinding } from '../../src/plugins/contract.js';
 import type { ResolvedRule } from '../../src/plugins/rule-set.js';
+import { formatJsonReport } from '../../src/report/json.js';
 import { runRules } from '../../src/run/rules.js';
 import { expressionSite, fragmentSite } from '../support/builders.js';
 import { expectValidReport } from '../support/report.js';
@@ -55,6 +56,17 @@ describe('runRules', () => {
 
   it('keeps a severity the rule reports', () => {
     expect(runRules(doc, [resolved('warning', 'info')])).toMatchObject([{ severity: 'info' }]);
+  });
+
+  it("copies the resolved rule's docsUrl into its findings", () => {
+    const rule = { ...resolved('error'), docsUrl: 'https://example.org/every-site' };
+    expect(runRules(doc, [rule])).toMatchObject([{ docsUrl: 'https://example.org/every-site' }]);
+  });
+
+  it('gives no docsUrl key to the findings of a rule without one', () => {
+    const [finding] = runRules(doc, [resolved('error')]);
+    expect(finding).toBeDefined();
+    expect(finding).not.toHaveProperty('docsUrl');
   });
 });
 
@@ -120,15 +132,18 @@ describe('runRules on what a rule reports', () => {
     ruleThat((ctx) => {
       ctx.report(finding as RuleFinding);
     });
+  // The file and the Bundle entry the rule crashed on.
+  const on = 'Q.json at /entry/0/resource';
   const crash = (message: string): unknown =>
     expect.objectContaining({
       code: 'RULE_CRASH',
       ruleId: 'test/rule',
+      path: 'Q.json',
       message,
       help: 'this is a bug in the test plugin; report it to its maintainers',
     });
   const invalid = (problem: string): unknown =>
-    crash(`rule test/rule reported an invalid finding: ${problem}`);
+    crash(`rule test/rule reported an invalid finding on ${on}: ${problem}`);
 
   it.each<[string, (sites: typeof inBundle.sites) => unknown, string]>([
     ['an empty message', ([site]) => ({ site, message: '' }), 'message is not a non-empty string'],
@@ -266,7 +281,7 @@ describe('runRules on what a rule reports', () => {
           await Promise.resolve();
         }),
       ]),
-    ).toThrow(crash('rule test/rule returned a promise; check must be synchronous'));
+    ).toThrow(crash(`rule test/rule returned a promise on ${on}; check must be synchronous`));
   });
 
   it('gives RULE_CRASH for an async rule that rejects, leaving no unhandled rejection', async () => {
@@ -283,7 +298,7 @@ describe('runRules on what a rule reports', () => {
       throw new Error('late');
     });
     expect(() => runRules(inBundle, [rejects])).toThrow(
-      crash('rule test/rule returned a promise; check must be synchronous'),
+      crash(`rule test/rule returned a promise on ${on}; check must be synchronous`),
     );
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(unhandled).toBeUndefined();
@@ -295,7 +310,9 @@ describe('runRules on what a rule reports', () => {
         throw new Error('boom');
       },
     }));
-    expect(() => runRules(inBundle, [thenable])).toThrow(crash('rule test/rule crashed: boom'));
+    expect(() => runRules(inBundle, [thenable])).toThrow(
+      crash(`rule test/rule crashed on ${on}: boom`),
+    );
   });
 
   it('gives RULE_CRASH for a thrown value that cannot be described', () => {
@@ -308,7 +325,7 @@ describe('runRules on what a rule reports', () => {
       };
     });
     expect(() => runRules(inBundle, [throwing])).toThrow(
-      crash('rule test/rule crashed: a value that cannot be described'),
+      crash(`rule test/rule crashed on ${on}: a value that cannot be described`),
     );
   });
 
@@ -326,7 +343,9 @@ describe('runRules on what a rule reports', () => {
     const throwing = ruleThat(() => {
       throw new Error('boom');
     });
-    expect(() => runRules(inBundle, [throwing])).toThrow(crash('rule test/rule crashed: boom'));
+    expect(() => runRules(inBundle, [throwing])).toThrow(
+      crash(`rule test/rule crashed on ${on}: boom`),
+    );
   });
 
   it('maps related sites and pointers to locations in the report', () => {
@@ -358,6 +377,42 @@ describe('runRules on what a rule reports', () => {
     ]);
   });
 
+  it('gives a pointer the linkId of the innermost item it lies in', () => {
+    const resource = {
+      resourceType: 'Questionnaire',
+      contained: [{ resourceType: 'Questionnaire', item: [{ linkId: 'inside' }] }],
+      item: [
+        { linkId: 'g', item: [{ linkId: 'a' }, { text: 'no linkId' }] },
+        { linkId: 'h', extension: [{ url: 'u' }] },
+      ],
+    };
+    const withItems = { ...inBundle, document: { ...inBundle.document, resource } };
+    const pointers = [
+      '/item/0',
+      '/item/0/item/0/extension/0',
+      '/item/0/item/1',
+      '/item/1/extension/0',
+      '/item/10',
+      '/item/1x',
+      '/extension/0',
+      '/contained/0/item/0',
+    ];
+    const rule = ruleThat((ctx) => {
+      ctx.report({
+        message: 'Related.',
+        pointer: `${resourcePointer}/item/0/item/0`,
+        relatedLocations: pointers.map((pointer) => ({ pointer: `${resourcePointer}${pointer}` })),
+      });
+    });
+    const [finding] = runRules(withItems, [rule]);
+    expect(finding?.jsonLocation).toMatchObject({ linkId: 'a' });
+    expect(
+      finding?.relatedLocations?.map((related) =>
+        related.kind === 'questionnaire' ? related.jsonLocation.linkId : 'not questionnaire',
+      ),
+    ).toEqual(['g', 'a', undefined, 'h', undefined, undefined, undefined, undefined]);
+  });
+
   it("passes core's analysis to sdc rules only, never to a plugin rule", () => {
     const received: unknown[][] = [];
     const recording = {
@@ -380,6 +435,12 @@ describe('runRules on what a rule reports', () => {
       ctx.report({ site: textSite, message: 'Ranged.', range: { startOffset: 0, endOffset: 7 } });
     });
     expect(runRules(inBundle, [rule])).toHaveLength(2);
+  });
+});
+
+describe('RuleContext', () => {
+  it('has no options: rule options are not built (S7 in docs/smart-forms-rules.md)', () => {
+    expectTypeOf<RuleContext>().not.toHaveProperty('options');
   });
 });
 
@@ -457,15 +518,15 @@ describe('RuleContext name analysis (API stage B)', () => {
   const references = (...of: ExpressionSite[]) =>
     received((ctx, site) => ctx.referencesAt(site), of);
 
-  it('gives the references of a FHIRPath site, with offsets and complete', () => {
+  it('gives the references of a FHIRPath site, with offsets, complete and conditional', () => {
     expect(references(at('expression', '%title & %qitem.linkId'))).toEqual([
       [
-        { name: 'title', startOffset: 0, endOffset: 6, complete: true },
-        { name: 'qitem', startOffset: 9, endOffset: 15, complete: true },
+        { name: 'title', startOffset: 0, endOffset: 6, complete: true, conditional: false },
+        { name: 'qitem', startOffset: 9, endOffset: 15, complete: true, conditional: false },
       ],
     ]);
     expect(references(at('expression', "defineVariable('v' + 'w', 1).select(%v)"))).toEqual([
-      [{ name: 'v', startOffset: 36, endOffset: 38, complete: false }],
+      [{ name: 'v', startOffset: 36, endOffset: 38, complete: false, conditional: true }],
     ]);
   });
 
@@ -493,7 +554,7 @@ describe('RuleContext name analysis (API stage B)', () => {
 
   it('gives the references of a fragment site', () => {
     expect(references(at('fragment', '%patient.id'))).toEqual([
-      [{ name: 'patient', startOffset: 0, endOffset: 8, complete: true }],
+      [{ name: 'patient', startOffset: 0, endOffset: 8, complete: true, conditional: false }],
     ]);
   });
 
@@ -638,6 +699,120 @@ describe('RuleContext sites and declarations (API stage B2)', () => {
   });
 });
 
+describe('RuleContext dependencies, uses and readsInput (API stage C)', () => {
+  const variable = (name: string, text: string, language = 'text/fhirpath') => ({
+    url: 'http://hl7.org/fhir/StructureDefinition/variable',
+    valueExpression: { name, language, expression: text },
+  });
+  const document: QuestionnaireDocument = {
+    file: 'Q.json',
+    resource: {
+      resourceType: 'Questionnaire',
+      extension: [variable('title', "'T'"), variable('unused', '1')],
+      item: [
+        {
+          linkId: 'g',
+          type: 'group',
+          extension: [
+            variable('x', '%title & item.answer.value'),
+            variable('y', '%x & linkId'),
+            variable('z', '%x.('),
+          ],
+          item: [{ linkId: 'a', type: 'string' }],
+        },
+        { linkId: 'b', type: 'string', extension: [variable('c', '%title', 'text/cql')] },
+        { linkId: 'h', type: 'string', extension: [variable('w', '2')] },
+      ],
+    },
+    resourcePointer: '',
+    localResources: [],
+  };
+  const sites = findExpressionSites(document);
+  const analysed = {
+    input: doc.input,
+    document,
+    sites,
+    analysis: analyseDocument(document, sites),
+  };
+
+  function received<T>(read: (ctx: RuleContext) => T): T {
+    let result: T | undefined;
+    const rule = {
+      meta: { description: 'Records what it receives.', defaultSeverity: 'error' },
+      check: (ctx: RuleContext) => {
+        result = read(ctx);
+      },
+    } as LintRule;
+    runRules(analysed, [
+      { id: 'test/rule', namespace: 'test', rule, setting: 'error', compat: {} },
+    ]);
+    return result as T;
+  }
+  const named = (ctx: RuleContext, name: string) => {
+    const found = ctx.declarations.find((declaration) => declaration.name === name);
+    if (found === undefined) throw new Error(`no declaration ${name}`);
+    return found;
+  };
+
+  it("gives a declaration's dependencies, as the analysis holds them", () => {
+    const [x, y, title] = received((ctx) =>
+      ['x', 'y', 'title'].map((name) => ctx.dependenciesOf(named(ctx, name))),
+    );
+    expect(x?.on.map(({ name }) => name)).toEqual(['title']);
+    expect(y?.on.map(({ name }) => name)).toEqual(['x']);
+    expect(title).toEqual({ on: [], analysed: true, known: true });
+    expect(Object.isFrozen(x?.on)).toBe(true);
+  });
+
+  it("gives a declaration's use", () => {
+    // Only z, which does not parse, can reference y; the CQL on b can reference unused.
+    expect(
+      received((ctx) =>
+        ['title', 'x', 'w', 'y', 'unused'].map((name) => ctx.useOf(named(ctx, name))),
+      ),
+    ).toEqual(['referenced', 'referenced', 'unreferenced', 'blocked', 'unknown']);
+  });
+
+  it('gives undefined for a copy of a declaration', () => {
+    expect(
+      received((ctx) => {
+        const copy = { ...named(ctx, 'x') };
+        return [ctx.dependenciesOf(copy), ctx.useOf(copy)];
+      }),
+    ).toEqual([undefined, undefined]);
+  });
+
+  it('tells whether a site reads its input other than its linkId', () => {
+    expect(
+      received((ctx) =>
+        ['x', 'y', 'title'].map((name) => {
+          const { site } = named(ctx, name);
+          return site === undefined ? 'no site' : ctx.readsInput(site);
+        }),
+      ),
+    ).toEqual([true, false, false]);
+  });
+
+  it('gives undefined where referencesAt does, and for a copy of a site', () => {
+    expect(
+      received((ctx) =>
+        [
+          named(ctx, 'z').site,
+          named(ctx, 'c').site,
+          { ...(named(ctx, 'x').site as ExpressionSite) },
+        ].map((site) => [
+          ctx.referencesAt(site as ExpressionSite),
+          ctx.readsInput(site as ExpressionSite),
+        ]),
+      ),
+    ).toEqual([
+      [undefined, undefined],
+      [undefined, undefined],
+      [undefined, undefined],
+    ]);
+  });
+});
+
 describe('plugin findings in a report', () => {
   it('produce a valid report for each accepted shape', async () => {
     const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
@@ -717,6 +892,59 @@ describe('plugin findings in a report', () => {
       },
     ]);
     expect(report.run.plugins.map(({ name }) => name)).toEqual(['demo', 'sdc']);
+  });
+
+  it("carry their rule's docsUrl after note, in a valid report", async () => {
+    const cwd = await tempTree({
+      'sdc-questionnaire-lint.config.mjs': `export default {
+        plugins: [{
+          meta: { name: 'demo', version: '0.0.0' },
+          rules: {
+            documented: {
+              meta: {
+                description: 'Reports the resource.',
+                defaultSeverity: 'warning',
+                docsUrl: 'https://example.org/rules/documented',
+              },
+              check(ctx) {
+                ctx.report({ message: 'Documented.', help: 'h', note: 'n' });
+              },
+            },
+            undocumented: {
+              meta: { description: 'Reports the resource.', defaultSeverity: 'warning' },
+              check(ctx) {
+                ctx.report({ message: 'Undocumented.' });
+              },
+            },
+          },
+        }],
+      };`,
+      'fsh-generated/resources/Questionnaire-A.json': JSON.stringify({
+        resourceType: 'Questionnaire',
+        id: 'A',
+        status: 'draft',
+      }),
+    });
+    const report = expectValidReport(JSON.parse(formatJsonReport(await lint({ cwd }))));
+    if (report.status !== 'completed') throw new Error('the run failed');
+    const [documented, undocumented] = ['demo/documented', 'demo/undocumented'].map((id) =>
+      report.findings.find(({ ruleId }) => ruleId === id),
+    );
+    expect(Object.keys(documented ?? {})).toEqual([
+      'kind',
+      'ruleId',
+      'severity',
+      'message',
+      'help',
+      'note',
+      'docsUrl',
+      'jsonLocation',
+      'sourceLocation',
+      'fingerprint',
+    ]);
+    expect(documented?.docsUrl).toBe('https://example.org/rules/documented');
+    expect(undocumented).toBeDefined();
+    expect(undocumented).not.toHaveProperty('docsUrl');
   });
 
   it('never runs a plugin rule configured off', async () => {

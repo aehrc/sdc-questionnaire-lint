@@ -1,0 +1,16 @@
+# Population binds an itemPopulationContext per repetition; it is not a variable.
+items:
+  - linkId: g
+    type: group
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: itemPopulationContext
+        name: ctx
+        expression: '%resource.item'
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: initialExpression
+            expression: '%ctx.linkId'

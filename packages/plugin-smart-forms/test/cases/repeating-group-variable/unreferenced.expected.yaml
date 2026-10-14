@@ -1,0 +1,7 @@
+- ruleId: sdc/unused-declaration
+  severity: warning
+  at: input/fsh/repeating-group-variable-unreferenced.fsh:11:51
+  message: '%v is declared on item "Medication" (g), but no expression references it, so its value is never used.'
+  help: remove the variable, or reference %v where its value is needed
+  expression:
+    text: item.answer.value

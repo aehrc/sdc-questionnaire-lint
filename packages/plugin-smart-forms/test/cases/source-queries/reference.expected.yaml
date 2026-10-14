@@ -1,0 +1,10 @@
+- ruleId: sdc/undefined-variable
+  severity: error
+  at: input/fsh/source-queries-reference.fsh:8:65
+  message: '%sourceQuery0 is not available on the Questionnaire root.'
+  help: 'a variable with a similar name is available: %sourceQuery1'
+  expression:
+    text: '%sourceQuery1.total + %sourceQuery0.total'
+    range:
+      startOffset: 22
+      endOffset: 35

@@ -1,0 +1,23 @@
+# A root and an item variable are each named like the sourceQueries Bundle %prepop. The item's is
+# also declared on the root.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: prepop
+    expression: '1'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries"'
+  - 'extension[=].valueReference.reference = "#prepop"'
+  - 'contained[0].resourceType = "Bundle"'
+  - 'contained[0].id = "prepop"'
+  - 'contained[0].type = #batch'
+  - 'contained[0].entry[0].request.method = #GET'
+  - 'contained[0].entry[0].request.url = "Observation?code=1"'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: prepop
+        expression: '2'

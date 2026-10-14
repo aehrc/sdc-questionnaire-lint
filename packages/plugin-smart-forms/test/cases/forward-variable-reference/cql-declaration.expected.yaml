@@ -1,0 +1,7 @@
+- ruleId: smart-forms/unsupported-expression-language
+  severity: error
+  at: input/fsh/forward-variable-reference-cql-declaration.fsh:12:46
+  message: Smart Forms ignores this variable on the Questionnaire root because it is written in text/cql; it uses only text/fhirpath here, so this variable never sets %y.
+  help: rewrite it in FHIRPath with the language text/fhirpath; to use server data, fetch it in an application/x-fhir-query variable on this item or an ancestor and reference that variable
+  expression:
+    text: '1'

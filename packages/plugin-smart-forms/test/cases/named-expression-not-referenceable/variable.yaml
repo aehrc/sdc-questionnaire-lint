@@ -1,0 +1,10 @@
+# A reference to a variable is not reported.
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: variable
+        name: x
+        expression: "'a'"
+      - url: calculatedExpression
+        expression: '%x'

@@ -1,0 +1,104 @@
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-kinds.fsh:13:54
+  message: '%init refers to the initialExpression on item initial, which Smart Forms does not make available to other expressions, so the reference never gets its value.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%init'
+    range:
+      startOffset: 0
+      endOffset: 5
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%init is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-kinds.fsh:22:54
+  message: '%shown refers to the enableWhenExpression on item enable-when, which Smart Forms does not make available to other expressions, so the reference never gets its value.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%shown'
+    range:
+      startOffset: 0
+      endOffset: 6
+  related:
+    - at: /item/1/extension/0/valueExpression/expression (source-unavailable)
+      message: '%shown is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-kinds.fsh:31:54
+  message: '%answers refers to the answerExpression on item answer, which Smart Forms does not make available to other expressions, so the reference never gets its value.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%answers.first()'
+    range:
+      startOffset: 0
+      endOffset: 8
+  related:
+    - at: /item/2/extension/0/valueExpression/expression (source-unavailable)
+      message: '%answers is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-kinds.fsh:40:54
+  message: '%candidates refers to the candidateExpression on item candidate, which Smart Forms does not make available to other expressions, so the reference never gets its value.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%candidates.first()'
+    range:
+      startOffset: 0
+      endOffset: 11
+  related:
+    - at: /item/3/extension/0/valueExpression/expression (source-unavailable)
+      message: '%candidates is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-kinds.fsh:50:54
+  message: '%ctx refers to the contextExpression on item context, which Smart Forms does not make available to other expressions, so the reference never gets its value.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%ctx'
+    range:
+      startOffset: 0
+      endOffset: 4
+  related:
+    - at: /item/4/extension/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%ctx is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-kinds.fsh:62:54
+  message: '%toggled refers to the answerOptionsToggleExpression on item toggle, which Smart Forms does not make available to other expressions, so the reference never gets its value.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%toggled.toString()'
+    range:
+      startOffset: 0
+      endOffset: 8
+  related:
+    - at: /item/5/extension/0/extension/1/valueExpression/expression (source-unavailable)
+      message: '%toggled is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-kinds.fsh:78:54
+  message: '%valid refers to the targetConstraint on item constraint, which Smart Forms does not make available to other expressions, so the reference never gets its value.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%valid.toString()'
+    range:
+      startOffset: 0
+      endOffset: 6
+  related:
+    - at: /item/6/extension/0/extension/2/valueExpression/expression (source-unavailable)
+      message: '%valid is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-kinds.fsh:84:51
+  message: '%label refers to the cqf-expression on text on item "Label" (label), which Smart Forms does not make available to other expressions, so the reference never gets its value.'
+  help: declare the value as a variable with a name no other declaration uses, on this item or an ancestor, and reference that
+  expression:
+    text: '%label'
+    range:
+      startOffset: 0
+      endOffset: 6
+  related:
+    - at: /item/7/_text/extension/0/valueExpression/expression (source-unavailable)
+      message: '%label is declared here'

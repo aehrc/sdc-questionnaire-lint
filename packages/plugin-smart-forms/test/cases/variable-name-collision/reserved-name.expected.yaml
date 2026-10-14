@@ -1,0 +1,14 @@
+- ruleId: sdc/reserved-name
+  severity: error
+  at: input/fsh/variable-name-collision-reserved-name.fsh:10:51
+  message: The name %qitem is defined by SDC, so a form cannot declare it; it is unclear which value expressions that use it get.
+  help: rename the declaration, and the expressions that should use it
+  expression:
+    text: "'a'"
+- ruleId: sdc/reserved-name
+  severity: error
+  at: input/fsh/variable-name-collision-reserved-name.fsh:16:51
+  message: The name %qitem is defined by SDC, so a form cannot declare it; it is unclear which value expressions that use it get.
+  help: rename the declaration, and the expressions that should use it
+  expression:
+    text: "'b'"

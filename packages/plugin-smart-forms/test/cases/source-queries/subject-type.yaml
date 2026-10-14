@@ -1,0 +1,14 @@
+# Population reads no sourceQueries for a Questionnaire whose subjectType lacks Patient.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: count
+    expression: '%sourceQuery0.total'
+fsh:
+  - 'subjectType = #Group'
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries"'
+  - 'extension[=].valueReference.reference = "Observation?code=1"'
+items:
+  - linkId: q
+    type: string

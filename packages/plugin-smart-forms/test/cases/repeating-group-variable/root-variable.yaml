@@ -1,0 +1,21 @@
+# A reference to a root variable does not make a variable differ between repetitions.
+extensions:
+  - url: variable
+    name: r
+    expression: "'root'"
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: v
+        expression: "%r & 'x'"
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%v'

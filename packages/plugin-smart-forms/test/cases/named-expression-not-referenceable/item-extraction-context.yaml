@@ -1,0 +1,15 @@
+# An itemExtractionContext stores no name: Smart Forms does not support definition-based extraction.
+items:
+  - linkId: g
+    type: group
+    text: Observation
+    extensions:
+      - url: http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemExtractionContext
+        name: observation
+        expression: "'Observation'"
+    items:
+      - linkId: q
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%observation'

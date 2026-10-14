@@ -24,7 +24,6 @@ export type {
   RunCompat,
   RunMetadata,
   Severity,
-  SmartFormsVersions,
   SourceLocation,
   SourceMapResult,
   SourceTarget,
@@ -47,12 +46,20 @@ export type {
   QuestionnaireDocument,
   SiteItem,
 } from './analysis/expression-site.js';
-// Core's name analysis for plugin rules (API stage B, docs/architecture.md § What a plugin can
-// import).
-export type { AvailableVariables, Variable } from './analysis/available-variables.js';
-export type { Declaration, DeclarationKind } from './analysis/declarations.js';
-export type { VariableReference } from './analysis/fhirpath.js';
+// Core's name analysis for plugin rules (API stages B, B2, C and D, docs/architecture.md § What a
+// plugin can import).
+export { definerOf } from './analysis/available-variables.js';
 export type {
+  AvailableVariables,
+  BuiltinDefiner,
+  Variable,
+} from './analysis/available-variables.js';
+export type { Declaration, DeclarationKind } from './analysis/declarations.js';
+export type { Dependencies } from './analysis/dependencies.js';
+export type { VariableReference } from './analysis/fhirpath.js';
+export type { DeclarationUse } from './analysis/uses.js';
+export type {
+  HostVariablesInput,
   LintPlugin,
   LintRule,
   PluginCompat,

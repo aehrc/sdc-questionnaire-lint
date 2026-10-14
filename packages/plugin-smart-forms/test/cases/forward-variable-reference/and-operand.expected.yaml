@@ -1,0 +1,15 @@
+- ruleId: smart-forms/forward-variable-reference
+  severity: warning
+  at: input/fsh/forward-variable-reference-and-operand.fsh:8:56
+  message: '%x references %y on the Questionnaire root, which Smart Forms evaluates after %x when it prefills the form, so %x has no value while the form is prefilled.'
+  help: move %y before %x on the Questionnaire root
+  expression:
+    text: false and %y
+    range:
+      startOffset: 10
+      endOffset: 12
+  related:
+    - at: /extension/1/valueExpression/expression (source-unavailable)
+      message: '%y is declared here'
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: this prefill expression uses %x

@@ -1,0 +1,8 @@
+- ruleId: smart-forms/variable-name-collision
+  severity: error
+  at: /extension/0 (not-found)
+  message: "%patient is also the name of a sourceQueries result; Smart Forms keeps one value for each name, so expressions that read either can get the other's value."
+  help: rename the declaration
+  related:
+    - at: /extension/1 (source-unavailable)
+      message: '%patient is also the name of this sourceQueries result'

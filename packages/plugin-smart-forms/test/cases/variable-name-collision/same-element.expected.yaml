@@ -1,0 +1,10 @@
+- ruleId: sdc/duplicate-declaration
+  severity: error
+  at: input/fsh/variable-name-collision-same-element.fsh:14:54
+  message: The name %x is declared more than once on item a, so it is unclear which value expressions that use it get.
+  help: rename or remove one of the declarations of %x
+  expression:
+    text: "'second'"
+  related:
+    - at: /item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: '%x is also declared here'

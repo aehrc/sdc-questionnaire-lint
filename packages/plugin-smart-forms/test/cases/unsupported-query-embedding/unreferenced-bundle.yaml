@@ -1,0 +1,23 @@
+# Population fetches only the contained Bundles sourceQueries references, so an embedding in
+# another Bundle is not checked.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: conditions
+    language: application/x-fhir-query
+    expression: 'Condition?patient={{%patient.id}}'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+  - 'contained[0].resourceType = "Bundle"'
+  - 'contained[0].id = "other"'
+  - 'contained[0].type = #batch'
+  - 'contained[0].entry[0].request.method = #GET'
+  - 'contained[0].entry[0].request.url = "Observation?subject={{%patientXid}}"'
+items:
+  - linkId: q
+    type: string

@@ -1,0 +1,24 @@
+# A context in a resource contained in the template. SUSHI writes it by path, so the finding is not mapped to its FSH line.
+items:
+  - linkId: bp
+    type: group
+    text: 'Blood pressure'
+    fsh:
+      - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtract"'
+      - 'extension[=].extension[0].url = "template"'
+      - 'extension[=].extension[=].valueReference.reference = "#template-contained"'
+    items:
+      - linkId: systolic
+        type: decimal
+contained:
+  - resourceType: Observation
+    fsh:
+      - 'id = "template-contained"'
+      - 'status = #final'
+      - 'code.text = "Blood pressure"'
+      - 'component[0].code.text = "Systolic"'
+      - 'contained[0].resourceType = "Patient"'
+      - 'contained[0].id = "patient"'
+      - 'contained[0].name[0].extension[0].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-templateExtractContext"'
+      - 'contained[0].name[0].extension[0].valueExpression.language = #text/fhirpath'
+      - 'contained[0].name[0].extension[0].valueExpression.expression = "item.where(linkId = ''name'')"'

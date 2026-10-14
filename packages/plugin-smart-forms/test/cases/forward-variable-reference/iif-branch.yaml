@@ -1,0 +1,28 @@
+# A reference in an iif branch, in function, method and nested form, may be skipped.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    expression: "iif(true, %y, 'n') & %resource.iif(true, %w) & iif(true, iif(true, %v), 'n')"
+  - url: variable
+    name: y
+    expression: '1'
+  - url: variable
+    name: w
+    expression: '2'
+  - url: variable
+    name: v
+    expression: '3'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: initialExpression
+        expression: '%x'

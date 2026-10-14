@@ -1,0 +1,56 @@
+- ruleId: sdc/external-expression
+  severity: info
+  at: /item/3/extension/0/valueExpression (not-found)
+  message: This expression has no text, only the reference Library/contexts, so it was not checked.
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-population-context-reasons.fsh:13:51
+  message: '%rootContext refers to the itemPopulationContext on the Questionnaire root, which Smart Forms does not make available to other expressions, because it is on the Questionnaire root, so the reference never gets its value.'
+  help: make it the only itemPopulationContext on a group with child items, with expression text, or declare the value as a variable
+  expression:
+    text: '%rootContext.id'
+    range:
+      startOffset: 0
+      endOffset: 12
+  related:
+    - at: /extension/0/valueExpression/expression (source-unavailable)
+      message: '%rootContext is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-population-context-reasons.fsh:23:54
+  message: '%leafContext refers to the itemPopulationContext on item "Leaf" (leaf), which Smart Forms does not make available to other expressions, because the item has no child items, so the reference never gets its value.'
+  help: make it the only itemPopulationContext on a group with child items, with expression text, or declare the value as a variable
+  expression:
+    text: '%leafContext.id'
+    range:
+      startOffset: 0
+      endOffset: 12
+  related:
+    - at: /item/1/extension/0/valueExpression/expression (source-unavailable)
+      message: '%leafContext is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-population-context-reasons.fsh:39:59
+  message: '%secondContext refers to the itemPopulationContext on item "Second" (second), which Smart Forms does not make available to other expressions, because another itemPopulationContext comes first on the item, so the reference never gets its value.'
+  help: make it the only itemPopulationContext on a group with child items, with expression text, or declare the value as a variable
+  expression:
+    text: '%secondContext.id'
+    range:
+      startOffset: 0
+      endOffset: 14
+  related:
+    - at: /item/2/extension/1/valueExpression/expression (source-unavailable)
+      message: '%secondContext is declared here'
+- ruleId: smart-forms/named-expression-not-referenceable
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-population-context-reasons.fsh:51:59
+  message: '%referenceContext refers to the itemPopulationContext on item "No text" (no-text), which Smart Forms does not make available to other expressions, because it has no expression text, so the reference never gets its value.'
+  help: make it the only itemPopulationContext on a group with child items, with expression text, or declare the value as a variable
+  expression:
+    text: '%referenceContext.id'
+    range:
+      startOffset: 0
+      endOffset: 17
+  related:
+    - at: /item/3/extension/0/valueExpression (source-unavailable)
+      message: '%referenceContext is declared here'

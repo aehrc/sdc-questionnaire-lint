@@ -1,0 +1,13 @@
+- ruleId: sdc/uncatalogued-expression
+  severity: info
+  at: input/fsh/unsupported-template-extract-context-two-items.fsh:32:59
+  message: This expression is in a place the linter does not recognise, so only its FHIRPath syntax and function names can be checked.
+  expression:
+    text: item.where(linkId = 'systolic')
+- ruleId: smart-forms/unsupported-template-extract-context
+  severity: error
+  at: input/fsh/unsupported-template-extract-context-two-items.fsh:32:59
+  message: When Smart Forms extracts this template, it ignores this templateExtractContext because it reads only valueString, so the values below it are extracted without this context.
+  help: set the context as valueString with the same FHIRPath
+  expression:
+    text: item.where(linkId = 'systolic')

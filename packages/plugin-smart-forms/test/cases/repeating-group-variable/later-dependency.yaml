@@ -1,0 +1,21 @@
+# %total depends on %dose, a later variable on the same item: within a repetition it still holds
+# the previous repetition's value.
+items:
+  - linkId: g
+    type: group
+    text: Medication
+    fsh:
+      - 'repeats = true'
+    extensions:
+      - url: variable
+        name: total
+        expression: '%dose.count()'
+      - url: variable
+        name: dose
+        expression: 'item.answer.value'
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: calculatedExpression
+            expression: '%total'

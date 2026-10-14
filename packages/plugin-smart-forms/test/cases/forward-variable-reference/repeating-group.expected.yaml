@@ -1,0 +1,37 @@
+- ruleId: smart-forms/forward-variable-reference
+  severity: warning
+  at: input/fsh/forward-variable-reference-repeating-group.fsh:20:54
+  message: '%x references %y on item "Medication" (g), which Smart Forms evaluates after %x when it prefills the form, so %x has no value while the form is prefilled.'
+  help: move %y before %x on item "Medication" (g)
+  expression:
+    text: '%y'
+    range:
+      startOffset: 0
+      endOffset: 2
+  related:
+    - at: /item/0/extension/2/valueExpression/expression (source-unavailable)
+      message: '%y is declared here'
+    - at: /item/0/item/0/extension/0/valueExpression/expression (source-unavailable)
+      message: this prefill expression uses %x
+- ruleId: smart-forms/repeating-group-variable
+  severity: warning
+  at: input/fsh/forward-variable-reference-repeating-group.fsh:20:54
+  message: '%x depends on %y, which is calculated for each repetition of item "Medication" (g); Smart Forms keeps one value of each, so %x may use another repetition''s value.'
+  help: compute it from the whole response, or move the item out of the repeating group
+  expression:
+    text: '%y'
+  related:
+    - at: /item/0 (source-unavailable)
+      message: this group repeats
+    - at: /item/0/extension/2/valueExpression/expression (source-unavailable)
+      message: '%y is calculated for each repetition'
+- ruleId: smart-forms/repeating-group-variable
+  severity: warning
+  at: input/fsh/forward-variable-reference-repeating-group.fsh:24:54
+  message: '%y is calculated for each repetition of item "Medication" (g), but Smart Forms keeps one value, so every repetition gets the value calculated for one of them, usually the last.'
+  help: compute it from the whole response, or move the item out of the repeating group
+  expression:
+    text: item.where(linkId = 'q').answer.value
+  related:
+    - at: /item/0 (source-unavailable)
+      message: this group repeats

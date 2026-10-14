@@ -1,0 +1,32 @@
+# Population never evaluates the variables of an item whose linkId is __proto__, so its y does not
+# bind %y before the root's x reads it.
+rules:
+  sdc/unused-declaration: 'off'
+extensions:
+  - url: variable
+    name: x
+    expression: '%y'
+  - url: variable
+    name: y
+    expression: '1'
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext"'
+  - 'extension[=].extension[0].url = "name"'
+  - 'extension[=].extension[=].valueCoding = http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext#patient'
+  - 'extension[=].extension[+].url = "type"'
+  - 'extension[=].extension[=].valueCode = #Patient'
+items:
+  - linkId: q
+    type: string
+    extensions:
+      - url: initialExpression
+        expression: '%x'
+  - linkId: g
+    type: group
+    items:
+      - linkId: __proto__
+        type: string
+        extensions:
+          - url: variable
+            name: y
+            expression: '2'

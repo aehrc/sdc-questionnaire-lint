@@ -1,0 +1,13 @@
+- ruleId: sdc/external-expression
+  severity: info
+  at: /contained/0/component/0/extension/0/valueExpression (not-found)
+  message: This expression has no text, only the reference http://example.org/Library/bp#systolic, so it was not checked.
+- ruleId: sdc/uncatalogued-expression
+  severity: info
+  at: /contained/0/component/0/extension/0/valueExpression (not-found)
+  message: This expression is in a place the linter does not recognise, so it was not checked.
+- ruleId: smart-forms/unsupported-template-extract-context
+  severity: error
+  at: /contained/0/component/0/extension/0/valueExpression (not-found)
+  message: When Smart Forms extracts this template, it ignores this templateExtractContext because it reads only valueString, so the values below it are extracted without this context.
+  help: set the context as valueString with a FHIRPath expression

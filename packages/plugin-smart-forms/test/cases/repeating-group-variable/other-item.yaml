@@ -1,0 +1,23 @@
+# %v references %a on an ancestor that does not repeat: evaluated once, so %v does not differ.
+items:
+  - linkId: o
+    type: group
+    extensions:
+      - url: variable
+        name: a
+        expression: 'item.answer.value'
+    items:
+      - linkId: g
+        type: group
+        fsh:
+          - 'repeats = true'
+        extensions:
+          - url: variable
+            name: v
+            expression: '%a.count()'
+        items:
+          - linkId: q
+            type: string
+            extensions:
+              - url: calculatedExpression
+                expression: '%v'

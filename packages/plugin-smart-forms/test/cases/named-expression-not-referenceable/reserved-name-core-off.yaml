@@ -1,0 +1,12 @@
+# As reserved-name, with sdc/reserved-name off: still silent.
+rules:
+  sdc/reserved-name: 'off'
+items:
+  - linkId: a
+    type: string
+    extensions:
+      - url: calculatedExpression
+        name: resource
+        expression: "'a'"
+      - url: enableWhenExpression
+        expression: "%resource = 'a'"

@@ -1,0 +1,20 @@
+# A sourceQueries result named %prepop can supply the name: the sourceQueries extension is a related
+# location.
+fsh:
+  - 'extension[+].url = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries"'
+  - 'extension[=].valueReference.reference = "#prepop"'
+  - 'contained[0].resourceType = "Bundle"'
+  - 'contained[0].id = "prepop"'
+  - 'contained[0].type = #batch'
+  - 'contained[0].entry[0].request.method = #GET'
+  - 'contained[0].entry[0].request.url = "Observation?code=1"'
+items:
+  - linkId: a
+    type: string
+    text: A
+    extensions:
+      - url: initialExpression
+        name: prepop
+        expression: "'a'"
+      - url: calculatedExpression
+        expression: '%prepop.entry.count().toString()'

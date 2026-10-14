@@ -50,7 +50,7 @@ export const myRule: LintRule = {
     description: 'Reports …', // one line, shown by sdc-lint explain
     defaultSeverity: 'warning', // error, warning or info
     docs: { checks: '…', why: '…', exampleMessage: '…', fix: '…', limitations: '…' },
-    // docsUrl: 'https://…', // optional, an absolute URL
+    // docsUrl: 'https://…', // optional, an absolute URL of URI characters, copied into each finding
   },
   check(ctx) {
     for (const site of ctx.sites) {
@@ -74,10 +74,9 @@ A rule has no ID of its own. Its ID is `<plugin meta.name>/<key>`, the key it is
 | `document` | The `QuestionnaireDocument`: the input `file`, the `resource`, its `resourcePointer` in the file and, for a Bundle, its `localResources` |
 | `sites` | Every expression site in the Questionnaire, flat and frozen, in document order. A site has its `pointer`, `carrier` (`expression` or `fragment`), catalogued `location`, `item`, `language`, `text`, `reference`, `name`, `declares`, `useCases`, and `fragment` for a `{{…}}` fragment of an x-fhir-query ([`analysis/expression-site.ts`](../packages/core/src/analysis/expression-site.ts)) |
 | `declarations` | Every declaration in the Questionnaire, flat and frozen, in document order: variables, other named expressions, launchContexts and extractAllocateIds. Each has its `name`, `kind`, `pointer`, `item`, `useCases` and, for an Expression, its `site`, one of `sites`. Compare items by `pointer`: a launchContext's or extractAllocateId's `item` is not the same object as a site's |
-| `referencesAt(site)` | The `%name` references in a site's FHIRPath, fragments included; `[]` when the text parses and references nothing |
+| `referencesAt(site)` | The `%name` references in a site's FHIRPath, fragments included; `[]` when the text parses and references nothing. Each is `complete` unless a `defineVariable` with a computed name may bind it, and `conditional` where fhirpath.js may skip evaluating it, as in an `iif` branch |
 | `variablesAt(site)` | The names an expression can reference at a site, and `resolve(name)`, the variable a name resolves to |
 | `compat` | The component versions the run selected for the rule's namespace, such as `{ renderer: '1.4.0', populate: '4.7.1' }`; `{}` for a plugin without `compat` |
-| `options` | Always `undefined`: see [Not yet available](#10-not-yet-available) |
 | `report(finding)` | Reports one finding; see [section 3](#3-findings-and-messages) |
 
 `referencesAt` and `variablesAt` are core's name analysis. Each returns `undefined` where core cannot analyse the site: `referencesAt` for a site whose language is not `text/fhirpath`, that has no text, or whose text does not parse; `variablesAt` for an uncatalogued site. Both return `undefined` for an object that is not one of `ctx.sites`: they compare by identity, so a copy of a site is not one. A rule treats `undefined` as "cannot check" and reports nothing there, never as "no references".
@@ -90,7 +89,7 @@ Rules are pure:
 
 A throw, a returned promise or an invalid finding fails the whole run with exit 2 and the failure code `RULE_CRASH`, which names the rule. Built-in and plugin rules are treated alike.
 
-**Core rules that read the analysis.** An `sdc` rule can use core's internal `DocumentAnalysis`: declarations, dependencies, uses, linkIds and more ([architecture.md §4](architecture.md#4-expression-discovery-analysis)). Such a rule is a `CoreRule` ([`plugins/core-rule.ts`](../packages/core/src/plugins/core-rule.ts)), and its `check(ctx, analysis)` receives the analysis as a second argument. The runner passes it to `sdc` rules only. `sdc/reserved-name` ([`rules/reserved-name.ts`](../packages/core/src/rules/reserved-name.ts)) is a short example. A plugin rule has only the public `RuleContext`.
+**Core rules that read the analysis.** An `sdc` rule can use core's internal `DocumentAnalysis`: declarations, dependencies, uses, linkIds and more ([architecture.md §4](architecture.md#4-expression-discovery-and-analysis-analysis)). Such a rule is a `CoreRule` ([`plugins/core-rule.ts`](../packages/core/src/plugins/core-rule.ts)), and its `check(ctx, analysis)` receives the analysis as a second argument. The runner passes it to `sdc` rules only. `sdc/reserved-name` ([`rules/reserved-name.ts`](../packages/core/src/rules/reserved-name.ts)) is a short example. A plugin rule has only the public `RuleContext`.
 
 **Core helpers.** A core rule reads FHIRPath through [`analysis/fhirpath.ts`](../packages/core/src/analysis/fhirpath.ts), the only module that uses fhirpath.js: `hasFhirPathText(site)` (the language is `text/fhirpath` and the site has text), `findFhirPathSyntaxProblem(text)` (`undefined` when the text parses), `findFunctionCalls(text)` (each call's name and range; `undefined` when the text does not parse) and `findVariableReferences(text)`. Query strings go through [`analysis/x-fhir-query.ts`](../packages/core/src/analysis/x-fhir-query.ts). These helpers are internal: a plugin cannot import them.
 
@@ -272,6 +271,5 @@ For a plugin outside this repository, run your own tests, then list the plugin i
 
 The contract does not offer these yet. Don't build on them; each will be documented here when it lands.
 
-- **Rule options.** `ctx.options` exists in the contract but is always `undefined`: a config cannot pass options to a rule.
 - **Stability.** There is no `stability` field (`preview` or `stable`) in `meta`; every rule runs as it is.
 - **Suggested edits.** `RuleFinding` has no field for a suggested edit, although the report format has `suggestions`. Put the fix in `help`.

@@ -9,7 +9,7 @@
 //              contained? }
 // Item:      { linkId, type, text?, extensions?, fsh?, items? }
 // Extension: { url, name?, language?, expression?, reference? } (at least one of the last two)
-// Contained: { extensions?, fsh?, items? }
+// Contained: { resourceType?, extensions?, fsh?, items? }
 // - instance defaults to the file name; a case's is <group>-<case>.
 // - hostVariables, rules and suppress, with the plugins of the project, become the linter config of
 //   this Questionnaire, as the config file gives them. A suppression's file is
@@ -20,7 +20,9 @@
 // - fsh holds raw FSH lines for anything else (launchContext, answerOption, enableWhen…), written
 //   after the extensions of the same level, below its path: "required = true" on an item becomes
 //   "* item[=].required = true".
-// - contained Questionnaires become inline instances named <instance>-contained-<n>.
+// - contained resources become inline instances named <instance>-contained-<n>, which is also
+//   their id unless fsh sets one. resourceType defaults to Questionnaire; only a Questionnaire gets
+//   a status, and items are written as Questionnaire items whatever the type.
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -44,6 +46,7 @@ export interface FshItem {
 }
 
 export interface FshContained {
+  resourceType?: string;
   extensions?: FshExtension[];
   fsh?: string[];
   items?: FshItem[];
@@ -114,11 +117,12 @@ function itemLines(prefix: string, items: readonly FshItem[]): string[] {
 }
 
 function instanceLines(name: string, usage: string, status: string, body: FshContained): string[] {
+  const resourceType = body.resourceType ?? 'Questionnaire';
   return [
     `Instance: ${name}`,
-    'InstanceOf: Questionnaire',
+    `InstanceOf: ${resourceType}`,
     `Usage: #${usage}`,
-    `* status = #${status}`,
+    ...(resourceType === 'Questionnaire' ? [`* status = #${status}`] : []),
     ...extensionLines('', body.extensions ?? []),
     ...(body.fsh ?? []).map((line) => `* ${line}`),
     ...itemLines('', body.items ?? []),
@@ -255,7 +259,9 @@ export function parseFshConfig(value: unknown, instance?: string): FshConfig {
   checkBody(config, '');
   list(config, '', 'contained').forEach((body, entry) => {
     const where = `contained[${String(entry)}]`;
-    checkBody(object(body, where, ['extensions', 'fsh', 'items']), where);
+    const json = object(body, where, ['resourceType', 'extensions', 'fsh', 'items']);
+    checkStrings(json, where, [], ['resourceType']);
+    checkBody(json, where);
   });
   return { ...(config as unknown as FshConfig), instance: name };
 }

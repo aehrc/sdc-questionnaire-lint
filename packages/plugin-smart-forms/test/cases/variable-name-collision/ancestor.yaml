@@ -1,0 +1,18 @@
+# A group and its child item declare %x: population evaluates the child first, so the group's value
+# reaches the child's expressions. sdc/shadowed-declaration reports the SDC scoping at info.
+rules:
+  sdc/unused-declaration: 'off'
+items:
+  - linkId: g
+    type: group
+    extensions:
+      - url: variable
+        name: x
+        expression: "'group'"
+    items:
+      - linkId: a
+        type: string
+        extensions:
+          - url: variable
+            name: x
+            expression: "'item'"

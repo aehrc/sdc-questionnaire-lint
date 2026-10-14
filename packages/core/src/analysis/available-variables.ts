@@ -2,8 +2,9 @@ import type { Declaration } from './declarations.js';
 import type { ExpressionSite, ExpressionUseCase, SiteItem } from './expression-site.js';
 
 // AvailableVariables and Variable are public: plugin rules receive them from RuleContext's
-// variablesAt (API stage B). builtinNames and the functions here stay internal; a plugin reads a
-// variable's origin instead.
+// variablesAt (API stage B). definerOf and BuiltinDefiner are public too (stage C), so a plugin rule
+// can stay silent on the names sdc/reserved-name reports. builtinNames and the other functions here
+// stay internal; a plugin reads a variable's origin instead.
 
 // The specification that defines a built-in name.
 export type BuiltinDefiner = 'FHIR' | 'FHIRPath' | 'SDC';
@@ -28,6 +29,14 @@ export const builtinNames: ReadonlyMap<string, BuiltinDefiner> = new Map([
 
 // FHIR defines every name with these prefixes, such as %vs-conditions and %ext-birthPlace.
 export const builtinPrefixes: readonly string[] = ['vs-', 'ext-'];
+
+// The specification that defines a name, or undefined when none does: the classification
+// sdc/reserved-name reports declarations by, and config hostVariables and plugin hooks are checked
+// against.
+export function definerOf(name: string): BuiltinDefiner | undefined {
+  if (builtinPrefixes.some((prefix) => name.startsWith(prefix))) return 'FHIR';
+  return builtinNames.get(name);
+}
 
 // A name an expression can reference at its site.
 export interface Variable {

@@ -1,5 +1,7 @@
-import type { ExpressionSite, QuestionnaireDocument } from 'sdc-questionnaire-lint';
-// Tests only: core's site discovery is internal, so tests build real sites from its source.
+import type { Declaration, ExpressionSite, QuestionnaireDocument } from 'sdc-questionnaire-lint';
+// Tests only: core's site discovery and name analysis are internal, so tests build real sites and
+// declarations from its source.
+import { findDeclarations } from '../../../core/src/analysis/declarations.js';
 import { findExpressionSites } from '../../../core/src/analysis/expression-sites.js';
 
 export const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
@@ -22,6 +24,16 @@ export function analyse(resource: Record<string, unknown>): {
 } {
   const document = documentOf(resource);
   return { document, sites: findExpressionSites(document) };
+}
+
+// The document, its sites and its declarations, as core finds them.
+export function analyseDeclarations(resource: Record<string, unknown>): {
+  document: QuestionnaireDocument;
+  sites: readonly ExpressionSite[];
+  declarations: readonly Declaration[];
+} {
+  const { document, sites } = analyse(resource);
+  return { document, sites, declarations: findDeclarations(document, sites) };
 }
 
 export function expression(language: string, text: string, name?: string): Record<string, unknown> {
@@ -71,5 +83,13 @@ export function toggle(
   return {
     url: `${sdc}answerOptionsToggleExpression`,
     extension: Object.values(all).filter((part) => part !== undefined),
+  };
+}
+
+// A templateExtract extension with a template slice for each reference, in order.
+export function templateExtract(...references: string[]): Record<string, unknown> {
+  return {
+    url: `${sdc}templateExtract`,
+    extension: references.map((reference) => ({ url: 'template', valueReference: { reference } })),
   };
 }

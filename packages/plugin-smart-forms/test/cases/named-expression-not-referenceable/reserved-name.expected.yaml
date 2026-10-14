@@ -1,0 +1,7 @@
+- ruleId: sdc/reserved-name
+  severity: error
+  at: input/fsh/named-expression-not-referenceable-reserved-name.fsh:10:54
+  message: The name %resource is defined by FHIR, so a form cannot declare it; it is unclear which value expressions that use it get.
+  help: rename the declaration, and the expressions that should use it
+  expression:
+    text: "'a'"
