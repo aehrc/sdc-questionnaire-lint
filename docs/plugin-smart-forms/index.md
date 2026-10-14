@@ -43,7 +43,7 @@ A block without a link has no page yet.
 | 3 | [Site eligibility](eligibility.md) | `eligibility.ts`, `facts/prerequisites.ts` | Works out which Smart Forms component reads an expression, and under what conditions |
 | 4 | [Population model](population.md) | `population.ts`, `stored-names.ts` | Works out what population binds, under which name, and in what order |
 | 5 | [Form readers](readers.md) | `source-queries.ts`, `launch-contexts.ts`, `templates.ts`, `document.ts` | Read sourceQueries, launchContexts and templates as Smart Forms reads them |
-| 6 | Supplied names | `host-variables.ts` | Gives core the sourceQueries names, so `sdc/undefined-variable` accepts them |
+| 6 | [Supplied names](supplied-names.md) | `host-variables.ts` | Gives core the sourceQueries names, so `sdc/undefined-variable` accepts them |
 | 7 | Rules | `rules/` | Lists each rule with the blocks and facts it uses |
 | 8 | Evidence and reproduction | `facts/evidence.ts`, `test/reproduction/` | Backs each fact with a test or a source link, and explains how to verify a new Smart Forms version |
 

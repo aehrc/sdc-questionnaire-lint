@@ -166,6 +166,7 @@ export default withMermaid(
                 { text: 'Site eligibility', link: '/docs/plugin-smart-forms/eligibility' },
                 { text: 'Population model', link: '/docs/plugin-smart-forms/population' },
                 { text: 'Form readers', link: '/docs/plugin-smart-forms/readers' },
+                { text: 'Supplied names', link: '/docs/plugin-smart-forms/supplied-names' },
               ],
             },
           ],
