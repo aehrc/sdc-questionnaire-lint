@@ -180,11 +180,17 @@ describe('sdc-lint explain', () => {
   });
 
   describe('with a plugin', () => {
-    function pluginConfig(meta: Record<string, unknown>) {
+    // compat is the plugin's; configCompat, the config's compat for it.
+    function pluginConfig(
+      meta: Record<string, unknown>,
+      { compat, configCompat }: { compat?: unknown; configCompat?: unknown } = {},
+    ) {
       return tempTree({
         'sdc-questionnaire-lint.config.mjs': `export default {
+          ${configCompat === undefined ? '' : `compat: { demo: ${JSON.stringify(configCompat)} },`}
           plugins: [{
             meta: { name: 'demo', version: '0.0.0' },
+            ${compat === undefined ? '' : `compat: ${JSON.stringify(compat)},`}
             rules: {
               'no-today': {
                 meta: ${JSON.stringify({ description: 'Flags today().', defaultSeverity: 'warning', ...meta })},
@@ -224,6 +230,44 @@ describe('sdc-lint explain', () => {
         'Default severity: warning. Effective severity: warning.\n' +
           'Documentation: https://example.org/no-today\n',
       );
+    });
+
+    describe('with compat', () => {
+      const compat = { verified: { engine: ['1.0.0', '2.0.0'] }, required: ['engine'] };
+
+      it('lists the resolved compat after the config line', async () => {
+        const { code, stdout } = await runInProcess(['explain'], {
+          cwd: await pluginConfig({}, { compat }),
+        });
+        expect(code).toBe(0);
+        expect(stdout).toMatch(
+          /\nConfig: sdc-questionnaire-lint\.config\.mjs\.\nCompat demo: engine 2\.0\.0\.\nRun sdc-lint explain <rule-id> for a rule's documentation\.\n$/,
+        );
+      });
+
+      it("prints the rule's compat after the config line", async () => {
+        const cwd = await pluginConfig({}, { compat });
+        const { stdout } = await runInProcess(['explain', 'demo/no-today'], { cwd });
+        expect(stdout).toMatch(
+          /\n\nConfig: sdc-questionnaire-lint\.config\.mjs\.\nCompat demo: engine 2\.0\.0\.\n$/,
+        );
+      });
+
+      it('prints the version the config selects', async () => {
+        const cwd = await pluginConfig({}, { compat, configCompat: { engine: '1.0.0' } });
+        const list = await runInProcess(['explain'], { cwd });
+        expect(list.stdout).toContain('\nCompat demo: engine 1.0.0.\n');
+        const page = await runInProcess(['explain', 'demo/no-today'], { cwd });
+        expect(page.stdout).toContain('\nCompat demo: engine 1.0.0.\n');
+      });
+
+      it('prints no compat on the page of an sdc rule', async () => {
+        const cwd = await pluginConfig({}, { compat, configCompat: { engine: '1.0.0' } });
+        const { code, stdout } = await runInProcess(['explain', 'sdc/undefined-variable'], { cwd });
+        expect(code).toBe(0);
+        expect(stdout).not.toContain('Compat');
+        expect(stdout).toMatch(/\n\nConfig: sdc-questionnaire-lint\.config\.mjs\.\n$/);
+      });
     });
 
     it('exits 2 for a rule of a plugin that is not listed', async () => {
