@@ -72,7 +72,7 @@ function model(fields: Json): {
     if (declaration === undefined) throw new Error(`no declaration ${name}`);
     return declaration;
   };
-  const describe = (binder: Binder): string | [string, Binding['at']] =>
+  const summary = (binder: Binder): string | [string, Binding['at']] =>
     binder.kind === 'sourceQuery'
       ? binder.pointer
       : [binder.declaration.pointer.replace('/valueExpression/expression', ''), binder.at];
@@ -80,7 +80,7 @@ function model(fields: Json): {
     runs: pop.runs,
     sourceQueries: pop.sourceQueries.map(({ name }) => name),
     bindingOf: (name, which) => pop.bindingOf(named(name, which)),
-    bindersOf: (name) => pop.bindersOf(name).map(describe),
+    bindersOf: (name) => pop.bindersOf(name).map(summary),
   };
 }
 
