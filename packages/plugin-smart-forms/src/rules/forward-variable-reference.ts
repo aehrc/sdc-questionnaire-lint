@@ -3,80 +3,12 @@ import {
   definerOf,
   type ExpressionSite,
   type LintRule,
-  type QuestionnaireDocument,
 } from 'sdc-questionnaire-lint';
-import { arrayOf, elementName, extensionOf, isObject, itemsOf, type Json } from '../document.js';
-import { readBy, requireCompat } from '../eligibility.js';
-import { prerequisitesHold } from '../facts/prerequisites.js';
-import { variableFactsAt } from '../facts/variables.js';
+import { elementName } from '../document.js';
+import { readBy } from '../eligibility.js';
 import { suppliedSourceQueries } from '../host-variables.js';
-import { launchContextsOf } from '../launch-contexts.js';
-import { storedName } from '../stored-names.js';
-import {
-  FHIRPATH,
-  INITIAL_EXPRESSION,
-  ITEM_POPULATION_CONTEXT,
-  SOURCE_QUERIES,
-  VARIABLE,
-  X_FHIR_QUERY,
-} from '../urls.js';
-
-// When population evaluates a declaration (population-evaluation-order): its step, then its item's
-// place in population's key order, then its place in its extension array. Step 1 binds the launch
-// resources, the sourceQueries results and the application/x-fhir-query variables; step 2 the root
-// text/fhirpath variables; step 3 the item ones; step 4 the itemPopulationContexts.
-type Position = readonly [step: number, key: number, index: number];
-
-// A Position, 'never' when population does not bind the name, or 'unknown' when an item's linkId
-// makes the order unreliable.
-type Evaluation = Position | 'never' | 'unknown';
-
-const compare = (a: Position, b: Position): number => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
-
-// An application/x-fhir-query variable population fetches: with a name and expression text.
-const isQueryInput = (extension: unknown): boolean => {
-  if (!isObject(extension) || extension.url !== VARIABLE) return false;
-  const { valueExpression: expression } = extension;
-  return (
-    isObject(expression) &&
-    expression.language === X_FHIR_QUERY &&
-    Boolean(expression.name) &&
-    Boolean(expression.expression)
-  );
-};
-
-// Whether population runs for the form (population-needs-input): it has a root launchContext, a
-// root sourceQueries with a valueReference, or a query variable it fetches, and a subjectType that
-// allows Patient.
-function populationRuns(document: QuestionnaireDocument, items: readonly Json[]): boolean {
-  const { subjectType, extension } = document.resource;
-  const subjects = arrayOf(subjectType);
-  if (subjects.length > 0 && !subjects.includes('Patient')) return false;
-  const root = arrayOf(extension);
-  return (
-    launchContextsOf(document).some(({ input }) => input) ||
-    root.some(
-      (each) => isObject(each) && each.url === SOURCE_QUERIES && Boolean(each.valueReference),
-    ) ||
-    [root, ...items.map((item) => arrayOf(item.extension))].some((each) => each.some(isQueryInput))
-  );
-}
-
-// Each linkId's place in the order population evaluates item variables in: a plain object filled
-// in post-order, an item after its child items, for every item with an extension property, and
-// read with Object.keys, so integer-like linkIds come first (createFhirPathContext.ts:194-214).
-function keyOrder(document: QuestionnaireDocument): ReadonlyMap<string, number> {
-  const keys: Record<string, true> = {};
-  const visit = (items: unknown): void => {
-    for (const item of arrayOf(items)) {
-      if (!isObject(item)) continue;
-      visit(item.item);
-      if (item.extension) keys[String(item.linkId)] = true;
-    }
-  };
-  visit(document.resource.item);
-  return new Map(Object.keys(keys).map((key, index) => [key, index]));
-}
+import { type Binding, compare, type Position, population } from '../population.js';
+import { FHIRPATH, INITIAL_EXPRESSION, ITEM_POPULATION_CONTEXT } from '../urls.js';
 
 // The kind of forward reference, which chooses its message and help.
 type ForwardKind = 'same-element' | 'ancestor' | 'population-context';
@@ -154,72 +86,12 @@ export const forwardVariableReference: LintRule = {
     },
   },
   check(ctx) {
-    const versions = requireCompat(ctx);
-    const facts = variableFactsAt('populate', versions.populate);
-    if (!facts.has('population-evaluation-order') || !facts.has('population-needs-input')) return;
+    const pop = population(ctx);
+    if (!pop.runs) return;
     const { document, declarations } = ctx;
-    const items = itemsOf(document.resource);
-    if (!populationRuns(document, items)) return;
-
-    // A linkId population's order cannot be read from: absent, or with the key of another item,
-    // since population keys items by String(linkId).
-    const linkIdCounts = new Map<string, number>();
-    for (const { linkId } of items) {
-      linkIdCounts.set(String(linkId), (linkIdCounts.get(String(linkId)) ?? 0) + 1);
-    }
-    const reliable = (linkId: string | undefined): linkId is string =>
-      linkId !== undefined && linkIdCounts.get(linkId) === 1;
-    const keys = keyOrder(document);
-    // Whether a declaration is in the extension array of the root or an item of this
-    // Questionnaire, where population reads variables: not in a modifierExtension, and not in a
-    // contained resource, which population does not evaluate.
-    const inForm = ({ item, pointer }: Declaration): boolean => {
-      const { resourcePointer } = document;
-      return (
-        pointer.startsWith(`${item?.pointer ?? resourcePointer}/extension/`) &&
-        (item === undefined ||
-          (item.pointer.startsWith(resourcePointer) &&
-            /^(\/item\/\d+)+$/.test(item.pointer.slice(resourcePointer.length))))
-      );
-    };
-
-    // When population evaluates a declaration.
-    const positions = new Map<Declaration, Evaluation>();
-    const positionOf = (declaration: Declaration): Evaluation => {
-      let position = positions.get(declaration);
-      if (position === undefined) {
-        position = evaluatedAt(declaration);
-        positions.set(declaration, position);
-      }
-      return position;
-    };
-    const evaluatedAt = (declaration: Declaration): Evaluation => {
-      const { kind, site, item } = declaration;
-      if (
-        !inForm(declaration) ||
-        storedName(ctx, versions, declaration, ['populate']) === undefined
-      ) {
-        return 'never';
-      }
-      if (kind === 'launchContext') return [1, 0, 0];
-      if (site === undefined) return 'never';
-      // A query variable is fetched first, but only with expression text.
-      if (site.language === X_FHIR_QUERY) return site.text ? [1, 0, 0] : 'never';
-      // A linkId __proto__ sets the prototype of population's object instead of adding a key, so
-      // population never evaluates the item's variables.
-      if (kind === 'variable' && item?.linkId === '__proto__') return 'never';
-      const key =
-        item === undefined ? 0 : reliable(item.linkId) ? keys.get(item.linkId) : undefined;
-      if (key === undefined) return 'unknown';
-      if (kind === 'itemPopulationContext') {
-        return prerequisitesHold('populate', versions.populate, document, site)
-          ? [4, 0, 0]
-          : 'never';
-      }
-      const index = extensionOf(document, site)?.holder.index;
-      if (index === undefined) return 'never';
-      return item === undefined ? [2, 0, index] : [3, key, index];
-    };
+    // When population evaluates a declaration; 'never' when it stores no name for it.
+    const positionOf = (declaration: Declaration): Binding['at'] =>
+      pop.bindingOf(declaration)?.at ?? 'never';
 
     // The names population binds before any FHIRPath, from sourceQueries.
     const sourceQueryNames = new Set(suppliedSourceQueries(ctx).map(({ name }) => name));
@@ -301,7 +173,7 @@ export const forwardVariableReference: LintRule = {
       // the order unreliable may be earlier.
       if (sourceQueryNames.has(name)) return true;
       return declarations.some((other) => {
-        if (other === declaration || storedName(ctx, versions, other, ['populate']) !== name) {
+        if (other === declaration || pop.bindingOf(other)?.name !== name) {
           return false;
         }
         const position = positionOf(other);
