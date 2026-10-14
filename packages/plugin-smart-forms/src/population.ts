@@ -55,7 +55,9 @@ export interface Population {
   // name starts with % is left out: population binds #%x as %x, but a reference is written
   // without %.
   readonly sourceQueries: readonly SourceQuery[];
-  // What population binds for a declaration, or undefined when it stores no name for it.
+  // What population binds for a declaration, or undefined when it stores no name for it. It does
+  // not depend on runs: under the supported integration (S1) the form is populated, and a missing
+  // input is a gap in the form, not a reason to hide a name problem.
   bindingOf(declaration: Declaration): Binding | undefined;
   // Everything population binds a name with: the sourceQueries results in extension order, then
   // the declarations the model was given, earliest first, those population never evaluates or

@@ -122,6 +122,19 @@ A plugin imports from the `sdc-questionnaire-lint` package only; everything unde
 
 A plugin rule that stays silent where a core rule reports the same root cause checks the condition with these lookups, never whether that rule ran.
 
+### Inside the Smart Forms plugin
+
+`packages/plugin-smart-forms/src` builds on these exports only ([smart-forms-rules.md](smart-forms-rules.md#shared-plugin-infrastructure)):
+
+- `facts/`: the runtime facts, the evidence tables, by component and version. Every other module reads them; none replaces them.
+- `eligibility.ts`: `readBy(ctx, site)`, the components that read a site, and `storesVariable`, whether a component stores a variable's name.
+- `document.ts`: reading the Questionnaire JSON behind a site; `urls.ts`: the extension URLs.
+- `launch-contexts.ts`, `source-queries.ts` and `templates.ts`: the readers of root launchContexts, root sourceQueries and the templates template extraction uses.
+- `population.ts`: the population model, built for one document and compat: whether population runs, the sourceQueries it binds, what it binds for each declaration and when, what binds a name, and whether it reads an itemPopulationContext.
+- `stored-names.ts`: `storedName`, the names each component stores, over the population model and the renderer's variables.
+- `host-variables.ts`: the `hostVariables` hook, an adapter over the population model's sourceQueries.
+- `rules/`: one module per rule.
+
 ## 6. Suppressions (`run/suppressions.ts`, `run/fingerprint.ts`)
 
 - `applySuppressions` matches each `suppress` entry to exactly one expression by its selectors: `file` (required), `linkId`, `extensionUrl`, `name`, `resource` and `pointer`. An entry that matches several expressions fails the run as an invalid config. An entry whose `extensionUrl` is launchContext or extractAllocateId instead matches one name on one element among the declarations, and hides the rule's findings at every declaration of that name there.
