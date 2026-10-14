@@ -162,6 +162,7 @@ export default withMermaid(
               collapsed: true,
               items: [
                 { text: 'Entry and compat', link: '/docs/plugin-smart-forms/entry-and-compat' },
+                { text: 'Runtime facts', link: '/docs/plugin-smart-forms/facts' },
               ],
             },
           ],
