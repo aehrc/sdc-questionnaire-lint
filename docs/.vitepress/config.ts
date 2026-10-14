@@ -141,6 +141,7 @@ export default withMermaid(
             { text: 'CLI', link: '/docs/core/cli' },
             { text: 'Config', link: '/docs/core/config' },
             { text: 'Plugins and rule set', link: '/docs/core/plugins' },
+            { text: 'Inputs', link: '/docs/core/inputs' },
           ],
         },
         {
