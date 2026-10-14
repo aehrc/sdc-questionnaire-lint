@@ -41,7 +41,7 @@ A block without a link has no page yet.
 | 1 | [Entry and compat](entry-and-compat.md) | `index.ts`, `facts/versions.ts` | Registers the rules and the Smart Forms versions the plugin has verified; a rule reads the selected ones |
 | 2 | [Runtime facts](facts.md) | `facts/` | Records how each Smart Forms version behaves: languages, names, embeddings, variable storage, sourceQueries, extraction |
 | 3 | [Site eligibility](eligibility.md) | `eligibility.ts`, `facts/prerequisites.ts` | Works out which Smart Forms component reads an expression, and under what conditions |
-| 4 | Population model | `population.ts`, `stored-names.ts` | Works out what population binds, under which name, and in what order |
+| 4 | [Population model](population.md) | `population.ts`, `stored-names.ts` | Works out what population binds, under which name, and in what order |
 | 5 | Form readers | `source-queries.ts`, `launch-contexts.ts`, `templates.ts`, `document.ts` | Read sourceQueries, launchContexts and templates as Smart Forms reads them |
 | 6 | Supplied names | `host-variables.ts` | Gives core the sourceQueries names, so `sdc/undefined-variable` accepts them |
 | 7 | Rules | `rules/` | Lists each rule with the blocks and facts it uses |

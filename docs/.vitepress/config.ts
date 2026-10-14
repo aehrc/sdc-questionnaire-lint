@@ -164,6 +164,7 @@ export default withMermaid(
                 { text: 'Entry and compat', link: '/docs/plugin-smart-forms/entry-and-compat' },
                 { text: 'Runtime facts', link: '/docs/plugin-smart-forms/facts' },
                 { text: 'Site eligibility', link: '/docs/plugin-smart-forms/eligibility' },
+                { text: 'Population model', link: '/docs/plugin-smart-forms/population' },
               ],
             },
           ],
