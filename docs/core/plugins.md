@@ -36,5 +36,5 @@ In [`packages/core/src/plugins/`](../../packages/core/src/plugins):
 
 - [`rule-set.ts`](../../packages/core/src/plugins/rule-set.ts): `resolveRuleSet` builds the rule set as above. `unknownRuleHelp` suggests a similar rule ID, for the config and for `explain`.
 - [`contract.ts`](../../packages/core/src/plugins/contract.ts): the plugin contract, public API: `LintPlugin`, `LintRule`, `RuleContext`, `RuleFinding`, `RuleDocs` and `PluginCompat`.
-- [`builtin.ts`](../../packages/core/src/plugins/builtin.ts): the `sdc` and `lint` plugins. It also says where each built-in rule completes its check, which Suppressions uses to find stale entries and the summary uses to count unchecked expressions.
+- [`builtin.ts`](../../packages/core/src/plugins/builtin.ts): the `sdc` and `lint` plugins. It also says where each built-in rule completes its check, which [Suppressions](suppressions.md) uses to find stale entries and the summary uses to count unchecked expressions.
 - [`core-rule.ts`](../../packages/core/src/plugins/core-rule.ts): `CoreRule`, an `sdc` rule that also receives core's analysis of the form. Plugin rules get only the public `RuleContext`.

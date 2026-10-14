@@ -1,6 +1,6 @@
 # Expression parsing
 
-Reads the text of an expression: FHIRPath with the pinned fhirpath.js, and x-fhir-query with a small scanner. It is not a stage of the run but a set of helpers that the rules and Name analysis call.
+Reads the text of an expression: FHIRPath with the pinned fhirpath.js, and x-fhir-query with a small scanner. It is not a stage of the run but a set of helpers that the rules and [Name analysis](names.md) call.
 
 **FHIRPath.** Only a site whose language is exactly `text/fhirpath` is parsed; CQL and other languages never are. `fhirpath.ts` is the only file that uses fhirpath.js, pinned to 4.10.1, so the linter parses as the engine does. From the parse tree it reads:
 

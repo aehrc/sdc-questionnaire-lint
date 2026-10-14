@@ -41,4 +41,4 @@ In [`packages/core/src/cli/`](../../packages/core/src/cli):
 - [`step-summary.ts`](../../packages/core/src/cli/step-summary.ts): `appendStepSummary` adds the job summary in GitHub Actions.
 - [`colour.ts`](../../packages/core/src/cli/colour.ts): colour only in a terminal, and never when `NO_COLOR` is set.
 
-The output formats themselves are in Report and formatters, and failures in Failures.
+The output formats themselves are in [Report and formatters](report.md), and failures in [Failures](failures.md).

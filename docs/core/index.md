@@ -28,8 +28,6 @@ When a stage cannot complete, for example on a bad config or when no Questionnai
 
 ## Blocks
 
-A block without a link has no page yet.
-
 | # | Block | Code | What it does |
 | :- | :- | :- | :- |
 | 1 | [CLI](cli.md) | `cli/` | Reads the arguments, runs `lint` or `explain`, prints the result and sets the exit code |
@@ -43,6 +41,6 @@ A block without a link has no page yet.
 | 9 | [Suppressions and fingerprints](suppressions.md) | `run/suppressions.ts` | Gives each finding a stable ID, applies suppressions and reports the ones that no longer match anything |
 | 10 | [Source mapping](source-mapping.md) | `source/` | Traces a finding in the compiled JSON back to a line and column in the FSH |
 | 11 | [Report and formatters](report.md) | `report/` | Builds the counts, then prints the report as text, JSON, GitHub annotations or SARIF |
-| 12 | Failures | `failure.ts` | Handles a run that can't finish: the error codes, what goes to stderr and the failure output |
+| 12 | [Failures](failures.md) | `failure.ts` | Handles a run that can't finish: the error codes, what goes to stderr and the failure output |
 
 Paths are relative to `packages/core/src`. The rules themselves, in `rules/`, are described in the [rules library](../rules/index.md).

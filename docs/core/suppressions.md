@@ -4,7 +4,7 @@ Gives every finding a stable ID, its fingerprint, then hides the findings the co
 
 ## Fingerprints
 
-A fingerprint identifies a finding across runs, so CI and code scanning can tell a new finding from one they have seen before. The Rule runner computes it from:
+A fingerprint identifies a finding across runs, so CI and code scanning can tell a new finding from one they have seen before. The [Rule runner](runner.md) computes it from:
 
 - the rule, the file and the resource;
 - the site's key: its item's linkId, its extension and, for a named expression, its name;

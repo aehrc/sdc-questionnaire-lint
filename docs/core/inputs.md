@@ -48,5 +48,5 @@ In [`packages/core/src/inputs/`](../../packages/core/src/inputs):
 
 Two more lookups run at this point. Neither ever fails the run:
 
-- [`run/sources.ts`](../../packages/core/src/run/sources.ts): `findFshSources` checks which FSH directories exist, for Source mapping and the summary.
+- [`run/sources.ts`](../../packages/core/src/run/sources.ts): `findFshSources` checks which FSH directories exist, for [Source mapping](source-mapping.md) and the summary.
 - [`run/sushi-version.ts`](../../packages/core/src/run/sushi-version.ts): `findSushiVersion` reads the version of the IG's installed `fsh-sushi`, for the report's `run.sushi`.

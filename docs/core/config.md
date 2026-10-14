@@ -39,6 +39,6 @@ Without a config, `loadConfig` returns `null`, and `resolveRunPaths` resolves th
 In [`packages/core/src/config/`](../../packages/core/src/config):
 
 - [`load.ts`](../../packages/core/src/config/load.ts): `loadConfig` finds, reads and validates the config. It returns a `LoadedConfig` with the file's path, its directory, the path to show in messages, the format and the config, or `null` when there is none.
-- [`validate.ts`](../../packages/core/src/config/validate.ts): `validateConfig` checks every key and every suppression entry. An error names the config file and the JSON Pointer of the bad entry. Rule IDs and plugins are checked later, by Plugins and rule set, which knows them.
+- [`validate.ts`](../../packages/core/src/config/validate.ts): `validateConfig` checks every key and every suppression entry. An error names the config file and the JSON Pointer of the bad entry. Rule IDs and plugins are checked later, by [Plugins and rule set](plugins.md), which knows them.
 - [`types.ts`](../../packages/core/src/config/types.ts): the `LintConfig` type, and `defineConfig`, which types the default export of an `.mjs` config.
 - [`paths.ts`](../../packages/core/src/config/paths.ts): `resolveRunPaths` makes the absolute paths the run uses, from the config or the defaults: the input files, the FSH directories and SUSHI's index file.
