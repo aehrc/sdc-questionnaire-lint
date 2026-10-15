@@ -3,7 +3,7 @@ import { data } from './rules.data.ts';
 import RuleTable from './RuleTable.vue';
 </script>
 
-# Rules library
+# Lint rules
 
 Every rule the linter ships, with a page each. A page says what the rule checks, why it matters, how to fix what it reports and what it cannot see, as `sdc-lint explain <rule-id>` prints it. It adds an example form in FSH with the Questionnaire SUSHI compiles from it and the findings the rule reports on it, the lint cases that test the rule, and the rule's source.
 

@@ -154,7 +154,7 @@ export default defineConfig({
 
 ## Next steps
 
-- [Rules library](rules/index.md): a page per rule, with what it checks, why, an example form and its findings.
+- [Lint rules](rules/index.md): a page per rule, with what it checks, why, an example form and its findings.
 - [CLI](cli.md): every command, flag and output format, with [recipes](cli.md#author-and-automation-recipes) for IG scripts and CI.
 - In CI, `--format github` writes GitHub Actions annotations and a job summary, and `--format sarif` writes a SARIF log for code scanning.
 - For scripts and AI agents, `--format json` writes one report described by the [JSON report format](report-format.md).

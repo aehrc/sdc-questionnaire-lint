@@ -126,9 +126,9 @@ export default withMermaid(
           ],
         },
         {
-          text: 'Rules library',
+          text: 'Lint rules',
           items: [
-            { text: 'All rules', link: '/docs/rules/' },
+            { text: 'Overview', link: '/docs/rules/' },
             ...ruleLibrary().map(({ group, rules }) => ({
               text: group.title,
               collapsed: true,
