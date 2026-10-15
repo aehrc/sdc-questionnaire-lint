@@ -126,7 +126,7 @@ Without a config, the built-in rules run at their default severities. To change 
   - `info`: reported; text output shows it only with `--show-info`.
   - `off`: the rule does not run.
 
-Paths in the config are relative to the config file. To find a rule's ID and what it checks, run `sdc-lint explain` for every rule with its severity, or `sdc-lint explain <rule>` for one rule, its example and its fix. The [rules library](rules/index.md) has the same documentation with an example form for each rule.
+Paths in the config are relative to the config file. To find a rule's ID and what it checks, run `sdc-lint explain` for every rule with its severity, or `sdc-lint explain <rule>` for one rule, its example and its fix. The [rules library](rules/index.md) has a page for each rule, with what it checks and an example form.
 
 [Configuration](configuration.md) covers the rest: the `.mjs` config, `--config`, paths, plugins and `compat`; [Suppression](suppression.md) covers hiding reviewed findings.
 

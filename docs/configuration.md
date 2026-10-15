@@ -135,7 +135,7 @@ npx sdc-lint explain                         # every rule
 npx sdc-lint explain sdc/undefined-variable  # one rule: what it checks, why, an example and the fix
 ```
 
-The [rules library](rules/index.md) has the same documentation, with an example form for each rule.
+The [rules library](rules/index.md) has a page for each rule, with what it checks and an example form.
 
 ### `suppress`
 

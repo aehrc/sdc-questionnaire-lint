@@ -66,7 +66,7 @@ npx sdc-lint explain                         # every rule, with its default and 
 npx sdc-lint explain sdc/undefined-variable  # what it checks, why, an example and how to fix it
 ```
 
-`explain` works offline and includes the rules of the plugins your config lists. The [rules library](../rules/index.md) has the same pages with example forms.
+`explain` works offline and includes the rules of the plugins your config lists. The [rules library](../rules/index.md) has a page for each rule, with what it checks and an example form.
 
 ## Query the findings
 

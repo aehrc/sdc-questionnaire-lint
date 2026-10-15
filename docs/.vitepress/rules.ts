@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse, stringify } from 'yaml';
+import { parse } from 'yaml';
 import { lintPlugin, sdcPlugin } from '../../packages/core/src/plugins/builtin.js';
 import type { LintPlugin, LintRule } from '../../packages/core/src/plugins/contract.js';
 import type { FshConfig } from '../../packages/lint-cases/src/generate-fsh.js';
@@ -13,8 +13,7 @@ import {
 import smartForms from '../../packages/plugin-smart-forms/src/index.js';
 
 // The rules library: a page per rule (docs/rules/[plugin]/[rule].md), generated from the rule's
-// meta.docs, its example lint case compiled by SUSHI, and its lint cases, so the pages follow the
-// code. Loading it needs the built core, which the Smart Forms plugin imports.
+// meta.docs and its example lint case compiled by SUSHI, so the pages follow the code. Loading it needs the built core, which the Smart Forms plugin imports.
 
 export const repository = 'https://github.com/beda-software/sdc-questionnaire-lint';
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -24,8 +23,8 @@ export const repositoryUrl = (file: string): string => `${repository}/blob/main/
 
 // The lint case each rule's page shows as its example, <group>/<case>: a case whose expected
 // findings include the rule. A rule that reports on the linter config has no lint case, so its
-// page names the test files that cover it instead. A new rule needs an entry.
-const examples: Readonly<Record<string, { case: string } | { tests: readonly string[] }>> = {
+// page explains that instead. A new rule needs an entry.
+const examples: Readonly<Record<string, { case: string } | 'config'>> = {
   'sdc/dependency-cycle': { case: 'dependency-cycle/two-variables' },
   'sdc/duplicate-declaration': { case: 'duplicate-declaration/variables-on-item' },
   'sdc/external-expression': { case: 'external-expression/reference-only' },
@@ -41,7 +40,7 @@ const examples: Readonly<Record<string, { case: string } | { tests: readonly str
   'sdc/unknown-function': { case: 'unknown-function/similar-name' },
   'sdc/unresolved-linkid': { case: 'unresolved-linkid/similar' },
   'sdc/unused-declaration': { case: 'unused-declaration/unreferenced' },
-  'lint/stale-suppression': { tests: ['packages/core/test/run/suppressions.test.ts'] },
+  'lint/stale-suppression': 'config',
   'smart-forms/unsupported-expression-language': {
     case: 'unsupported-expression-language/expression-kinds',
   },
@@ -71,8 +70,6 @@ interface RuleGroup {
   // The package that holds the rules, relative to the repository root.
   packageDirectory: string;
   plugins: readonly LintPlugin[];
-  // The file that registers the plugins' rules.
-  registration: string;
   // The plugin files the package's lint cases list, as its test/cases/cases.test.ts passes them;
   // the same files give the same compiled project as the tests.
   casePlugins: readonly string[];
@@ -101,7 +98,6 @@ const groups: readonly RuleGroup[] = [
     title: 'Core rules',
     packageDirectory: 'packages/core',
     plugins: [sdcPlugin, lintPlugin],
-    registration: 'packages/core/src/plugins/builtin.ts',
     casePlugins: [],
     config(config) {
       const settings = caseSettings(config);
@@ -118,7 +114,6 @@ const groups: readonly RuleGroup[] = [
     title: 'Smart Forms rules',
     packageDirectory: 'packages/plugin-smart-forms',
     plugins: [smartForms],
-    registration: 'packages/plugin-smart-forms/src/index.ts',
     casePlugins: [path.join(root, 'packages/plugin-smart-forms/src/index.ts')],
     config(config) {
       const settings = Object.entries(caseSettings(config)).map(
@@ -211,7 +206,6 @@ const badgeType: Readonly<Record<string, string>> = {
 
 interface ExpectedFinding {
   ruleId: string;
-  message: string;
 }
 
 const readFindings = (file: string): ExpectedFinding[] =>
@@ -238,11 +232,11 @@ function exampleSection(
   entry: RuleEntry,
   group: RuleGroup,
   compiled: CompiledCases,
-  example: { case: string } | { tests: readonly string[] },
+  example: { case: string } | 'config',
 ): string[] {
   const { id, rule } = entry;
   const exampleMessage = rule.meta.docs?.exampleMessage;
-  if ('tests' in example) {
+  if (example === 'config') {
     return [
       '## Example',
       '',
@@ -255,8 +249,7 @@ function exampleSection(
   }
   const lintCase = compiled.cases.find(({ name }) => name === example.case);
   if (lintCase === undefined) throw new Error(`${id}: no lint case ${example.case}`);
-  const findings = readFindings(lintCase.expectedPath).filter(({ ruleId }) => ruleId === id);
-  if (findings.length === 0) {
+  if (!readFindings(lintCase.expectedPath).some(({ ruleId }) => ruleId === id)) {
     throw new Error(`${id}: the expected findings of ${example.case} do not include it`);
   }
   const { instance } = lintCase.config;
@@ -267,10 +260,7 @@ function exampleSection(
   return [
     '## Example',
     '',
-    // The example message is shown when the example form does not produce it.
-    ...(exampleMessage === undefined || findings.some(({ message }) => message === exampleMessage)
-      ? []
-      : [`> ${text(exampleMessage)}`, '']),
+    ...(exampleMessage === undefined ? [] : [`> ${text(exampleMessage)}`, '']),
     `The lint case [${text(example.case)}](${repositoryUrl(relative(lintCase.configPath))}): ` +
       `${text(caseComment(lintCase.configPath))} Its FSH, the Questionnaire SUSHI compiles from ` +
       'it' +
@@ -296,56 +286,6 @@ function exampleSection(
     ...(config === undefined ? [] : ['', fence(config)]),
     '',
     ':::',
-    '',
-    `The ${findings.length === 1 ? 'finding' : 'findings'} of \`${id}\`, as the case's ` +
-      `[expected file](${repositoryUrl(relative(lintCase.expectedPath))}) holds them; \`at\` ` +
-      'is the FSH file, line and column:',
-    '',
-    fence({
-      name: 'Findings',
-      language: 'yaml',
-      text: stringify(findings, { lineWidth: 0, singleQuote: true }),
-    }),
-  ];
-}
-
-function testSection(
-  entry: RuleEntry,
-  group: RuleGroup,
-  compiled: CompiledCases,
-  example: { case: string } | { tests: readonly string[] },
-): string[] {
-  const runner = `${group.packageDirectory}/test/cases/cases.test.ts`;
-  if ('tests' in example) {
-    return [
-      '## Tests',
-      '',
-      ...example.tests.map((file) => `- [${file}](${repositoryUrl(file)})`),
-    ];
-  }
-  const own = compiled.cases.filter(({ name }) => name.startsWith(`${entry.name}/`));
-  return [
-    '## Test cases',
-    '',
-    `Each lint case is a form in YAML beside the findings the linter must report for it, in ` +
-      `[${group.packageDirectory}/test/cases/${entry.name}](` +
-      `${repositoryUrl(`${group.packageDirectory}/test/cases/${entry.name}`)}). ` +
-      `[cases.test.ts](${repositoryUrl(runner)}) compiles them with SUSHI and lints them. A ` +
-      'case without findings of this rule shows a form it must not report.',
-    '',
-    `| Case | What it covers | Findings of \`${entry.id}\` |`,
-    '| :- | :- | :- |',
-    ...own.map((lintCase) => {
-      const count = readFindings(lintCase.expectedPath).filter(
-        ({ ruleId }) => ruleId === entry.id,
-      ).length;
-      return (
-        `| [${text(lintCase.name.slice(entry.name.length + 1))}](` +
-        `${repositoryUrl(relative(lintCase.configPath))}) ` +
-        `| ${text(caseComment(lintCase.configPath))} ` +
-        `| [${count === 0 ? 'none' : String(count)}](${repositoryUrl(relative(lintCase.expectedPath))}) |`
-      );
-    }),
   ];
 }
 
@@ -354,7 +294,7 @@ function rulePage(
   group: RuleGroup,
   compiled: CompiledCases,
 ): { params: { plugin: string; rule: string }; content: string } {
-  const { id, rule, source } = entry;
+  const { id, rule } = entry;
   const example = examples[id];
   if (example === undefined) {
     throw new Error(`${id}: give it an example in docs/.vitepress/rules.ts`);
@@ -371,28 +311,7 @@ function rulePage(
     '',
     text(docs.checks),
     '',
-    '## Why it matters',
-    '',
-    text(docs.why),
-    '',
     ...exampleSection(entry, group, compiled, example),
-    '',
-    '## How to fix it',
-    '',
-    text(docs.fix),
-    '',
-    '## Known limitations',
-    '',
-    text(docs.limitations),
-    '',
-    ...testSection(entry, group, compiled, example),
-    '',
-    '## Implementation',
-    '',
-    `- The rule: [${source}](${repositoryUrl(source)})`,
-    `- Registered in [${group.registration}](${repositoryUrl(group.registration)})`,
-    `- \`sdc-lint explain ${id}\` prints the documentation on this page, without the example ` +
-      'and the tests.',
     '',
   ].join('\n');
   return { params: { plugin: entry.plugin, rule: entry.name }, content };

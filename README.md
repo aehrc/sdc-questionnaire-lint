@@ -39,7 +39,7 @@ Findings and the summary go to stdout; failures go to stderr as `error:` and `he
 
 Start with these docs, which are also a documentation site (see [Development](#development)):
 
-- [Lint rules](docs/rules/index.md) — a page per rule: what it checks and why, an example form in FSH with its compiled JSON and findings, the rule's test cases and its source.
+- [Lint rules](docs/rules/index.md) — a page per rule: what it checks, an example message, and an example form in FSH with its compiled JSON.
 - [Core plan](docs/core-plan.md) and [amendments](docs/plan-amendments.md) — scope and decisions; amendments take precedence.
 - [Core rules plan](docs/core-rules.md) and [Smart Forms rules plan](docs/smart-forms-rules.md) — what each rule checks, its decisions and the runtime facts behind it.
 - [CLI contract](docs/cli.md) — commands, configuration, exit codes and automation recipes.
@@ -74,7 +74,7 @@ sdc-lint explain                    # every rule, with its default and effective
 sdc-lint explain sdc/parse-error    # what the rule checks, why, an example message and the fix
 ```
 
-`explain` works offline. The [rules library](docs/rules/index.md) has the same documentation, with an example form and the test cases of each rule.
+`explain` works offline. The [rules library](docs/rules/index.md) has a page per rule, with what it checks and an example form.
 
 ### Plugins
 
