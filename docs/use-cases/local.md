@@ -70,7 +70,7 @@ npx sdc-lint explain sdc/undefined-variable  # what it checks, why, an example a
 
 ## Query the findings
 
-For scripts, or to hand the findings to an AI agent, ask for the JSON report:
+For scripts, or to hand the findings to an [AI agent](agents.md), ask for the JSON report:
 
 ```sh
 npx sdc-lint lint --format json > lint-report.json

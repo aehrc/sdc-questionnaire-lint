@@ -157,7 +157,7 @@ export default defineConfig({
 - [Lint rules](rules/index.md): a page per rule, with what it checks, why, an example form and its findings.
 - [CLI](cli.md): every command, flag and output format, with [recipes](cli.md#author-and-automation-recipes) for IG scripts and CI.
 - Use cases: [CI integration](use-cases/ci.md), with GitHub Actions annotations, a job summary and code scanning; the [local CLI](use-cases/local.md) edit loop; and findings in [VS Code](use-cases/vscode.md)'s Problems panel.
-- For scripts and AI agents, `--format json` writes one report described by the [JSON report format](report-format.md).
+- For scripts, `--format json` writes one report described by the [JSON report format](report-format.md). [AI agents](use-cases/agents.md) shows how to put the linter in a coding agent's loop.
 - [Suppression](suppression.md): hide a finding you have reviewed, with a reason.
 - [Writing a plugin](../README.md#writing-a-plugin) and [adding a rule](adding-a-rule.md): check your own conventions.
 - [Glossary](../GLOSSARY.md): the terms these docs use.

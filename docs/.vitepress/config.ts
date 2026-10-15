@@ -138,6 +138,7 @@ export default withMermaid(
             { text: 'CI integration', link: '/docs/use-cases/ci' },
             { text: 'Local CLI', link: '/docs/use-cases/local' },
             { text: 'VS Code', link: '/docs/use-cases/vscode' },
+            { text: 'AI agents', link: '/docs/use-cases/agents' },
           ],
         },
         {
