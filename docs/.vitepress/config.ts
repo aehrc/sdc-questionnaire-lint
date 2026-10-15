@@ -129,6 +129,7 @@ export default withMermaid(
             { text: 'Getting started', link: '/docs/getting-started' },
             { text: 'Configuration', link: '/docs/configuration' },
             { text: 'Suppression', link: '/docs/suppression' },
+            { text: 'Reports', link: '/docs/reports' },
           ],
         },
         {
