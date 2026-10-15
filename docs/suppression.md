@@ -28,7 +28,7 @@ input/fsh/Intake.fsh:25:64: error sdc/undefined-variable %encounterHeight is not
   help: declare it on this item, an ancestor item or the root, or list it in hostVariables if the application running the form supplies it
 ```
 
-Add an entry to `suppress` in `sdc-questionnaire-lint.config.json`:
+Add an entry to `suppress` in the [config](configuration.md), here `sdc-questionnaire-lint.config.json`:
 
 ```json
 {
