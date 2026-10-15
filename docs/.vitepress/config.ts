@@ -138,6 +138,7 @@ export default withMermaid(
               collapsed: true,
               items: rules.map(({ id, link }) => ({ text: id, link })),
             })),
+            { text: 'Add yours', link: '/docs/rules/add-yours' },
           ],
         },
         {
