@@ -109,6 +109,7 @@ export default withMermaid(
       outline: [2, 3],
       nav: [
         { text: 'Guide', link: '/' },
+        { text: 'Getting started', link: '/docs/getting-started' },
         { text: 'Rules', link: '/docs/rules/' },
         { text: 'Core', link: '/docs/core/' },
         { text: 'CLI', link: '/docs/cli' },
@@ -120,6 +121,7 @@ export default withMermaid(
           text: 'Guide',
           items: [
             { text: 'Overview', link: '/' },
+            { text: 'Getting started', link: '/docs/getting-started' },
             { text: 'Glossary', link: '/GLOSSARY' },
           ],
         },

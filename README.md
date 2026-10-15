@@ -4,6 +4,8 @@ A CLI and TypeScript library for statically checking FHIRPath and x-fhir-query e
 
 The npm package is `sdc-questionnaire-lint`; the CLI command is `sdc-lint`.
 
+New to the linter? [Getting started](docs/getting-started.md) installs it, lints a first form and sets up a config.
+
 ## Usage
 
 In an implementation guide (IG), after building it with SUSHI:
