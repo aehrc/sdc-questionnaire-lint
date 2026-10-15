@@ -156,7 +156,7 @@ For example, `sdc/unknown-function` reports `fist() is not a FHIRPath function, 
 
 ## 5. Tests
 
-In this repository, a rule is tested with lint cases: `packages/<package>/test/cases/<rule>/<case>.yaml` describes a minimal form, and `<case>.expected.yaml` beside it holds the findings the linter must report for it. SUSHI compiles every case, so a case also checks that each finding maps to its FSH line. [AGENTS.md § Tests](../AGENTS.md#tests) describes the format, the cache and how to write the expected files with `npx vitest run -u`; [`packages/lint-cases/src/generate-fsh.ts`](../packages/lint-cases/src/generate-fsh.ts) documents every config key, and [Lint cases](lint-cases/index.md) explains how a case is compiled and checked.
+In this repository, a rule is tested with lint cases: `packages/<package>/test/cases/<rule>/<case>.yaml` describes a minimal form, and `<case>.expected.yaml` beside it holds the findings the linter must report for it. SUSHI compiles every case, so a case also checks that each finding maps to its FSH line. [AGENTS.md § Tests](../AGENTS.md#tests) describes the format, the cache and how to write the expected files with `npx vitest run -u`; [`packages/lint-cases/src/generate-fsh.ts`](../packages/lint-cases/src/generate-fsh.ts) documents every config key, and [Testing rules with lint cases](lint-cases/index.md) explains how a case is compiled and checked.
 
 Model the cases on [`packages/core/test/cases/unknown-function/`](../packages/core/test/cases/unknown-function/). One case per behaviour, each with a comment saying what it shows:
 

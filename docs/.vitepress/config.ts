@@ -176,17 +176,6 @@ export default withMermaid(
                 },
               ],
             },
-            {
-              text: 'Lint cases',
-              link: '/docs/lint-cases/',
-              collapsed: true,
-              items: [
-                { text: 'Case config', link: '/docs/lint-cases/config' },
-                { text: 'FSH generation', link: '/docs/lint-cases/fsh' },
-                { text: 'Compiled project', link: '/docs/lint-cases/project' },
-                { text: 'Case tests', link: '/docs/lint-cases/tests' },
-              ],
-            },
           ],
         },
         {
@@ -202,6 +191,17 @@ export default withMermaid(
           items: [
             { text: 'How the linter works', link: '/docs/architecture' },
             { text: 'Adding a rule', link: '/docs/adding-a-rule' },
+            {
+              text: 'Testing rules with lint cases',
+              link: '/docs/lint-cases/',
+              collapsed: true,
+              items: [
+                { text: 'Case config', link: '/docs/lint-cases/config' },
+                { text: 'FSH generation', link: '/docs/lint-cases/fsh' },
+                { text: 'Compiled project', link: '/docs/lint-cases/project' },
+                { text: 'Case tests', link: '/docs/lint-cases/tests' },
+              ],
+            },
             { text: 'Linter design guidelines', link: '/docs/linter-design-guidelines' },
           ],
         },

@@ -7,7 +7,7 @@ import RuleTable from './RuleTable.vue';
 
 Every rule the linter ships, with a page each. A page says what the rule checks, why it matters, how to fix what it reports and what it cannot see, as `sdc-lint explain <rule-id>` prints it. It adds an example form in FSH with the Questionnaire SUSHI compiles from it and the findings the rule reports on it, the lint cases that test the rule, and the rule's source.
 
-The examples and the test cases are the rule's lint cases: each is a minimal form in YAML beside the findings the linter must report for it, compiled by SUSHI. [Adding a rule](../adding-a-rule.md) explains how they are written.
+The examples and the test cases are the rule's lint cases: each is a minimal form in YAML beside the findings the linter must report for it, compiled by SUSHI. [Testing rules with lint cases](../lint-cases/index.md) explains how they are written and checked.
 
 ## Core rules
 

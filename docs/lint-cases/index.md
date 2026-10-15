@@ -1,4 +1,6 @@
-# Lint cases
+# Testing rules with lint cases
+
+This section is for contributors to this repository: using the linter needs none of it.
 
 The `@sdc-questionnaire-lint/lint-cases` package, `packages/lint-cases`, is how this repository tests its rules. A **lint case** is a YAML config describing a minimal form, `test/cases/<rule>/<case>.yaml`, beside the findings the linter must report for it, `<case>.expected.yaml`. The package writes every case of a package as FSH, compiles them with SUSHI into one project, lints each compiled Questionnaire and compares the findings with the expected file.
 
