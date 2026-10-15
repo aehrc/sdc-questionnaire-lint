@@ -182,44 +182,6 @@ export default withMermaid(
             },
           ],
         },
-        {
-          text: 'Reference',
-          items: [
-            { text: 'CLI', link: '/docs/cli' },
-            { text: 'JSON report format', link: '/docs/report-format' },
-            { text: 'Report examples', link: '/docs/examples/reports/README' },
-          ],
-        },
-        {
-          text: 'Contributing',
-          items: [
-            { text: 'How the linter works', link: '/docs/architecture' },
-            { text: 'Adding a rule', link: '/docs/adding-a-rule' },
-            {
-              text: 'Testing rules with lint cases',
-              link: '/docs/lint-cases/',
-              collapsed: true,
-              items: [
-                { text: 'Case config', link: '/docs/lint-cases/config' },
-                { text: 'FSH generation', link: '/docs/lint-cases/fsh' },
-                { text: 'Compiled project', link: '/docs/lint-cases/project' },
-                { text: 'Case tests', link: '/docs/lint-cases/tests' },
-              ],
-            },
-            { text: 'Linter design guidelines', link: '/docs/linter-design-guidelines' },
-          ],
-        },
-        {
-          text: 'Design and planning',
-          collapsed: true,
-          items: [
-            { text: 'Core plan', link: '/docs/core-plan' },
-            { text: 'Plan amendments', link: '/docs/plan-amendments' },
-            { text: 'Core rules plan', link: '/docs/core-rules' },
-            { text: 'Smart Forms rules plan', link: '/docs/smart-forms-rules' },
-            { text: 'Slice 5 review', link: '/docs/reviews/slice-5' },
-          ],
-        },
       ],
     },
   }),
