@@ -132,6 +132,14 @@ export default withMermaid(
           ],
         },
         {
+          text: 'Use cases',
+          items: [
+            { text: 'CI integration', link: '/docs/use-cases/ci' },
+            { text: 'Local CLI', link: '/docs/use-cases/local' },
+            { text: 'VS Code', link: '/docs/use-cases/vscode' },
+          ],
+        },
+        {
           text: 'Lint rules',
           items: [
             { text: 'Overview', link: '/docs/rules/' },
