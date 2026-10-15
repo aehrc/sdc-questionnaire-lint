@@ -5,13 +5,12 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
 import { fsh } from './fsh.js';
 import { repositoryUrl, ruleLibrary } from './rules.js';
 
-const rewrites: Record<string, string> = { 'README.md': 'index.md' };
+const rewrites: Record<string, string> = { 'docs/index.md': 'index.md' };
 
 // Whether a repository path is part of the site: a page, or a schema or example report copied by
 // buildEnd. Keep it in step with srcExclude.
 function onSite(path: string): boolean {
   return (
-    path === 'README.md' ||
     path === 'GLOSSARY.md' ||
     (path.startsWith('docs/') &&
       !path.startsWith('docs/plans/') &&
@@ -47,8 +46,8 @@ function slugify(heading: string): string {
     .replaceAll(' ', '-');
 }
 
-// The site is built from the repository root, so README.md, GLOSSARY.md and docs/ keep their
-// GitHub-relative links. Everything else that holds Markdown is excluded below; add new
+// The site is built from the repository root, so GLOSSARY.md and docs/ keep their GitHub-relative
+// links. The home page is docs/index.md; links to README.md point at GitHub. Everything else that holds Markdown is excluded below; add new
 // non-documentation Markdown locations here, or they become pages.
 export default withMermaid(
   defineConfig({
@@ -57,6 +56,7 @@ export default withMermaid(
       'Static checks for the FHIRPath and x-fhir-query expressions in FHIR SDC Questionnaires',
     srcDir: '..',
     srcExclude: [
+      'README.md',
       'AGENTS.md',
       'CLAUDE.md',
       'PLAN-*.md',
