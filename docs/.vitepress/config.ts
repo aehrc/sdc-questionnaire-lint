@@ -95,6 +95,11 @@ export default withMermaid(
       },
     },
     lastUpdated: true,
+    // The dev server serves Mermaid unbundled, because the plugin imports it from a source file in
+    // node_modules, which Vite does not scan. Some of its dependencies, such as fastdom, are
+    // CommonJS, and the page then fails to load; withMermaid pre-bundles only the ones older
+    // Mermaid versions had. Pre-bundling Mermaid itself converts them all.
+    vite: { optimizeDeps: { include: ['mermaid'] } },
     // The docs link to the report schema and example reports; the build only emits pages.
     buildEnd({ srcDir, outDir }) {
       for (const dir of ['docs/schemas', 'docs/examples']) {
