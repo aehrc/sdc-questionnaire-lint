@@ -39,7 +39,7 @@ Findings and the summary go to stdout; failures go to stderr as `error:` and `he
 
 Start with these docs, which are also a documentation site (see [Development](#development)):
 
-- [Lint rules](docs/rules/index.md) — a page per rule: what it checks, an example message, and an example form in FSH with its compiled JSON.
+- [Lint rules](docs/rules/index.md) — a page per rule: what it checks, an example message, and an example form in FSH.
 - [Core plan](docs/core-plan.md) and [amendments](docs/plan-amendments.md) — scope and decisions; amendments take precedence.
 - [Core rules plan](docs/core-rules.md) and [Smart Forms rules plan](docs/smart-forms-rules.md) — what each rule checks, its decisions and the runtime facts behind it.
 - [CLI contract](docs/cli.md) — commands, configuration, exit codes and automation recipes.

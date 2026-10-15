@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { lintPlugin, sdcPlugin } from '../../packages/core/src/plugins/builtin.js';
 import type { LintPlugin, LintRule } from '../../packages/core/src/plugins/contract.js';
-import type { FshConfig } from '../../packages/lint-cases/src/generate-fsh.js';
 import {
   compileLintCases,
   readLintCases,
@@ -13,7 +12,8 @@ import {
 import smartForms from '../../packages/plugin-smart-forms/src/index.js';
 
 // The rules library: a page per rule (docs/rules/[plugin]/[rule].md), generated from the rule's
-// meta.docs and its example lint case compiled by SUSHI, so the pages follow the code. Loading it needs the built core, which the Smart Forms plugin imports.
+// meta.docs and its example lint case compiled by SUSHI, so the pages follow the code. Loading it
+// needs the built core, which the Smart Forms plugin imports.
 
 export const repository = 'https://github.com/beda-software/sdc-questionnaire-lint';
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -73,23 +73,6 @@ interface RuleGroup {
   // The plugin files the package's lint cases list, as its test/cases/cases.test.ts passes them;
   // the same files give the same compiled project as the tests.
   casePlugins: readonly string[];
-  // The linter config a lint case of the group is linted with, or undefined for the defaults.
-  config: (config: FshConfig) => CodeFile | undefined;
-}
-
-interface CodeFile {
-  name: string;
-  language: string;
-  text: string;
-}
-
-// The settings a lint case gives for its linter config.
-function caseSettings({ hostVariables, rules, suppress }: FshConfig): Record<string, unknown> {
-  return {
-    ...(hostVariables === undefined ? {} : { hostVariables }),
-    ...(rules === undefined ? {} : { rules }),
-    ...(suppress === undefined ? {} : { suppress }),
-  };
 }
 
 const groups: readonly RuleGroup[] = [
@@ -99,15 +82,6 @@ const groups: readonly RuleGroup[] = [
     packageDirectory: 'packages/core',
     plugins: [sdcPlugin, lintPlugin],
     casePlugins: [],
-    config(config) {
-      const settings = caseSettings(config);
-      if (Object.keys(settings).length === 0) return undefined;
-      return {
-        name: 'sdc-questionnaire-lint.config.json',
-        language: 'json',
-        text: JSON.stringify(settings, null, 2),
-      };
-    },
   },
   {
     id: 'smart-forms',
@@ -115,24 +89,6 @@ const groups: readonly RuleGroup[] = [
     packageDirectory: 'packages/plugin-smart-forms',
     plugins: [smartForms],
     casePlugins: [path.join(root, 'packages/plugin-smart-forms/src/index.ts')],
-    config(config) {
-      const settings = Object.entries(caseSettings(config)).map(
-        ([key, value]) => `  ${key}: ${JSON.stringify(value)},`,
-      );
-      return {
-        name: 'sdc-questionnaire-lint.config.mjs',
-        language: 'js',
-        text: [
-          "import { defineConfig } from 'sdc-questionnaire-lint';",
-          "import smartForms from '@sdc-questionnaire-lint/plugin-smart-forms';",
-          '',
-          'export default defineConfig({',
-          '  plugins: [smartForms],',
-          ...settings,
-          '});',
-        ].join('\n'),
-      };
-    },
   },
 ];
 
@@ -193,11 +149,6 @@ export function ruleSummaries(): Record<string, RuleSummary[]> {
 // Plain text as Markdown: every character Markdown or Vue could read as syntax is escaped.
 const text = (value: string): string => value.replace(/[\\`*_[\]<>|{}#&~]/g, '\\$&');
 
-const fence = ({ name, language, text: code }: CodeFile, numbered = false): string =>
-  [`\`\`\`${language}${numbered ? ':line-numbers' : ''} [${name}]`, code.trimEnd(), '```'].join(
-    '\n',
-  );
-
 const badgeType: Readonly<Record<string, string>> = {
   error: 'danger',
   warning: 'warning',
@@ -206,22 +157,12 @@ const badgeType: Readonly<Record<string, string>> = {
 
 interface ExpectedFinding {
   ruleId: string;
+  // <file>:<line>:<column>
+  at: string;
 }
 
 const readFindings = (file: string): ExpectedFinding[] =>
   (parse(readFileSync(file, 'utf8')) as ExpectedFinding[] | null) ?? [];
-
-// A case's leading comment, which says what it covers.
-function caseComment(configPath: string): string {
-  const comment: string[] = [];
-  for (const line of readFileSync(configPath, 'utf8').split('\n')) {
-    if (!line.startsWith('#')) break;
-    comment.push(line.replace(/^#\s?/, ''));
-  }
-  return comment.join(' ');
-}
-
-const relative = (file: string): string => path.relative(root, file).split(path.sep).join('/');
 
 interface CompiledCases {
   cases: LintCase[];
@@ -230,7 +171,6 @@ interface CompiledCases {
 
 function exampleSection(
   entry: RuleEntry,
-  group: RuleGroup,
   compiled: CompiledCases,
   example: { case: string } | 'config',
 ): string[] {
@@ -249,49 +189,31 @@ function exampleSection(
   }
   const lintCase = compiled.cases.find(({ name }) => name === example.case);
   if (lintCase === undefined) throw new Error(`${id}: no lint case ${example.case}`);
-  if (!readFindings(lintCase.expectedPath).some(({ ruleId }) => ruleId === id)) {
+  const fsh = `input/fsh/${lintCase.config.instance}.fsh`;
+  const findings = readFindings(lintCase.expectedPath).filter(({ ruleId }) => ruleId === id);
+  if (findings.length === 0) {
     throw new Error(`${id}: the expected findings of ${example.case} do not include it`);
   }
-  const { instance } = lintCase.config;
-  const project = compiled.project();
-  const fsh = `input/fsh/${instance}.fsh`;
-  const json = `fsh-generated/resources/Questionnaire-${instance}.json`;
-  const config = group.config(lintCase.config);
+  // The FSH lines the rule's findings point at, highlighted. An unmapped finding has none.
+  const lines = new Set(
+    findings
+      .map(({ at }) => at.split(':'))
+      .filter(([file]) => file === fsh)
+      .map(([, line]) => line),
+  );
+  const highlight = lines.size === 0 ? '' : ` {${[...lines].join(',')}}`;
   return [
     '## Example',
     '',
     ...(exampleMessage === undefined ? [] : [`> ${text(exampleMessage)}`, '']),
-    `The lint case [${text(example.case)}](${repositoryUrl(relative(lintCase.configPath))}): ` +
-      `${text(caseComment(lintCase.configPath))} Its FSH, the Questionnaire SUSHI compiles from ` +
-      'it' +
-      (config === undefined ? '' : ', and the linter config it is linted with') +
-      ':',
-    '',
-    '::: code-group',
-    '',
-    fence(
-      {
-        name: `${instance}.fsh`,
-        language: 'fsh',
-        text: readFileSync(path.join(project, fsh), 'utf8'),
-      },
-      true,
-    ),
-    '',
-    fence({
-      name: `Questionnaire-${instance}.json`,
-      language: 'json',
-      text: readFileSync(path.join(project, json), 'utf8'),
-    }),
-    ...(config === undefined ? [] : ['', fence(config)]),
-    '',
-    ':::',
+    `\`\`\`fsh:line-numbers${highlight}`,
+    readFileSync(path.join(compiled.project(), fsh), 'utf8').trimEnd(),
+    '```',
   ];
 }
 
 function rulePage(
   entry: RuleEntry,
-  group: RuleGroup,
   compiled: CompiledCases,
 ): { params: { plugin: string; rule: string }; content: string } {
   const { id, rule } = entry;
@@ -311,7 +233,7 @@ function rulePage(
     '',
     text(docs.checks),
     '',
-    ...exampleSection(entry, group, compiled, example),
+    ...exampleSection(entry, compiled, example),
     '',
   ].join('\n');
   return { params: { plugin: entry.plugin, rule: entry.name }, content };
@@ -335,6 +257,6 @@ export function rulePages(): { params: { plugin: string; rule: string }; content
       cases,
       project: () => (project ??= compileLintCases(casesDirectory, cases, group.casePlugins)),
     };
-    return rules.map((entry) => rulePage(entry, group, compiled));
+    return rules.map((entry) => rulePage(entry, compiled));
   });
 }
