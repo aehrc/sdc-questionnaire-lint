@@ -24,7 +24,8 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "prepack": "npm run build"
   },
   "peerDependencies": {
     "@aehrc/sdc-questionnaire-lint": "^0.1.0"

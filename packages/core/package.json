@@ -31,6 +31,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "prepack": "npm run build",
     "generate:functions": "node scripts/generate-functions.ts",
     "source-map:coverage": "tsup scripts/source-map-coverage.ts --no-config --format esm --platform node --target node22 --out-dir node_modules/.cache/source-map-coverage --silent && node node_modules/.cache/source-map-coverage/source-map-coverage.js"
   },
