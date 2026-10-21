@@ -1,6 +1,6 @@
 # Smart Forms plugin
 
-The `@sdc-questionnaire-lint/plugin-smart-forms` package, `packages/plugin-smart-forms`, reports where [Smart Forms](https://github.com/aehrc/smart-forms) behaves differently from SDC, in the Smart Forms versions you select. For example, it reports an expression Smart Forms ignores, one it evaluates in the wrong language, or a reference to a variable it never supplies. It also gives core the names Smart Forms binds to a form's sourceQueries results, so `sdc/undefined-variable` accepts them.
+The `@aehrc/sdc-questionnaire-lint-plugin-smart-forms` package, `packages/plugin-smart-forms`, reports where [Smart Forms](https://github.com/aehrc/smart-forms) behaves differently from SDC, in the Smart Forms versions you select. For example, it reports an expression Smart Forms ignores, one it evaluates in the wrong language, or a reference to a variable it never supplies. It also gives core the names Smart Forms binds to a form's sourceQueries results, so `sdc/undefined-variable` accepts them.
 
 Its rules never run Smart Forms code or evaluate an expression. They reason from core's analysis of the form and from **runtime facts**: what each Smart Forms version does, recorded in the plugin and backed by tests against the published packages. They assume the form is populated with sdc-populate and then rendered, as the Smart Forms app does.
 
@@ -8,8 +8,8 @@ The plugin is turned on by listing it in an `.mjs` config:
 
 ```js
 // sdc-questionnaire-lint.config.mjs
-import { defineConfig } from 'sdc-questionnaire-lint';
-import smartForms from '@sdc-questionnaire-lint/plugin-smart-forms';
+import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
+import smartForms from '@aehrc/sdc-questionnaire-lint-plugin-smart-forms';
 
 export default defineConfig({ plugins: [smartForms] });
 ```

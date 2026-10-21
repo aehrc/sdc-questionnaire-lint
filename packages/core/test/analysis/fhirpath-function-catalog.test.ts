@@ -16,7 +16,7 @@ describe('fhirPathFunctions', () => {
     expect(keys.length).toBeGreaterThan(100);
     expect(
       readFileSync(catalogModule, 'utf8'),
-      'run: npm run generate:functions --workspace sdc-questionnaire-lint',
+      'run: npm run generate:functions --workspace @aehrc/sdc-questionnaire-lint',
     ).toBe(renderCatalogModule(version, keys));
   });
 

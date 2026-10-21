@@ -2,7 +2,7 @@
 
 This section is for contributors to this repository: using the linter needs none of it.
 
-The `@sdc-questionnaire-lint/lint-cases` package, `packages/lint-cases`, is how this repository tests its rules. A **lint case** is a YAML config describing a minimal form, `test/cases/<rule>/<case>.yaml`, beside the findings the linter must report for it, `<case>.expected.yaml`. The package writes every case of a package as FSH, compiles them with SUSHI into one project, lints each compiled Questionnaire and compares the findings with the expected file.
+The `@aehrc/sdc-questionnaire-lint-cases` package, `packages/lint-cases`, is how this repository tests its rules. A **lint case** is a YAML config describing a minimal form, `test/cases/<rule>/<case>.yaml`, beside the findings the linter must report for it, `<case>.expected.yaml`. The package writes every case of a package as FSH, compiles them with SUSHI into one project, lints each compiled Questionnaire and compares the findings with the expected file.
 
 Because SUSHI compiles each case, a case tests a rule the way an IG author meets it: through FSH, with each finding mapped back to its FSH line.
 
@@ -40,4 +40,4 @@ Four parts of the repository use it:
 | 3 | [Compiled project](project.md) | `project.ts` | Finds a package's cases and compiles them all with SUSHI into one cached project |
 | 4 | [Case tests](tests.md) | `cases.ts` | Lints each case, compares its findings with the expected file, and checks that every rule has a case |
 
-Paths are relative to `packages/lint-cases/src`. The package exports `cases.ts` as `@sdc-questionnaire-lint/lint-cases` and `generate-fsh.ts` as `@sdc-questionnaire-lint/lint-cases/generate-fsh`; the rules library imports `project.ts` by its path.
+Paths are relative to `packages/lint-cases/src`. The package exports `cases.ts` as `@aehrc/sdc-questionnaire-lint-cases` and `generate-fsh.ts` as `@aehrc/sdc-questionnaire-lint-cases/generate-fsh`; the rules library imports `project.ts` by its path.

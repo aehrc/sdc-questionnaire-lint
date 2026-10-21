@@ -6,9 +6,9 @@ Stack: TypeScript, Node 22+, tsup, Vitest; fhirpath.js pinned to 4.10.1.
 
 An npm workspace of three packages:
 
-- `packages/core` (`sdc-questionnaire-lint`): the CLI, the library and the built-in `sdc` rules.
-- `packages/plugin-smart-forms` (`@sdc-questionnaire-lint/plugin-smart-forms`): the `smart-forms` plugin, its runtime facts and its reproduction tests against the pinned Smart Forms packages.
-- `packages/lint-cases` (`@sdc-questionnaire-lint/lint-cases`): private test support, not built or published. It compiles lint cases with SUSHI, lints them and compares the findings.
+- `packages/core` (`@aehrc/sdc-questionnaire-lint`): the CLI, the library and the built-in `sdc` rules.
+- `packages/plugin-smart-forms` (`@aehrc/sdc-questionnaire-lint-plugin-smart-forms`): the `smart-forms` plugin, its runtime facts and its reproduction tests against the pinned Smart Forms packages.
+- `packages/lint-cases` (`@aehrc/sdc-questionnaire-lint-cases`): private test support, not built or published. It compiles lint cases with SUSHI, lints them and compares the findings.
 
 ## Docs
 
@@ -36,8 +36,8 @@ An npm workspace of three packages:
 - `npm run docs:dev`: serve the documentation site, built by VitePress from GLOSSARY.md and `docs/` (without `docs/plans/`); its home page is `docs/index.md`, and links to README.md point at GitHub. `npm run docs:build` builds it into the gitignored `docs/.vitepress/dist/` and fails on a dead link; links to files outside the site point at GitHub. Both build the packages first. Add a new page under `docs/` to the sidebar in [docs/.vitepress/config.ts](docs/.vitepress/config.ts). The rules library (`docs/rules/`) is generated: a page per rule from its `meta.docs`, its lint cases and the example case [docs/.vitepress/rules.ts](docs/.vitepress/rules.ts) names for it, compiled by SUSHI into the lint cases' cache.
 - `npm run format`: apply Prettier. Markdown, `docs/` and test fixtures are deliberately not formatted.
 - Do not run `npm audit fix --force`: it downgrades `fhirpath` below the 4.10.1 pin.
-- `npm run generate:functions --workspace sdc-questionnaire-lint`: regenerate `packages/core/src/analysis/fhirpath-function-catalog.ts`, the FHIRPath function catalogue, from the installed fhirpath.js. Run it after bumping `fhirpath`; never edit the file by hand.
-- `npm run source-map:coverage --workspace sdc-questionnaire-lint -- <IG directory>`: map every expression of an IG's compiled Questionnaires to its FSH and check each result; run SUSHI in the IG first. It exits 1 below 95% mapped or on any failed check. A development script (`packages/core/scripts/source-map-coverage.ts`), bundled by tsup into `node_modules/.cache`; it is not shipped.
+- `npm run generate:functions --workspace @aehrc/sdc-questionnaire-lint`: regenerate `packages/core/src/analysis/fhirpath-function-catalog.ts`, the FHIRPath function catalogue, from the installed fhirpath.js. Run it after bumping `fhirpath`; never edit the file by hand.
+- `npm run source-map:coverage --workspace @aehrc/sdc-questionnaire-lint -- <IG directory>`: map every expression of an IG's compiled Questionnaires to its FSH and check each result; run SUSHI in the IG first. It exits 1 below 95% mapped or on any failed check. A development script (`packages/core/scripts/source-map-coverage.ts`), bundled by tsup into `node_modules/.cache`; it is not shipped.
 - Dependency versions are saved exactly (`save-exact` in `.npmrc`).
 - Install scripts of dependencies are blocked unless allowed in `allowScripts` in `package.json`. After adding a dependency, review `npm install-scripts ls`.
 - `fhirclient` is overridden with the empty stub `test/stubs/fhirclient` (root `devDependencies` and `overrides` in `package.json`). `@aehrc/sdc-populate`, a dev dependency of the plugin for reproduction tests, declares it but never imports it at run time, and the real package pulls in about 500 Expo and React Native packages and a `core-js` install script. The override names `@aehrc/sdc-populate@4.7.1`: re-check it when that version changes. Add the override before installing a new populate version, or npm keeps a nested real `fhirclient` in the lockfile.

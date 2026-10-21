@@ -1,4 +1,8 @@
-import type { ExpressionSite, QuestionnaireDocument, SiteItem } from 'sdc-questionnaire-lint';
+import type {
+  ExpressionSite,
+  QuestionnaireDocument,
+  SiteItem,
+} from '@aehrc/sdc-questionnaire-lint';
 
 // Reading the Questionnaire JSON behind a site. Core publishes no item API yet (API stage A), so
 // the plugin resolves the pointers sites carry (docs/smart-forms-rules.md, Public API stages).

@@ -1,4 +1,4 @@
-import type { ExpressionSite } from 'sdc-questionnaire-lint';
+import type { ExpressionSite } from '@aehrc/sdc-questionnaire-lint';
 import {
   ANSWER_EXPRESSION,
   ANSWER_OPTIONS_TOGGLE_EXPRESSION,

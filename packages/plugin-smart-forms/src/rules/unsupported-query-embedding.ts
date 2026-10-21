@@ -5,7 +5,7 @@ import type {
   RuleContext,
   RuleFinding,
   RuleRelatedLocation,
-} from 'sdc-questionnaire-lint';
+} from '@aehrc/sdc-questionnaire-lint';
 import { isObject, type Json } from '../document.js';
 import { readBy, requireCompat } from '../eligibility.js';
 import { embeddingsAt } from '../facts/embeddings.js';

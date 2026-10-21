@@ -7,7 +7,7 @@ import {
   type RuleRelatedLocation,
   type Variable,
   type VariableReference,
-} from 'sdc-questionnaire-lint';
+} from '@aehrc/sdc-questionnaire-lint';
 import { elementName, isObject } from '../document.js';
 import { readBy, requireCompat } from '../eligibility.js';
 import {

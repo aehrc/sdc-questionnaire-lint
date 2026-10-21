@@ -1,4 +1,4 @@
-import type { LintPlugin } from 'sdc-questionnaire-lint';
+import type { LintPlugin } from '@aehrc/sdc-questionnaire-lint';
 import pkg from '../package.json' with { type: 'json' };
 import { hostVariables } from './host-variables.js';
 import { expressionEvaluatedAsFhirpath } from './rules/expression-evaluated-as-fhirpath.js';

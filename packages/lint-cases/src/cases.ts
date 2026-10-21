@@ -12,7 +12,7 @@ import type {
   QuestionnaireLocation,
   Severity,
   Suggestion,
-} from 'sdc-questionnaire-lint';
+} from '@aehrc/sdc-questionnaire-lint';
 import { lintConfigFile } from './generate-fsh.js';
 import { compileLintCases, readLintCases, type LintCase } from './project.js';
 

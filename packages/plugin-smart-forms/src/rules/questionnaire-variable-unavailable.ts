@@ -1,4 +1,4 @@
-import type { ExpressionSite, LintRule, RuleContext } from 'sdc-questionnaire-lint';
+import type { ExpressionSite, LintRule, RuleContext } from '@aehrc/sdc-questionnaire-lint';
 import { elementName, itemOf } from '../document.js';
 import { type Reader, readBy, requireCompat } from '../eligibility.js';
 import { unsuppliedAt } from '../facts/names.js';

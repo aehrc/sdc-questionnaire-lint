@@ -147,6 +147,6 @@ Send SUSHI's log to stderr, as above, so it never ends up inside the report. If 
 
 ## Pin the versions
 
-Install `sdc-questionnaire-lint`, any plugins and `fsh-sushi` as development dependencies with exact versions, and install them in CI with `npm ci`. CI then runs the versions you tested with locally, and the report records them: the linter and plugin versions in `run`, the Smart Forms versions checked in `run.compat`, and the SUSHI version in `run.sushi`.
+Install `@aehrc/sdc-questionnaire-lint`, any plugins and `fsh-sushi` as development dependencies with exact versions, and install them in CI with `npm ci`. CI then runs the versions you tested with locally, and the report records them: the linter and plugin versions in `run`, the Smart Forms versions checked in `run.compat`, and the SUSHI version in `run.sushi`.
 
 [Author and automation recipes](../cli.md#author-and-automation-recipes) in the CLI contract has the full rules for automation.

@@ -1,4 +1,4 @@
-import type { ExpressionSite, RuleContext } from 'sdc-questionnaire-lint';
+import type { ExpressionSite, RuleContext } from '@aehrc/sdc-questionnaire-lint';
 import { type LanguageHandling, languageFactAt } from './facts/languages.js';
 import { prerequisitesHold } from './facts/prerequisites.js';
 import { type Component, components } from './facts/versions.js';
@@ -22,7 +22,7 @@ export function requireCompat(ctx: Pick<RuleContext, 'compat'>): Record<Componen
     const version = compat?.[component];
     if (version === undefined) {
       throw new Error(
-        `ctx.compat names no Smart Forms ${component} version; this plugin needs sdc-questionnaire-lint 0.1.0 or later`,
+        `ctx.compat names no Smart Forms ${component} version; this plugin needs @aehrc/sdc-questionnaire-lint 0.1.0 or later`,
       );
     }
     versions[component] = version;

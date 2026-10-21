@@ -1,6 +1,6 @@
 # Core
 
-The `sdc-questionnaire-lint` package, `packages/core`, holds the CLI, the library and the built-in `sdc` rules. It is made of the blocks below, and each one has a page: what it does, where its code is, and a diagram. [How the linter works](../architecture.md) goes into more detail.
+The `@aehrc/sdc-questionnaire-lint` package, `packages/core`, holds the CLI, the library and the built-in `sdc` rules. It is made of the blocks below, and each one has a page: what it does, where its code is, and a diagram. [How the linter works](../architecture.md) goes into more detail.
 
 ## One lint run
 

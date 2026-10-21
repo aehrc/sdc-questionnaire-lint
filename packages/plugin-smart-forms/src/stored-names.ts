@@ -1,4 +1,4 @@
-import type { Declaration, RuleContext } from 'sdc-questionnaire-lint';
+import type { Declaration, RuleContext } from '@aehrc/sdc-questionnaire-lint';
 import { storesVariable } from './eligibility.js';
 import { type Component, components } from './facts/versions.js';
 import { population } from './population.js';

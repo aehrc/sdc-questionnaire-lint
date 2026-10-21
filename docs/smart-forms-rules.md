@@ -70,7 +70,7 @@ The plugin is an ordinary npm package that a project's `.mjs` config imports and
 flowchart TD
   config["sdc-questionnaire-lint.config.mjs<br/>plugins: [smartForms]<br/>compat: { 'smart-forms': 'latest' }"]
 
-  subgraph plugin["@sdc-questionnaire-lint/plugin-smart-forms"]
+  subgraph plugin["@aehrc/sdc-questionnaire-lint-plugin-smart-forms"]
     entry["default export<br/>{ meta, compat, hostVariables, rules }"]
     versions["compat: verified versions,<br/>required components (P0)"]
     hook["hostVariables({ document, compat })<br/>sourceQueries names (P4)"]
@@ -86,7 +86,7 @@ flowchart TD
     hook --> facts
   end
 
-  subgraph core["sdc-questionnaire-lint (core)"]
+  subgraph core["@aehrc/sdc-questionnaire-lint (core)"]
     loadConfig["loadConfig<br/>config/load.ts"] --> resolveRuleSet["resolveRuleSet<br/>plugins/rule-set.ts<br/>validates plugin, resolves compat"]
     resolveRuleSet --> loadInputs["loadInputs<br/>inputs/load-inputs.ts"]
     loadInputs --> sites

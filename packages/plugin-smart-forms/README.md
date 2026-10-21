@@ -1,21 +1,21 @@
-# @sdc-questionnaire-lint/plugin-smart-forms
+# @aehrc/sdc-questionnaire-lint-plugin-smart-forms
 
-A plugin for [sdc-questionnaire-lint](https://github.com/beda-software/sdc-questionnaire-lint) that reports where [Smart Forms](https://github.com/aehrc/smart-forms) behaves differently from SDC, in the Smart Forms versions you select: an expression it ignores, evaluates in the wrong language, or that references a variable it never supplies. It also supplies the names Smart Forms gives the results of a form's sourceQueries, so `sdc/undefined-variable` accepts them.
+A plugin for [sdc-questionnaire-lint](https://github.com/aehrc/sdc-questionnaire-lint) that reports where [Smart Forms](https://github.com/aehrc/smart-forms) behaves differently from SDC, in the Smart Forms versions you select: an expression it ignores, evaluates in the wrong language, or that references a variable it never supplies. It also supplies the names Smart Forms gives the results of a form's sourceQueries, so `sdc/undefined-variable` accepts them.
 
 Its rules assume the form is populated with sdc-populate, then rendered with what population supplied: the pipeline the Smart Forms app runs when population succeeds.
 
 ## Install and configure
 
 ```sh
-npm install --save-dev sdc-questionnaire-lint @sdc-questionnaire-lint/plugin-smart-forms
+npm install --save-dev @aehrc/sdc-questionnaire-lint @aehrc/sdc-questionnaire-lint-plugin-smart-forms
 ```
 
 List the plugin in an `.mjs` config; a JSON config cannot load a plugin.
 
 ```js
 // sdc-questionnaire-lint.config.mjs
-import { defineConfig } from 'sdc-questionnaire-lint';
-import smartForms from '@sdc-questionnaire-lint/plugin-smart-forms';
+import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
+import smartForms from '@aehrc/sdc-questionnaire-lint-plugin-smart-forms';
 
 export default defineConfig({
   plugins: [smartForms],
@@ -39,7 +39,7 @@ export default defineConfig({
 | `smart-forms/forward-variable-reference` | warning | A variable that references a variable or itemPopulationContext Smart Forms population evaluates after it |
 | `smart-forms/unsupported-template-extract-context` | error | A templateExtractContext written as a valueExpression, which Smart Forms template extraction ignores because it reads only valueString |
 
-`sdc-lint explain smart-forms/<rule>` prints what a rule checks, why, an example message and the fix. The [rules library](https://github.com/beda-software/sdc-questionnaire-lint/blob/main/docs/rules/index.md) has the same documentation with example forms, and the [Smart Forms rules plan](https://github.com/beda-software/sdc-questionnaire-lint/blob/main/docs/smart-forms-rules.md) the runtime facts behind each rule.
+`sdc-lint explain smart-forms/<rule>` prints what a rule checks, why, an example message and the fix. The [rules library](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/rules/index.md) has the same documentation with example forms, and the [Smart Forms rules plan](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/smart-forms-rules.md) the runtime facts behind each rule.
 
 ## The names it supplies
 
@@ -66,4 +66,4 @@ The names your application passes to the renderer as `additionalContext` belong 
 
 ## Suppressions
 
-A suppression of a plugin rule's finding is applied when it hides a finding, and stale when its file, resource, expression or declared name is gone. When its target still exists and the rule reported nothing there, it is not assessed: only built-in rules record whether they completed a check. A plugin rule never makes an expression unchecked. [Stale suppressions](https://github.com/beda-software/sdc-questionnaire-lint/blob/main/docs/cli.md#stale-suppressions) has the full rules.
+A suppression of a plugin rule's finding is applied when it hides a finding, and stale when its file, resource, expression or declared name is gone. When its target still exists and the rule reported nothing there, it is not assessed: only built-in rules record whether they completed a check. A plugin rule never makes an expression unchecked. [Stale suppressions](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/cli.md#stale-suppressions) has the full rules.

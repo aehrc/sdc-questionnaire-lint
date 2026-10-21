@@ -2,7 +2,7 @@
 // declaration, and when. Forms are JSON, with sites and declarations as core finds them. The last
 // tests run the pinned populate (test/reproduction/populate.ts) beside the model; they are not
 // fact evidence, which stays in the reproduction tests.
-import type { Declaration } from 'sdc-questionnaire-lint';
+import type { Declaration } from '@aehrc/sdc-questionnaire-lint';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type Binder,

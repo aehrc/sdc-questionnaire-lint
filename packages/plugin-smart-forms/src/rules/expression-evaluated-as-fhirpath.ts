@@ -1,4 +1,4 @@
-import { isQueryLanguage, type LintRule } from 'sdc-questionnaire-lint';
+import { isQueryLanguage, type LintRule } from '@aehrc/sdc-questionnaire-lint';
 import { elementName } from '../document.js';
 import { readBy, requireCompat } from '../eligibility.js';
 import {

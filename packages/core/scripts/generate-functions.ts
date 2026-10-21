@@ -1,6 +1,6 @@
 // Regenerates src/analysis/fhirpath-function-catalog.ts from the installed fhirpath.js. Run it
 // after bumping fhirpath; test/analysis/fhirpath-function-catalog.test.ts fails until you do:
-//   npm run generate:functions --workspace sdc-questionnaire-lint
+//   npm run generate:functions --workspace @aehrc/sdc-questionnaire-lint
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';

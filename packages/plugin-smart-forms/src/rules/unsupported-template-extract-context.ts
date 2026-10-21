@@ -1,4 +1,4 @@
-import type { ExpressionSite, LintRule } from 'sdc-questionnaire-lint';
+import type { ExpressionSite, LintRule } from '@aehrc/sdc-questionnaire-lint';
 import { isObject, resolve } from '../document.js';
 import { templateExtractVersion } from '../eligibility.js';
 import { extractionAt } from '../facts/extraction.js';

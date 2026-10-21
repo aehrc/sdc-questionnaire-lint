@@ -1,4 +1,4 @@
-import type { HostVariablesInput } from 'sdc-questionnaire-lint';
+import type { HostVariablesInput } from '@aehrc/sdc-questionnaire-lint';
 import { population } from './population.js';
 
 // The names of the sourceQueries results population binds, so that sdc/undefined-variable accepts

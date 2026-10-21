@@ -1,5 +1,5 @@
 {
-  "name": "@sdc-questionnaire-lint/lint-cases",
+  "name": "@aehrc/sdc-questionnaire-lint-cases",
   "version": "0.1.0",
   "private": true,
   "description": "Lint cases for the sdc-questionnaire-lint packages: YAML configs compiled by SUSHI, linted and compared with their expected findings",
@@ -12,6 +12,6 @@
     "node": ">=22.12"
   },
   "devDependencies": {
-    "sdc-questionnaire-lint": "*"
+    "@aehrc/sdc-questionnaire-lint": "*"
   }
 }

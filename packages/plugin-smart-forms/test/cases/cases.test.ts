@@ -1,5 +1,5 @@
-import { lintCases, testLintCases } from '@sdc-questionnaire-lint/lint-cases';
-import { lint } from 'sdc-questionnaire-lint';
+import { lintCases, testLintCases } from '@aehrc/sdc-questionnaire-lint-cases';
+import { lint } from '@aehrc/sdc-questionnaire-lint';
 import smartForms from '../../src/index.js';
 
 // Each case is a YAML config beside the findings the linter must report for it, linted by the

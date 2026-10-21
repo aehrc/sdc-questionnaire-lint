@@ -3,7 +3,7 @@ import {
   definerOf,
   type ExpressionSite,
   type LintRule,
-} from 'sdc-questionnaire-lint';
+} from '@aehrc/sdc-questionnaire-lint';
 import { elementName } from '../document.js';
 import { readBy } from '../eligibility.js';
 import { type Binding, compare, type Position, population } from '../population.js';

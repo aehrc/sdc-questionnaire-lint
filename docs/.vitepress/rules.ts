@@ -15,7 +15,7 @@ import smartForms from '../../packages/plugin-smart-forms/src/index.js';
 // meta.docs and its example lint case compiled by SUSHI, so the pages follow the code. Loading it
 // needs the built core, which the Smart Forms plugin imports.
 
-export const repository = 'https://github.com/beda-software/sdc-questionnaire-lint';
+export const repository = 'https://github.com/aehrc/sdc-questionnaire-lint';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 
 // A repository file or directory on GitHub.

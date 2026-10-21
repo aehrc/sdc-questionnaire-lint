@@ -22,7 +22,7 @@ import {
   lintConfigFile,
   readFshConfig,
   type FshConfig,
-} from '@sdc-questionnaire-lint/lint-cases/generate-fsh';
+} from '@aehrc/sdc-questionnaire-lint-cases/generate-fsh';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const example = fileURLToPath(new URL('example.ts', import.meta.url));
@@ -58,7 +58,7 @@ try {
 if (plugins.length > 0) {
   // npm run demo builds core only; the generated config imports the plugin's build. Through a
   // shell, because npm is npm.cmd on Windows.
-  execSync('npm run build --workspace @sdc-questionnaire-lint/plugin-smart-forms', {
+  execSync('npm run build --workspace @aehrc/sdc-questionnaire-lint-plugin-smart-forms', {
     stdio: ['ignore', 'ignore', 'inherit'],
   });
 }

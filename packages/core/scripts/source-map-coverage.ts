@@ -1,7 +1,7 @@
 // Measures FSH source mapping on a real IG: locates every expression site of its compiled
 // Questionnaires as a finding over the whole expression would be, and checks each mapped one.
 // A development script, not shipped; run it after SUSHI has compiled the IG:
-//   npm run source-map:coverage --workspace sdc-questionnaire-lint -- <IG directory>
+//   npm run source-map:coverage --workspace @aehrc/sdc-questionnaire-lint -- <IG directory>
 // It exits 1 when fewer than 95% of sites map, or when any check fails.
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
@@ -182,7 +182,9 @@ async function main(igDirectory: string): Promise<number> {
 
 const [igDirectory] = process.argv.slice(2);
 if (igDirectory === undefined) {
-  console.error('usage: npm run source-map:coverage --workspace sdc-questionnaire-lint -- <IG>');
+  console.error(
+    'usage: npm run source-map:coverage --workspace @aehrc/sdc-questionnaire-lint -- <IG>',
+  );
   process.exitCode = 2;
 } else {
   process.exitCode = await main(igDirectory);

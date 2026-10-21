@@ -56,7 +56,7 @@ Suppressions: 1 applied, 0 stale, 0 not assessed.
 In an `.mjs` config, `suppress` takes the same entries:
 
 ```js
-import { defineConfig } from 'sdc-questionnaire-lint';
+import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
 
 export default defineConfig({
   suppress: [

@@ -1,4 +1,4 @@
-import type { ExpressionSite, QuestionnaireDocument } from 'sdc-questionnaire-lint';
+import type { ExpressionSite, QuestionnaireDocument } from '@aehrc/sdc-questionnaire-lint';
 import {
   extensionOf,
   isObject,

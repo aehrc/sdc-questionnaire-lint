@@ -13,7 +13,7 @@ In an IG, the linter reads the JSON SUSHI compiles, so compile first. Add a scri
   },
   "devDependencies": {
     "fsh-sushi": "3.20.1",
-    "sdc-questionnaire-lint": "0.1.0"
+    "@aehrc/sdc-questionnaire-lint": "0.1.0"
   }
 }
 ```

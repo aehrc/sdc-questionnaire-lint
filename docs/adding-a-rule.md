@@ -38,12 +38,12 @@ A plugin rule stays silent where a core rule reports the same root cause. It che
 
 ## 2. Anatomy of a rule
 
-The contract is in [`packages/core/src/plugins/contract.ts`](../packages/core/src/plugins/contract.ts) and exported from the `sdc-questionnaire-lint` package.
+The contract is in [`packages/core/src/plugins/contract.ts`](../packages/core/src/plugins/contract.ts) and exported from the `@aehrc/sdc-questionnaire-lint` package.
 
 A rule is a `LintRule`: a `meta` object and a `check(ctx)` function.
 
 ```ts
-import type { LintRule } from 'sdc-questionnaire-lint';
+import type { LintRule } from '@aehrc/sdc-questionnaire-lint';
 
 export const myRule: LintRule = {
   meta: {
@@ -193,7 +193,7 @@ New cases are picked up without registration: [`packages/core/test/cases/cases.t
 
 Other tests that assert an exact list of findings, such as those in `packages/core/test/cli/`, can pick up the new rule's findings too. Run the whole suite, `npm test`, not only the cases.
 
-**A plugin outside this repository** cannot use lint cases: `@sdc-questionnaire-lint/lint-cases` is private, and there is no published rule-testing framework. Test the rule through `lint()` from the `sdc-questionnaire-lint` package instead: write a temporary directory with a Questionnaire JSON file and an `.mjs` config that lists your plugin, call `lint({ cwd })`, and assert on `report.findings`. [`packages/plugin-smart-forms/test/support/lint.ts`](../packages/plugin-smart-forms/test/support/lint.ts) is a working example of this pattern.
+**A plugin outside this repository** cannot use lint cases: `@aehrc/sdc-questionnaire-lint-cases` is private, and there is no published rule-testing framework. Test the rule through `lint()` from the `@aehrc/sdc-questionnaire-lint` package instead: write a temporary directory with a Questionnaire JSON file and an `.mjs` config that lists your plugin, call `lint({ cwd })`, and assert on `report.findings`. [`packages/plugin-smart-forms/test/support/lint.ts`](../packages/plugin-smart-forms/test/support/lint.ts) is a working example of this pattern.
 
 ## 6. Core rule checklist
 
@@ -219,7 +219,7 @@ A rule that no plan describes yet gets a slice first, agreed with the maintainer
 
 For a `smart-forms/` rule in `packages/plugin-smart-forms`. Before you start, read the slice for the rule in [smart-forms-rules.md](smart-forms-rules.md) and [how to work on a slice](smart-forms-rules.md#how-to-work-on-a-slice), and re-check each runtime fact it relies on against the pinned Smart Forms source. A rule that no slice describes yet gets one first, agreed with the maintainers, as for a core rule.
 
-1. **The rule file:** `packages/plugin-smart-forms/src/rules/<rule-name>.ts`, exporting a `LintRule` that imports its types from `sdc-questionnaire-lint`. A rule that reports at an expression site reports only where `readBy(ctx, site)` ([`src/eligibility.ts`](../packages/plugin-smart-forms/src/eligibility.ts)) returns a component that reads it. [`rules/unsupported-expression-language.ts`](../packages/plugin-smart-forms/src/rules/unsupported-expression-language.ts) is an example.
+1. **The rule file:** `packages/plugin-smart-forms/src/rules/<rule-name>.ts`, exporting a `LintRule` that imports its types from `@aehrc/sdc-questionnaire-lint`. A rule that reports at an expression site reports only where `readBy(ctx, site)` ([`src/eligibility.ts`](../packages/plugin-smart-forms/src/eligibility.ts)) returns a component that reads it. [`rules/unsupported-expression-language.ts`](../packages/plugin-smart-forms/src/rules/unsupported-expression-language.ts) is an example.
 2. **Registration:** add the rule to `rules` in [`packages/plugin-smart-forms/src/index.ts`](../packages/plugin-smart-forms/src/index.ts).
 3. **Runtime facts:** each fact the rule relies on goes in `packages/plugin-smart-forms/src/facts/`, per component and verified version, with its evidence ([`facts/evidence.ts`](../packages/plugin-smart-forms/src/facts/evidence.ts)): a reproduction test against the pinned package in `packages/plugin-smart-forms/test/reproduction/` where a harness exists (`reproduced`), otherwise `source-only` with a permalink into the Smart Forms source at the release commit (`source`). A message claims only what that evidence shows.
 4. **Tests:** lint cases in `packages/plugin-smart-forms/test/cases/<rule-name>/`, as in [section 5](#5-tests), including a case for each silence with the core rule `off`. The docs test runs `explain` for the rule.
@@ -234,13 +234,13 @@ For rules in your own npm package. The Smart Forms plugin in [`packages/plugin-s
 1. **The plugin object:** the package's default export is a `LintPlugin`: `meta: { name, version }` and `rules`, keyed by rule name.
    - `meta.name` is the rule namespace: the plugin `my-plugin` with the rule key `no-today` gives `my-plugin/no-today`. It uses lowercase letters, digits and hyphens. `sdc` and `lint` are reserved, and two listed plugins cannot share a name.
    - `meta.version` is the plugin's version; the report lists it in `run.plugins`.
-   - Import types and lookups from `sdc-questionnaire-lint` only. Everything under its `src` that the package does not export is internal ([what a plugin can import](architecture.md#what-a-plugin-can-import)).
-2. **`peerDependencies`** on the versions of `sdc-questionnaire-lint` the plugin supports. The Smart Forms plugin uses `"sdc-questionnaire-lint": "^0.1.0"`.
+   - Import types and lookups from `@aehrc/sdc-questionnaire-lint` only. Everything under its `src` that the package does not export is internal ([what a plugin can import](architecture.md#what-a-plugin-can-import)).
+2. **`peerDependencies`** on the versions of `@aehrc/sdc-questionnaire-lint` the plugin supports. The Smart Forms plugin uses `"@aehrc/sdc-questionnaire-lint": "^0.1.0"`.
 3. **`compat`**, only for a plugin that checks forms against versions of a runtime: `compat: { verified, required }`. `verified` lists each component's verified versions, oldest to newest, such as `{ renderer: ['1.4.0'], populate: ['4.7.1'] }`; `required` lists the components a user's explicit `compat` object must name. A rule reads the selected versions from `ctx.compat`. Core treats versions as opaque strings.
 4. **Enabling it:** a user lists the plugin in `plugins` in an `.mjs` config, `sdc-questionnaire-lint.config.mjs`; a JSON config cannot load a plugin. Installing it is not enough. Listing it enables its rules at their default severities, which `rules` can override:
 
    ```js
-   import { defineConfig } from 'sdc-questionnaire-lint';
+   import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
    import myPlugin from 'my-sdc-lint-plugin';
 
    export default defineConfig({
