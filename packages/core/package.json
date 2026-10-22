@@ -20,8 +20,8 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "sdc-lint": "./dist/cli.js",
-    "sdc-questionnaire-lint": "./dist/cli.js"
+    "sdc-lint": "dist/cli.js",
+    "sdc-questionnaire-lint": "dist/cli.js"
   },
   "files": [
     "dist"
