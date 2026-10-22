@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { type CompletedReport, lint } from 'sdc-questionnaire-lint';
+import { type CompletedReport, lint } from '@aehrc/sdc-questionnaire-lint';
 import { onTestFinished } from 'vitest';
 
 const plugin = pathToFileURL(path.resolve(import.meta.dirname, '../../dist/index.js')).href;

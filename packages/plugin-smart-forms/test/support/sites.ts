@@ -1,4 +1,8 @@
-import type { Declaration, ExpressionSite, QuestionnaireDocument } from 'sdc-questionnaire-lint';
+import type {
+  Declaration,
+  ExpressionSite,
+  QuestionnaireDocument,
+} from '@aehrc/sdc-questionnaire-lint';
 // Tests only: core's site discovery and name analysis are internal, so tests build real sites and
 // declarations from its source.
 import { findDeclarations } from '../../../core/src/analysis/declarations.js';

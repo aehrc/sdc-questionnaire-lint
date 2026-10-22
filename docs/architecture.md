@@ -212,7 +212,7 @@ The FSH modules mirror SUSHI 3.20.1, so they read FSH as SUSHI does: `fsh-docume
 
 ## What a plugin can import
 
-A plugin imports from the `sdc-questionnaire-lint` package only; everything under `packages/core/src` that `index.ts` does not export is internal. Besides `lint`, `LintFailure`, `defineConfig` and the options, report, failure and config types, `index.ts` exports the following. The name analysis is published in stages, each with the Smart Forms slice that first needs it ([smart-forms-rules.md](smart-forms-rules.md#public-api-stages-s5), S5).
+A plugin imports from the `@aehrc/sdc-questionnaire-lint` package only; everything under `packages/core/src` that `index.ts` does not export is internal. Besides `lint`, `LintFailure`, `defineConfig` and the options, report, failure and config types, `index.ts` exports the following. The name analysis is published in stages, each with the Smart Forms slice that first needs it ([smart-forms-rules.md](smart-forms-rules.md#public-api-stages-s5), S5).
 
 - The plugin contract: `LintPlugin`, `LintRule`, `RuleContext`, `RuleFinding`, `RuleRelatedLocation`, `RuleDocs`, `PluginCompat` and `HostVariablesInput` (`plugins/contract.ts`). Besides its rules, a plugin can supply host variables through `LintPlugin.hostVariables({ document, compat })`: synchronous and pure, it only adds names, which resolve with `origin: 'host'` where no declaration or assembleContext name wins ([smart-forms-rules.md](smart-forms-rules.md#core-contract), S6).
 - The expression-site model: `QuestionnaireDocument`, `ExpressionSite`, `CataloguedLocation`, `SiteItem` and the other types in `analysis/expression-site.ts`. There is no item-tree API: a plugin reads an item by resolving `site.item.pointer` against `document.resource`.

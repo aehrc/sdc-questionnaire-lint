@@ -145,7 +145,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (smartFormsMode) {
     // npm run corpus builds core only; the config imports the plugin's build. Through a shell,
     // because npm is npm.cmd on Windows.
-    execSync('npm run build --workspace @sdc-questionnaire-lint/plugin-smart-forms', {
+    execSync('npm run build --workspace @aehrc/sdc-questionnaire-lint-plugin-smart-forms', {
       stdio: ['ignore', 'ignore', 'inherit'],
     });
   }

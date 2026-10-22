@@ -2,7 +2,7 @@
 
 A CLI and TypeScript library for statically checking FHIRPath and x-fhir-query expressions in FHIR SDC Questionnaires, for form authors, CI pipelines and AI agents.
 
-The npm package is `sdc-questionnaire-lint`; the CLI command is `sdc-lint`.
+The npm package is `@aehrc/sdc-questionnaire-lint`; the CLI command is `sdc-lint`.
 
 New to the linter? [Getting started](docs/getting-started.md) installs it, lints a first form and sets up a config.
 
@@ -82,7 +82,7 @@ A plugin adds rules. Installing one does not enable it: list it in `plugins` in 
 
 ```js
 // sdc-questionnaire-lint.config.mjs
-import { defineConfig } from 'sdc-questionnaire-lint';
+import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
 import myPlugin from 'my-sdc-lint-plugin';
 
 export default defineConfig({
@@ -93,12 +93,12 @@ export default defineConfig({
 
 #### The Smart Forms plugin
 
-`@sdc-questionnaire-lint/plugin-smart-forms` reports where [Smart Forms](https://github.com/aehrc/smart-forms) behaves differently from SDC, in the versions you select: an expression it ignores, evaluates in the wrong language, or that references a variable it never supplies. Its rules assume the form is populated with sdc-populate, then rendered.
+`@aehrc/sdc-questionnaire-lint-plugin-smart-forms` reports where [Smart Forms](https://github.com/aehrc/smart-forms) behaves differently from SDC, in the versions you select: an expression it ignores, evaluates in the wrong language, or that references a variable it never supplies. Its rules assume the form is populated with sdc-populate, then rendered.
 
 ```js
 // sdc-questionnaire-lint.config.mjs
-import { defineConfig } from 'sdc-questionnaire-lint';
-import smartForms from '@sdc-questionnaire-lint/plugin-smart-forms';
+import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
+import smartForms from '@aehrc/sdc-questionnaire-lint-plugin-smart-forms';
 
 export default defineConfig({
   plugins: [smartForms],
@@ -219,9 +219,9 @@ The repository is an npm workspace with three packages:
 
 | Package | Path | Contents |
 | :- | :- | :- |
-| `sdc-questionnaire-lint` | [packages/core](packages/core) | The CLI, the library and the built-in rules |
-| `@sdc-questionnaire-lint/plugin-smart-forms` | [packages/plugin-smart-forms](packages/plugin-smart-forms) | The Smart Forms plugin, with reproduction tests against the pinned Smart Forms packages |
-| `@sdc-questionnaire-lint/lint-cases` | [packages/lint-cases](packages/lint-cases) | Private test support: lint cases written as YAML, compiled by SUSHI, linted and compared with their expected findings; the rules library shows them as examples |
+| `@aehrc/sdc-questionnaire-lint` | [packages/core](packages/core) | The CLI, the library and the built-in rules |
+| `@aehrc/sdc-questionnaire-lint-plugin-smart-forms` | [packages/plugin-smart-forms](packages/plugin-smart-forms) | The Smart Forms plugin, with reproduction tests against the pinned Smart Forms packages |
+| `@aehrc/sdc-questionnaire-lint-cases` | [packages/lint-cases](packages/lint-cases) | Private test support: lint cases written as YAML, compiled by SUSHI, linted and compared with their expected findings; the rules library shows them as examples |
 
 A rule's tests are lint cases: `test/cases/<rule>/<case>.yaml` describes a form, and `<case>.expected.yaml` beside it lists the findings the linter must report.
 

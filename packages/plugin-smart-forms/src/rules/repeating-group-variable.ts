@@ -4,7 +4,7 @@ import type {
   QuestionnaireDocument,
   RuleRelatedLocation,
   SiteItem,
-} from 'sdc-questionnaire-lint';
+} from '@aehrc/sdc-questionnaire-lint';
 import { elementName, isObject, resolve } from '../document.js';
 import { readBy, requireCompat } from '../eligibility.js';
 import { variableFactsAt } from '../facts/variables.js';

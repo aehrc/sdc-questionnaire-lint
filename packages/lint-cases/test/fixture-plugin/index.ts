@@ -1,4 +1,4 @@
-import type { LintPlugin } from 'sdc-questionnaire-lint';
+import type { LintPlugin } from '@aehrc/sdc-questionnaire-lint';
 // A relative import of another TypeScript file, which only loads when Vitest transforms the
 // generated linter config that imports this plugin.
 import { declaration } from './rule.js';

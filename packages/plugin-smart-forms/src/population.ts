@@ -3,7 +3,7 @@ import type {
   ExpressionSite,
   QuestionnaireDocument,
   RuleContext,
-} from 'sdc-questionnaire-lint';
+} from '@aehrc/sdc-questionnaire-lint';
 import { arrayOf, extensionOf, isObject, itemsOf, type Json } from './document.js';
 import { requireCompat, storesVariable } from './eligibility.js';
 import {

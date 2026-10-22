@@ -11,15 +11,15 @@ sdc-questionnaire-lint checks the FHIRPath and x-fhir-query expressions in FHIR 
 ## Quick start
 
 ::: warning Before the first release
-The packages are not on npm yet, so `npm install sdc-questionnaire-lint` fails. Until the release, build them from the [repository](https://github.com/beda-software/sdc-questionnaire-lint) and install the packed tarball:
+The packages are not on npm yet, so `npm install @aehrc/sdc-questionnaire-lint` fails. Until the release, build them from the [repository](https://github.com/aehrc/sdc-questionnaire-lint) and install the packed tarball:
 
 ```sh
-git clone https://github.com/beda-software/sdc-questionnaire-lint.git
+git clone https://github.com/aehrc/sdc-questionnaire-lint.git
 cd sdc-questionnaire-lint
 npm ci && npm run build
-npm pack --workspace sdc-questionnaire-lint
+npm pack --workspace @aehrc/sdc-questionnaire-lint
 # in your project:
-npm install --save-dev ../sdc-questionnaire-lint/sdc-questionnaire-lint-0.1.0.tgz
+npm install --save-dev ../sdc-questionnaire-lint/aehrc-sdc-questionnaire-lint-0.1.0.tgz
 ```
 
 The repository's [README](../README.md#development) lists the Node and npm versions a build needs.
@@ -28,7 +28,7 @@ The repository's [README](../README.md#development) lists the Node and npm versi
 Install the linter in your project as a development dependency:
 
 ```sh
-npm install --save-dev sdc-questionnaire-lint
+npm install --save-dev @aehrc/sdc-questionnaire-lint
 ```
 
 Then lint your forms. In an IG, compile it with SUSHI first, then run `sdc-lint lint` from the IG's directory: with no paths, it lints `fsh-generated/resources`. For other JSON files, give the files, directories or globs to lint; quote a glob so the linter expands it, not the shell.
@@ -135,14 +135,14 @@ Paths in the config are relative to the config file. To find a rule's ID and wha
 If your forms run in [Smart Forms](https://github.com/aehrc/smart-forms), the Smart Forms plugin reports where Smart Forms behaves differently from SDC: an expression it ignores, evaluates in the wrong language, or that references a variable it never supplies. Install it beside the linter:
 
 ```sh
-npm install --save-dev @sdc-questionnaire-lint/plugin-smart-forms
+npm install --save-dev @aehrc/sdc-questionnaire-lint-plugin-smart-forms
 ```
 
 A plugin runs code, so it is listed in an `.mjs` config, which replaces the JSON one. Name it `sdc-questionnaire-lint.config.mjs`:
 
 ```js
-import { defineConfig } from 'sdc-questionnaire-lint';
-import smartForms from '@sdc-questionnaire-lint/plugin-smart-forms';
+import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
+import smartForms from '@aehrc/sdc-questionnaire-lint-plugin-smart-forms';
 
 export default defineConfig({
   plugins: [smartForms],

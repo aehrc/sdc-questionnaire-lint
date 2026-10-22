@@ -1,4 +1,4 @@
-import { lintCases } from '@sdc-questionnaire-lint/lint-cases';
+import { lintCases } from '@aehrc/sdc-questionnaire-lint-cases';
 import { lint } from '../../src/index.js';
 
 // Core's lint cases, test/cases/<group>/<case>.yaml, linted by core's source.

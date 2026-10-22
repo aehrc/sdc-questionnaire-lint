@@ -1,4 +1,4 @@
-import type { SiteItem } from 'sdc-questionnaire-lint';
+import type { SiteItem } from '@aehrc/sdc-questionnaire-lint';
 import { describe, expect, it } from 'vitest';
 // Tests only: core's elementName is internal; the plugin's copy must print the same.
 import { elementName as coreElementName } from '../../core/src/rules/describe.js';

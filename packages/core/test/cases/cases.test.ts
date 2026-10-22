@@ -1,4 +1,4 @@
-import { testLintCases } from '@sdc-questionnaire-lint/lint-cases';
+import { testLintCases } from '@aehrc/sdc-questionnaire-lint-cases';
 import { sdcPlugin } from '../../src/plugins/builtin.js';
 import { coreCases } from '../support/cases.js';
 

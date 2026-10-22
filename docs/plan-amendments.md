@@ -172,3 +172,7 @@ Settled after P8; the reasons are in [smart-forms-rules.md](smart-forms-rules.md
 Settled before building P12; the reasons are in [smart-forms-rules.md](smart-forms-rules.md#settled-in-the-p12-review).
 
 - **§5.2 plugin contract (Z):** a rule's `meta.docsUrl` must be an absolute URL that the report schema's `format: uri` accepts: RFC 3986 characters, well-formed percent-encodings, no `[` or `]`, at most one `#` and something after the scheme; otherwise loading the plugin fails.
+
+## From the npm scope decision (2026-10-21)
+
+- **§2.1, §6, §7.4 package names:** the packages use the `@aehrc` npm scope: `@aehrc/sdc-questionnaire-lint`, `@aehrc/sdc-questionnaire-lint-plugin-smart-forms` and the private `@aehrc/sdc-questionnaire-lint-cases`. This supersedes the package names in the CLI naming decision. The executables, the config filenames and the report's `run.tool.name`, `sdc-questionnaire-lint`, are unchanged.

@@ -8,7 +8,7 @@ Save this as `my-rules.mjs` next to your config. It adds one rule, `my-rules/no-
 
 ```js
 // my-rules.mjs
-/** @type {import('sdc-questionnaire-lint').LintPlugin} */
+/** @type {import('@aehrc/sdc-questionnaire-lint').LintPlugin} */
 export default {
   meta: { name: 'my-rules', version: '1.0.0' },
   rules: {
@@ -51,7 +51,7 @@ List the plugin in `sdc-questionnaire-lint.config.mjs`. Only an `.mjs` config ca
 
 ```js
 // sdc-questionnaire-lint.config.mjs
-import { defineConfig } from 'sdc-questionnaire-lint';
+import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
 import myRules from './my-rules.mjs';
 
 export default defineConfig({

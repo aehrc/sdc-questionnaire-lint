@@ -1,4 +1,4 @@
-import type { QuestionnaireDocument } from 'sdc-questionnaire-lint';
+import type { QuestionnaireDocument } from '@aehrc/sdc-questionnaire-lint';
 import { arrayOf, isObject, type Json } from './document.js';
 import { LAUNCH_CONTEXT } from './urls.js';
 

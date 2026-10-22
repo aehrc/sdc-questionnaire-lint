@@ -55,8 +55,8 @@ An `.mjs` config takes the same keys, plus `plugins`. Wrap the export in `define
 
 ```js
 // sdc-questionnaire-lint.config.mjs
-import { defineConfig } from 'sdc-questionnaire-lint';
-import smartForms from '@sdc-questionnaire-lint/plugin-smart-forms';
+import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
+import smartForms from '@aehrc/sdc-questionnaire-lint-plugin-smart-forms';
 
 export default defineConfig({
   hostVariables: ['encounter'],
@@ -146,7 +146,7 @@ Findings you have reviewed and accept at one expression, each with `rule`, `file
 The plugins whose rules run, as imported objects. Installing a plugin does not enable it; listing it does. Only an `.mjs` config can list plugins:
 
 ```js
-import { defineConfig } from 'sdc-questionnaire-lint';
+import { defineConfig } from '@aehrc/sdc-questionnaire-lint';
 import myPlugin from 'my-sdc-lint-plugin';
 
 export default defineConfig({

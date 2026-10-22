@@ -3,7 +3,7 @@ import {
   definedLanguages,
   type ExpressionSite,
   languagesAllowedAt,
-} from 'sdc-questionnaire-lint';
+} from '@aehrc/sdc-questionnaire-lint';
 import { CQF_EXPRESSION } from '../urls.js';
 
 // What the rules that report at an expression site share.

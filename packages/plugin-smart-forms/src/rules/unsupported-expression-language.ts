@@ -1,4 +1,4 @@
-import type { LintRule, QuestionnaireDocument } from 'sdc-questionnaire-lint';
+import type { LintRule, QuestionnaireDocument } from '@aehrc/sdc-questionnaire-lint';
 import { elementName, extensionOf, isObject } from '../document.js';
 import { readBy, requireCompat } from '../eligibility.js';
 import { ignores } from '../facts/languages.js';

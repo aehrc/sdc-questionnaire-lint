@@ -1,4 +1,4 @@
-import type { LintRule } from 'sdc-questionnaire-lint';
+import type { LintRule } from '@aehrc/sdc-questionnaire-lint';
 
 // Reports every declaration, so each case shows the plugin ran.
 export const declaration: LintRule = {

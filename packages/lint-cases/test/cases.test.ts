@@ -1,4 +1,4 @@
-import { lint } from 'sdc-questionnaire-lint';
+import { lint } from '@aehrc/sdc-questionnaire-lint';
 import { lintCases, testLintCases } from '../src/cases.js';
 import fixture from './fixture-plugin/index.js';
 

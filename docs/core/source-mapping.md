@@ -46,4 +46,4 @@ In [`packages/core/src/source/`](../../packages/core/src/source):
 - [`positions.ts`](../../packages/core/src/source/positions.ts): turns offsets into lines and columns.
 - The FSH reader: [`fsh-files.ts`](../../packages/core/src/source/fsh-files.ts) reads and caches files, [`fsh-document.ts`](../../packages/core/src/source/fsh-document.ts) parses them, [`fsh-paths.ts`](../../packages/core/src/source/fsh-paths.ts) resolves rule paths, and [`fsh-string.ts`](../../packages/core/src/source/fsh-string.ts) decodes strings.
 
-`npm run source-map:coverage --workspace sdc-questionnaire-lint -- <IG directory>` maps every expression of an IG and reports how many it placed.
+`npm run source-map:coverage --workspace @aehrc/sdc-questionnaire-lint -- <IG directory>` maps every expression of an IG and reports how many it placed.

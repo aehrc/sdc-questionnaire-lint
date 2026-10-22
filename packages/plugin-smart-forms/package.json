@@ -1,7 +1,16 @@
 {
-  "name": "@sdc-questionnaire-lint/plugin-smart-forms",
+  "name": "@aehrc/sdc-questionnaire-lint-plugin-smart-forms",
   "version": "0.1.0",
   "description": "Smart Forms compatibility rules for sdc-questionnaire-lint",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aehrc/sdc-questionnaire-lint.git",
+    "directory": "packages/plugin-smart-forms"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -15,15 +24,16 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "prepack": "npm run build"
   },
   "peerDependencies": {
-    "sdc-questionnaire-lint": "^0.1.0"
+    "@aehrc/sdc-questionnaire-lint": "^0.1.0"
   },
   "devDependencies": {
     "@aehrc/sdc-populate": "4.7.1",
-    "@aehrc/sdc-template-extract": "1.0.15",
-    "@sdc-questionnaire-lint/lint-cases": "*",
-    "sdc-questionnaire-lint": "*"
+    "@aehrc/sdc-questionnaire-lint": "*",
+    "@aehrc/sdc-questionnaire-lint-cases": "*",
+    "@aehrc/sdc-template-extract": "1.0.15"
   }
 }
