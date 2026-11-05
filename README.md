@@ -6,7 +6,7 @@ A CLI and TypeScript library for statically checking FHIRPath and x-fhir-query e
 
 The npm package is `@aehrc/sdc-questionnaire-lint`; the CLI command is `sdc-lint`.
 
-New to the linter? [Getting started](docs/getting-started.md) installs it, lints a first form and sets up a config.
+New to the linter? [Getting started](https://aehrc.github.io/sdc-questionnaire-lint/docs/getting-started) installs it, lints a first form and sets up a config.
 
 ## Usage
 
@@ -39,9 +39,9 @@ Findings and the summary go to stdout; failures go to stderr as `error:` and `he
 
 **Status:** the CLI, input selection, reporters, configuration and `explain` work. Expression discovery works, with fifteen built-in rules: `sdc/parse-error`, `sdc/unknown-function`, `sdc/query-syntax`, `sdc/fragment-parse-error`, `sdc/uncatalogued-expression`, `sdc/language-not-in-value-set`, `sdc/language-not-allowed`, `sdc/external-expression`, `sdc/duplicate-declaration`, `sdc/reserved-name`, `sdc/undefined-variable`, `sdc/shadowed-declaration`, `sdc/dependency-cycle`, `sdc/unused-declaration` and `sdc/unresolved-linkid`. Suppressions work, with `lint/stale-suppression` for the ones no longer needed. Plugins work: an `.mjs` config can list plugin rules, a plugin can supply host variables, and a config can select the runtime versions a compatibility plugin checks against. FSH source mapping works. The Smart Forms plugin has nine rules: `smart-forms/unsupported-expression-language`, `smart-forms/expression-evaluated-as-fhirpath`, `smart-forms/questionnaire-variable-unavailable`, `smart-forms/unsupported-query-embedding`, `smart-forms/variable-name-collision`, `smart-forms/repeating-group-variable`, `smart-forms/named-expression-not-referenceable`, `smart-forms/forward-variable-reference` and `smart-forms/unsupported-template-extract-context`, and supplies the sourceQueries result names Smart Forms population binds. Not built yet: the optional renderer reproduction harness, slice P9 of the [Smart Forms rules plan](docs/smart-forms-rules.md).
 
-Start with these docs, which are also a documentation site (see [Development](#development)):
+The documentation site is at <https://aehrc.github.io/sdc-questionnaire-lint/>. Start with these docs:
 
-- [Lint rules](docs/rules/index.md) — a page per rule: what it checks, an example message, and an example form in FSH.
+- [Lint rules](https://aehrc.github.io/sdc-questionnaire-lint/docs/rules/) — a page per rule: what it checks, an example message, and an example form in FSH.
 - [Core plan](docs/core-plan.md) and [amendments](docs/plan-amendments.md) — scope and decisions; amendments take precedence.
 - [Core rules plan](docs/core-rules.md) and [Smart Forms rules plan](docs/smart-forms-rules.md) — what each rule checks, its decisions and the runtime facts behind it.
 - [CLI contract](docs/cli.md) — commands, configuration, exit codes and automation recipes.
@@ -76,7 +76,7 @@ sdc-lint explain                    # every rule, with its default and effective
 sdc-lint explain sdc/parse-error    # what the rule checks, why, an example message and the fix
 ```
 
-`explain` works offline. The [rules library](docs/rules/index.md) has a page per rule, with what it checks and an example form.
+`explain` works offline. The [rules library](https://aehrc.github.io/sdc-questionnaire-lint/docs/rules/) has a page per rule, with what it checks and an example form.
 
 ### Plugins
 

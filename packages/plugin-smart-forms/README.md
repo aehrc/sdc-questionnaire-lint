@@ -39,7 +39,7 @@ export default defineConfig({
 | `smart-forms/forward-variable-reference` | warning | A variable that references a variable or itemPopulationContext Smart Forms population evaluates after it |
 | `smart-forms/unsupported-template-extract-context` | error | A templateExtractContext written as a valueExpression, which Smart Forms template extraction ignores because it reads only valueString |
 
-`sdc-lint explain smart-forms/<rule>` prints what a rule checks, why, an example message and the fix. The [rules library](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/rules/index.md) has the same documentation with example forms, and the [Smart Forms rules plan](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/smart-forms-rules.md) the runtime facts behind each rule.
+`sdc-lint explain smart-forms/<rule>` prints what a rule checks, why, an example message and the fix. The [rules library](https://aehrc.github.io/sdc-questionnaire-lint/docs/rules/) has the same documentation with example forms, and the [Smart Forms rules plan](https://aehrc.github.io/sdc-questionnaire-lint/docs/smart-forms-rules) the runtime facts behind each rule.
 
 ## The names it supplies
 
@@ -66,4 +66,4 @@ The names your application passes to the renderer as `additionalContext` belong 
 
 ## Suppressions
 
-A suppression of a plugin rule's finding is applied when it hides a finding, and stale when its file, resource, expression or declared name is gone. When its target still exists and the rule reported nothing there, it is not assessed: only built-in rules record whether they completed a check. A plugin rule never makes an expression unchecked. [Stale suppressions](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/cli.md#stale-suppressions) has the full rules.
+A suppression of a plugin rule's finding is applied when it hides a finding, and stale when its file, resource, expression or declared name is gone. When its target still exists and the rule reported nothing there, it is not assessed: only built-in rules record whether they completed a check. A plugin rule never makes an expression unchecked. [Stale suppressions](https://aehrc.github.io/sdc-questionnaire-lint/docs/cli#stale-suppressions) has the full rules.

@@ -59,6 +59,8 @@ export default withMermaid(
     title: 'sdc-questionnaire-lint',
     description:
       'Static checks for the FHIRPath and x-fhir-query expressions in FHIR SDC Questionnaires',
+    // GitHub Pages serves the site at https://aehrc.github.io/sdc-questionnaire-lint/.
+    base: '/sdc-questionnaire-lint/',
     srcDir: '..',
     srcExclude: [
       'README.md',

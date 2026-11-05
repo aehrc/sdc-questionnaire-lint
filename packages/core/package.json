@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Static checks for FHIRPath and x-fhir-query expressions in FHIR SDC Questionnaires",
   "license": "Apache-2.0",
+  "homepage": "https://aehrc.github.io/sdc-questionnaire-lint/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aehrc/sdc-questionnaire-lint.git",
