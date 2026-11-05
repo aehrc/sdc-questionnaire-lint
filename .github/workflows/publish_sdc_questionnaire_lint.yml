@@ -1,0 +1,43 @@
+name: Publish @aehrc/sdc-questionnaire-lint
+
+# Runs when a GitHub release is published with a tag such as sdc-questionnaire-lint@0.1.0.
+# npm trusts this workflow through trusted publishing, so it needs no npm token.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: startsWith(github.ref_name, 'sdc-questionnaire-lint@')
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish to npm
+    needs: check
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - run: npm ci
+      - name: Check the tag matches the package version
+        run: |
+          expected="sdc-questionnaire-lint@$(node -p 'require("./packages/core/package.json").version')"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::The release tag is $GITHUB_REF_NAME, but packages/core/package.json makes it $expected."
+            exit 1
+          fi
+      - run: npm run build --workspace @aehrc/sdc-questionnaire-lint
+      - run: npm publish --provenance --access public
+        working-directory: packages/core
