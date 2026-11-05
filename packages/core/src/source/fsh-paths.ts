@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 import type { FshDefinition, FshRule } from './fsh-document.js';
 
 // The full path of each rule of an Instance, as SUSHI 3.20.1 computes it: the context of indented

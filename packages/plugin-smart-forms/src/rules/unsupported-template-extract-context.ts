@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 import type { ExpressionSite, LintRule } from '@aehrc/sdc-questionnaire-lint';
 import { isObject, resolve } from '../document.js';
 import { templateExtractVersion } from '../eligibility.js';

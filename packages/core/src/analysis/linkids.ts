@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 import { isObject } from '../object.js';
 import type { ExpressionSite, QuestionnaireDocument } from './expression-site.js';
 import { findLinkIdReferences, hasFhirPathText, type LinkIdReferences } from './fhirpath.js';

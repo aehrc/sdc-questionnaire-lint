@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Reproduces, against @aehrc/sdc-populate 4.7.1, that population supplies neither %questionnaire nor
 // %qitem (src/facts/names.ts).
 import { beforeEach, describe, expect, it, vi } from 'vitest';

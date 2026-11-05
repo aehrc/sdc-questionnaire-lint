@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 import { getOrSet } from '../cache.js';
 import type { FshDefinition } from './fsh-document.js';
 import { assemblePath, parsePath, resolvePaths, type PathPart } from './fsh-paths.js';

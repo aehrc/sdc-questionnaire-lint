@@ -1,5 +1,7 @@
 # sdc-questionnaire-lint
 
+[![CI](https://github.com/aehrc/sdc-questionnaire-lint/actions/workflows/ci.yml/badge.svg)](https://github.com/aehrc/sdc-questionnaire-lint/actions/workflows/ci.yml)
+
 A CLI and TypeScript library for statically checking FHIRPath and x-fhir-query expressions in FHIR SDC Questionnaires, for form authors, CI pipelines and AI agents.
 
 The npm package is `@aehrc/sdc-questionnaire-lint`; the CLI command is `sdc-lint`.
@@ -239,3 +241,13 @@ npm run docs:build                                   # build it into docs/.vitep
 The documentation site is built with VitePress from the [glossary](GLOSSARY.md) and `docs/`, with [docs/index.md](docs/index.md) as its home page. Its rules library is generated from the code: a page per rule from the rule's `meta.docs`, an example lint case compiled by SUSHI, and its other lint cases. Both commands build the packages first.
 
 `npm run demo` writes `demo/invalid-demo` from `packages/core/test/cases/demo/invalid-demo.yaml`, or another config given as its argument; `--smart-forms` also lints it with the Smart Forms plugin. `--format` chooses the output format: `demo:github` passes `github` and writes the job summary to `demo/<instance>/github-step-summary.md`, and `demo:sarif` passes `sarif` and saves the report to `demo/<instance>/lint.sarif` (with `json`, to `lint-report.json`). `npm run example` takes any directory with a `sushi-config.yaml`, followed by `lint` flags. `npm run corpus` needs a local `corpus/`, which is gitignored and not in the repository: copy the forms listed in slice 0 of the [core rules plan](docs/core-rules.md) into `corpus/forms/` first; without them it exits with that hint. `demo`, `example` and the lint cases compile with SUSHI 3.20.1, the `fsh-sushi` dev dependency, which `npm run` puts on the PATH. [AGENTS.md](AGENTS.md) lists the other development commands.
+
+## Contributing
+
+Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Licence
+
+Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+(CSIRO) ABN 41 687 119 230. Licensed under the
+[Apache License, Version 2.0](LICENSE).
