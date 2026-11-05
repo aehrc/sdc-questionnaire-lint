@@ -1,0 +1,45 @@
+name: Publish @aehrc/sdc-questionnaire-lint-plugin-smart-forms
+
+# Runs when a GitHub release is published with a tag such as
+# sdc-questionnaire-lint-plugin-smart-forms@0.1.0. Publish the core version its peer dependency
+# needs first. npm trusts this workflow through trusted publishing, so it needs no npm token.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: startsWith(github.ref_name, 'sdc-questionnaire-lint-plugin-smart-forms@')
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish to npm
+    needs: check
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - run: npm ci
+      - name: Check the tag matches the package version
+        run: |
+          expected="sdc-questionnaire-lint-plugin-smart-forms@$(node -p 'require("./packages/plugin-smart-forms/package.json").version')"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::The release tag is $GITHUB_REF_NAME, but packages/plugin-smart-forms/package.json makes it $expected."
+            exit 1
+          fi
+      # The plugin's build type-checks against core's build output, so build both.
+      - run: npm run build
+      - run: npm publish --provenance --access public
+        working-directory: packages/plugin-smart-forms
