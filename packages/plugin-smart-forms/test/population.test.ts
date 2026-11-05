@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // The population model answers, for one form, whether population runs and what it binds for each
 // declaration, and when. Forms are JSON, with sites and declarations as core finds them. The last
 // tests run the pinned populate (test/reproduction/populate.ts) beside the model; they are not

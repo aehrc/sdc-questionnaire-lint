@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // The extension URLs the plugin's facts and rules name.
 const sdc = 'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-';
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Reproduces, against @aehrc/sdc-populate 4.7.1, which sourceQueries results population binds,
 // and under which names (src/facts/source-queries.ts). Each test asserts the names in
 // populatedContext, which the app passes on as additionalContext, or the URLs passed to the fetch

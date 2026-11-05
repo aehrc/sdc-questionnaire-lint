@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Compiles a SUSHI project, then lints it with the built CLI, so findings always come from the
 // current FSH. Run from the repository root:
 //   npm run example -- path/to/sushi-project                 any directory with a sushi-config.yaml

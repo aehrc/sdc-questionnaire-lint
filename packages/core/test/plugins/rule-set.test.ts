@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 import { describe, expect, it } from 'vitest';
 import type { LoadedConfig } from '../../src/config/load.js';
 import type { LintConfig } from '../../src/config/types.js';

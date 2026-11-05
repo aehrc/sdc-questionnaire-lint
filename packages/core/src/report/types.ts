@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // The version 1 JSON report (docs/report-format.md). Field names follow
 // docs/schemas/lint-report.schema.json exactly; the schema is the source of truth.
 import type { FailureCode } from '../failure.js';

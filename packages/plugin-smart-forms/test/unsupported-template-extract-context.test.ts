@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // What the lint cases cannot build: a templateExtractContext with both valueString and
 // valueExpression, or an Expression with no language or with neither expression nor reference,
 // which SUSHI does not write; and an explicit compat, which a case config cannot set.

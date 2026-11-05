@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // The template reader against the selection test/reproduction/extract-templates.test.ts reproduces
 // against template-extract 1.0.15: each case here mirrors one there.
 import { describe, expect, it } from 'vitest';

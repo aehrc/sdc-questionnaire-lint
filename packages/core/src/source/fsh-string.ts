@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Decodes FSH string literals as SUSHI 3.20.1 does, so a decoded literal can be compared with the
 // compiled JSON, and records where each decoded character came from in the literal.
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Generates SUSHI projects from YAML configs. The lint cases (test/cases/<group>/<case>.yaml) are
 // compiled together by cases.ts; npm run demo (packages/core/scripts/demo.ts) compiles one config on
 // its own, to try a form by hand.

@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Reproduces, against @aehrc/sdc-populate 4.7.1, what population needs before it reads an
 // expression (src/facts/prerequisites.ts), and when population runs at all.
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';

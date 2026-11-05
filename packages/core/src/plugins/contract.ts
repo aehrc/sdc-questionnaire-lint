@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // The plugin contract (core-plan §5.2). Exported from the package, so changes are public API changes.
 import type { AvailableVariables } from '../analysis/available-variables.js';
 import type { Declaration } from '../analysis/declarations.js';

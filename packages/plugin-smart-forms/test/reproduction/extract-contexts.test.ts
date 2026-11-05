@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Reproduces, against @aehrc/sdc-template-extract 1.0.15, how extraction reads a
 // templateExtractContext (src/facts/extraction.ts). Each context is on an Observation component,
 // never on the template root, and each warning is matched with its logical path: a

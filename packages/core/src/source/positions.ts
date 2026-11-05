@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Lines and columns of offsets into a text, given where each line starts (FshDocument.lineStarts).
 // Both are one-based, and columns count UTF-16 code units, as source locations do
 // (report-format.md § Findings and locations).

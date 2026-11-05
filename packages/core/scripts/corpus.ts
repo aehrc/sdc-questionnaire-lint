@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Lints the local corpus with the built-in rules and prints the findings added or removed since
 // the snapshot kept beside it (docs/core-rules.md, slice 0). The corpus is gitignored and never
 // committed (D14). Run from the repository root:

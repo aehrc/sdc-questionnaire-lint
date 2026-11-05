@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // launchContextsOf reads each root launchContext as Smart Forms reads it. The shapes are checked
 // against the module, then against the pinned populate (test/reproduction/populate.ts).
 import { beforeEach, describe, expect, it, vi } from 'vitest';

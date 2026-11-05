@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 /* eslint-disable @typescript-eslint/unbound-method -- tests compare function identity and never call them detached. */
 import { describe, expect, it } from 'vitest';
 import { guardStdout } from '../../src/cli/output-guard.js';

@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Reproduces, against @aehrc/sdc-populate 4.7.1, the order in which population evaluates the
 // variables a form declares (src/facts/variables.ts, population-evaluation-order): a reference to a
 // name not yet bound fails with an OperationOutcome warning and leaves the variable unset, unless

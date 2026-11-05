@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // Generates a SUSHI project from one lint case config, then compiles and lints it with example.ts,
 // to try a form by hand. Run from the repository root:
 //   npm run demo                                    test/cases/demo/invalid-demo.yaml into demo/invalid-demo

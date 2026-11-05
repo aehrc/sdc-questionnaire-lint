@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Commonwealth Scientific and Industrial Research Organisation
+ * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
+ */
+
 // What shows a runtime fact (S4, S10): a reproduction test against the pinned npm package, or,
 // until a harness exists, a permalink into the Smart Forms source.
 export type Evidence =

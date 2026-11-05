@@ -2,14 +2,11 @@
   "name": "@aehrc/sdc-questionnaire-lint-plugin-smart-forms",
   "version": "0.1.0",
   "description": "Smart Forms compatibility rules for sdc-questionnaire-lint",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aehrc/sdc-questionnaire-lint.git",
     "directory": "packages/plugin-smart-forms"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
   },
   "type": "module",
   "exports": {
