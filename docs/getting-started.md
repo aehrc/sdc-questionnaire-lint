@@ -10,21 +10,6 @@ sdc-questionnaire-lint checks the FHIRPath and x-fhir-query expressions in FHIR 
 
 ## Quick start
 
-::: warning Before the first release
-The packages are not on npm yet, so `npm install @aehrc/sdc-questionnaire-lint` fails. Until the release, build them from the [repository](https://github.com/aehrc/sdc-questionnaire-lint) and install the packed tarball:
-
-```sh
-git clone https://github.com/aehrc/sdc-questionnaire-lint.git
-cd sdc-questionnaire-lint
-npm ci && npm run build
-npm pack --workspace @aehrc/sdc-questionnaire-lint
-# in your project:
-npm install --save-dev ../sdc-questionnaire-lint/aehrc-sdc-questionnaire-lint-0.1.0.tgz
-```
-
-The repository's [README](../README.md#development) lists the Node and npm versions a build needs.
-:::
-
 Install the linter in your project as a development dependency:
 
 ```sh
