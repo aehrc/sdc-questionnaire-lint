@@ -56,7 +56,7 @@ npx sdc-lint explain sdc/undefined-variable    # what a rule checks, why, and th
 }
 ```
 
-A config can also suppress individual findings, and an `.mjs` config can list plugins. The [configuration guide](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/configuration.md) describes every option.
+A config can also suppress individual findings, and an `.mjs` config can list plugins. The [configuration guide](https://aehrc.github.io/sdc-questionnaire-lint/docs/configuration) describes every option.
 
 ## Rules
 
@@ -79,11 +79,11 @@ A config can also suppress individual findings, and an `.mjs` config can list pl
 | `sdc/uncatalogued-expression` | info | An expression in a place the linter does not recognise |
 | `lint/stale-suppression` | warning | A suppression that is no longer needed |
 
-The [rules library](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/rules/index.md) has a page per rule, with an example form.
+The [rules library](https://aehrc.github.io/sdc-questionnaire-lint/docs/rules/) has a page per rule, with an example form.
 
 ## Plugins
 
-A plugin adds rules, such as checks for how a particular SDC implementation behaves. [`@aehrc/sdc-questionnaire-lint-plugin-smart-forms`](https://www.npmjs.com/package/@aehrc/sdc-questionnaire-lint-plugin-smart-forms) reports where [Smart Forms](https://github.com/aehrc/smart-forms) behaves differently from SDC. To write your own, see [Adding a rule](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/adding-a-rule.md).
+A plugin adds rules, such as checks for how a particular SDC implementation behaves. [`@aehrc/sdc-questionnaire-lint-plugin-smart-forms`](https://www.npmjs.com/package/@aehrc/sdc-questionnaire-lint-plugin-smart-forms) reports where [Smart Forms](https://github.com/aehrc/smart-forms) behaves differently from SDC. To write your own, see [Adding a rule](https://aehrc.github.io/sdc-questionnaire-lint/docs/adding-a-rule).
 
 ## Library
 
@@ -100,12 +100,12 @@ try {
 }
 ```
 
-`lint` returns the same report as `--format json`; the [report format](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/report-format.md) describes it.
+`lint` returns the same report as `--format json`; the [report format](https://aehrc.github.io/sdc-questionnaire-lint/docs/report-format) describes it.
 
 ## Documentation
 
-- [Getting started](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/getting-started.md)
-- [CLI contract](https://github.com/aehrc/sdc-questionnaire-lint/blob/main/docs/cli.md): commands, flags, output formats and exit codes
+- [Getting started](https://aehrc.github.io/sdc-questionnaire-lint/docs/getting-started)
+- [CLI contract](https://aehrc.github.io/sdc-questionnaire-lint/docs/cli): commands, flags, output formats and exit codes
 - [Repository](https://github.com/aehrc/sdc-questionnaire-lint)
 
 ## Licence

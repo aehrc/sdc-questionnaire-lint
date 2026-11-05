@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Smart Forms compatibility rules for sdc-questionnaire-lint",
   "license": "Apache-2.0",
+  "homepage": "https://aehrc.github.io/sdc-questionnaire-lint/docs/plugin-smart-forms/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aehrc/sdc-questionnaire-lint.git",
