@@ -8,6 +8,8 @@ The Smart Forms plugin checks forms against the Smart Forms versions it has veri
 
 Most releases change nothing the facts describe. Then the work is steps 1 to 4, all in one pull request.
 
+To preview notifications, run **Smart Forms versions** from the Actions tab with `dry-run` enabled. Dry runs use the selected branch; issue creation requires `main`. The check reads the built plugin, so verification merged into `main` counts before a plugin release. An existing issue's version markers count as handled even when the issue is closed.
+
 ## 1. Check what changed
 
 npm records the aehrc/smart-forms commit each version was published from (`npm view @aehrc/<package>@<version> gitHead`); the issue links the comparison between the newest verified version's commit and the new one. The question is whether the release changed a behaviour the facts describe:
@@ -27,7 +29,7 @@ grep -rhoE '(rendererSource|populateSource|inAppPopulateSource)\}[A-Za-z0-9/._-]
 xargs git diff --stat <verified gitHead> <new gitHead> -- < ../cited-files.txt
 ```
 
-A changed file is not yet a changed behaviour. Open its diff and look at the lines each fact cites: the `#L<from>-L<to>` of its permalink, at the verified release commit. Code above them shifts their line numbers. For example, between renderer 1.4.0 and 1.5.0 `utils/manageForm.ts` changed, but not the line the `stale-forward-read` fact cites.
+Compare each cited file in full. If a file changed, review the relevant execution path, including callers and inputs; unchanged cited lines alone do not establish unchanged behaviour. Record the result with a permalink at the new package's release commit, using its current line numbers (S11 in [plan-amendments.md](../plan-amendments.md)). A changed file does not necessarily mean the fact changed.
 
 ## 2. Run the reproduction tests against the new versions
 
@@ -40,7 +42,7 @@ If they all pass, nothing they cover changed. If one fails, a behaviour changed:
 
 ## 3. Record the new versions
 
-When the reproduction tests pass and no cited renderer lines changed:
+When the reproduction tests pass and the source review confirms the renderer facts still hold:
 
 1. In `src/index.ts`, add each new version to the end of its list in `compat.verified`.
 2. Give each new version the facts of the version before it. In each table in `src/facts/` (`embeddings`, `languages`, `names`, `prerequisites`, `source-queries`, `variables`), add the new version beside the previous one, with the same facts:
@@ -50,7 +52,7 @@ When the reproduction tests pass and no cited renderer lines changed:
    populate: Object.freeze({ '4.7.1': populate471, '4.7.2': populate471 }),
    ```
 
-   In `src/facts/extraction.ts`, add the template-extract version to `extractionFacts` the same way. `test/facts.test.ts` fails if a table misses a verified version. The permalinks keep citing the older release commit, which is right while the cited lines are unchanged.
+   In `src/facts/extraction.ts`, add the template-extract version to `extractionFacts` the same way. `test/facts.test.ts` fails if a table misses a verified version. Reuse source evidence only after checking the entire cited file is identical at the new release. For changed files, give the new version its own evidence at the new release commit, preserving the older version's evidence.
 3. Rename the version in the reproduction test titles and in the evidence that names them, so they name the version they run, for example `populate 4.7.1` to `populate 4.7.2`:
 
    ```sh
@@ -71,7 +73,7 @@ If a version won't be verified, close the issue and say why. The workflow never 
 
 ## When a behaviour changed
 
-A reproduction test fails, or a line a renderer fact cites changed. Then the new version needs its own facts, not a copy:
+If reproduction tests or source review establish a behaviour change, give the new version its own facts:
 
 - In each affected table, give the new version a copy of the previous facts and change the ones that differ, each with evidence: a reproduction test, or a permalink at the new release commit (S11 in [smart-forms-rules.md](../smart-forms-rules.md)). A fact whose upstream bug the release fixes is left out for it ([Runtime facts](facts.md)).
 - Update the rules that read those facts, with lint cases ([Adding a rule](../adding-a-rule.md)).
