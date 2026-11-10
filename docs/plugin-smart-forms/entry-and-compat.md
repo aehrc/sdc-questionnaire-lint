@@ -23,7 +23,7 @@ Core checks the selection before reading any form. An unverified version, or an 
 
 **How a rule reads them.** A rule gets its namespace's selected versions as `ctx.compat`. `requireCompat` reads the renderer and populate versions, and `factsAt` looks up the facts recorded for a version. A selected version with no facts throws, because it is a plugin bug: every verified version must have facts.
 
-Verifying a new Smart Forms version means adding it to the end of its list, recording its facts, and re-running the reproduction tests.
+Verifying a new Smart Forms version means adding it to the end of its list, recording its facts, and re-running the reproduction tests: see [Verifying a new Smart Forms release](new-release.md).
 
 ## Schema
 

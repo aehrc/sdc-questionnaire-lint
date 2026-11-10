@@ -1,0 +1,55 @@
+name: Smart Forms versions
+
+# Opens an issue when the latest version on npm of a Smart Forms component (renderer, populate or
+# template-extract) is not in the Smart Forms plugin's compat.verified on main, one issue per
+# Smart Forms release. An issue, open or closed, whose body has a version's hidden marker counts
+# as handling that version, so closing one stops the job from opening it again. The issue links to
+# docs/plugin-smart-forms/new-release.md, which says how to verify the release. Only the current latest
+# version is checked, so a version released and superseded between two runs is not seen.
+# Scheduled runs use main only, and GitHub disables the schedule after 60 days without activity
+# in the repository. Run it by hand from the Actions tab; dry-run lists the issues it would open.
+on:
+  schedule:
+    # Mondays at 06:30 UTC.
+    - cron: '30 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: List the issues it would open, and open none
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# One run at a time, so two runs can't open the same issue.
+concurrency:
+  group: smart-forms-versions
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Require main for issue creation
+        if: github.ref != 'refs/heads/main' && inputs.dry-run != true
+        run: |
+          echo '::error::Issue creation requires main. Select main or enable dry-run.'
+          exit 1
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - run: npm ci
+      # The script reads compat.verified from the plugin's build.
+      - run: npm run build
+      - run: node packages/plugin-smart-forms/scripts/check-versions.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # Empty on a scheduled run, which opens the issues.
+          DRY_RUN: ${{ inputs.dry-run }}
