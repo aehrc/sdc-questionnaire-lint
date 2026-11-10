@@ -30,6 +30,8 @@ interface FakeIssue {
 function fakeNetwork(state: {
   latest: Record<string, string>;
   issues?: FakeIssue[][];
+  // The release commit npm records for package@version; sha-<version> when not given.
+  gitHeads?: Record<string, string>;
   override?: (method: string, url: string) => Response | undefined;
 }) {
   const requests: Recorded[] = [];
@@ -43,6 +45,13 @@ function fakeNetwork(state: {
     const tags = /^https:\/\/registry\.npmjs\.org\/-\/package\/(.+)\/dist-tags$/.exec(url);
     if (method === 'GET' && tags?.[1] !== undefined && tags[1] in state.latest) {
       return Promise.resolve(Response.json({ latest: state.latest[tags[1]] }));
+    }
+    const version = /^https:\/\/registry\.npmjs\.org\/(@aehrc\/[^/]+)\/([^/]+)$/.exec(url);
+    if (method === 'GET' && version?.[1] !== undefined && version[2] !== undefined) {
+      const id = `${version[1]}@${version[2]}`;
+      return Promise.resolve(
+        Response.json({ gitHead: state.gitHeads?.[id] ?? `sha-${version[2]}` }),
+      );
     }
     const page = /[?&]page=(\d+)$/.exec(url);
     if (method === 'GET' && page?.[1] !== undefined && url === pageUrl(Number(page[1]))) {
@@ -108,9 +117,57 @@ describe('checkVersions', () => {
     const created = network.created();
     expect(created).toHaveLength(1);
     const issue = created[0]?.body as { title: string; body: string };
-    expect(issue.title).toBe('Smart Forms plugin: verify renderer@1.5.0');
+    expect(issue.title).toBe('Smart Forms plugin: verify renderer 1.5.0');
     expect(issue.body).toContain('<!-- smart-forms-version: renderer@1.5.0 -->');
-    expect(issue.body).toContain('renderer 1.4.0');
+    expect(issue.body).toContain(
+      '| renderer | 1.4.0 | 1.5.0 | [changes](https://github.com/aehrc/smart-forms/compare/sha-1.4.0...sha-1.5.0) |',
+    );
+    expect(issue.body).toContain(
+      'https://github.com/owner/repo/blob/main/docs/plugin-smart-forms/new-release.md',
+    );
+  });
+
+  it('opens one issue for the versions of one Smart Forms release', async () => {
+    const network = fakeNetwork({
+      latest: { ...rendererBehind, '@aehrc/sdc-populate': '4.7.2' },
+      gitHeads: { '@aehrc/smart-forms-renderer@1.5.0': 'r', '@aehrc/sdc-populate@4.7.2': 'r' },
+    });
+    await run(network);
+    const created = network
+      .created()
+      .map((request) => request.body as { title: string; body: string });
+    expect(created.map(({ title }) => title)).toEqual([
+      'Smart Forms plugin: verify renderer 1.5.0 and populate 4.7.2',
+    ]);
+    expect(created[0]?.body).toContain('<!-- smart-forms-version: renderer@1.5.0 -->');
+    expect(created[0]?.body).toContain('<!-- smart-forms-version: populate@4.7.2 -->');
+  });
+
+  it('opens one issue per release commit', async () => {
+    const network = fakeNetwork({
+      latest: { ...rendererBehind, '@aehrc/sdc-populate': '4.7.2' },
+    });
+    await run(network);
+    expect(network.created().map((request) => (request.body as { title: string }).title)).toEqual([
+      'Smart Forms plugin: verify renderer 1.5.0',
+      'Smart Forms plugin: verify populate 4.7.2',
+    ]);
+  });
+
+  it('leaves a version another issue tracks out of the release issue', async () => {
+    const network = fakeNetwork({
+      latest: { ...rendererBehind, '@aehrc/sdc-populate': '4.7.2' },
+      gitHeads: { '@aehrc/smart-forms-renderer@1.5.0': 'r', '@aehrc/sdc-populate@4.7.2': 'r' },
+      issues: [[issueWithMarker(7, 'open', 'populate@4.7.2')]],
+    });
+    await run(network);
+    const created = network
+      .created()
+      .map((request) => request.body as { title: string; body: string });
+    expect(created.map(({ title }) => title)).toEqual([
+      'Smart Forms plugin: verify renderer 1.5.0',
+    ]);
+    expect(created[0]?.body).not.toContain('populate@4.7.2');
   });
 
   it('opens no issue when every latest version is verified', async () => {
@@ -158,15 +215,6 @@ describe('checkVersions', () => {
     expect(network.created()).toHaveLength(1);
   });
 
-  it('notes the fhirclient override only in a populate issue', async () => {
-    const network = fakeNetwork({
-      latest: { ...rendererBehind, '@aehrc/sdc-populate': '4.7.2' },
-    });
-    await run(network);
-    const bodies = network.created().map((request) => (request.body as { body: string }).body);
-    expect(bodies.map((body) => body.includes('fhirclient'))).toEqual([false, true]);
-  });
-
   it('matches the marker exactly, not a version that starts with it', async () => {
     const network = fakeNetwork({
       latest: rendererBehind,
@@ -183,9 +231,7 @@ describe('checkVersions', () => {
     });
     const lines = await run(network, { dryRun: true });
     expect(network.created()).toEqual([]);
-    expect(lines).toContain(
-      'renderer: latest 1.5.0 is not verified (verified: 1.4.0). Dry run: would open "Smart Forms plugin: verify renderer@1.5.0".',
-    );
+    expect(lines).toContain('Dry run: would open "Smart Forms plugin: verify renderer 1.5.0".');
   });
 
   it('reports each component as verified, already tracked or opened', async () => {
@@ -199,9 +245,10 @@ describe('checkVersions', () => {
     });
     const lines = await run(network);
     expect(lines).toEqual([
-      'renderer: latest 1.5.0 is not verified (verified: 1.4.0). Opened #100: https://github.com/owner/repo/issues/100',
+      'renderer: latest 1.5.0 is not verified (verified: 1.4.0).',
       'populate: latest 4.7.2 is not verified (verified: 4.7.1). Already tracked by #7.',
       'template-extract: latest 1.0.15 is verified.',
+      'Opened #100 for renderer 1.5.0: https://github.com/owner/repo/issues/100',
     ]);
   });
 
@@ -215,6 +262,11 @@ describe('checkVersions', () => {
     it.each([
       ['the registry answers with an error', registry, error(404)],
       ['the registry has no latest version', registry, Response.json({ next: '2.0.0' })],
+      [
+        'the registry has no release commit for a version',
+        (method: string, url: string) => registry(method, url) && !url.includes('/-/package/'),
+        Response.json({ version: '1.5.0' }),
+      ],
       ['listing issues answers with an error', list, error(401)],
       ['listing issues answers with something other than issues', list, Response.json({})],
       ['an issue has no number', list, Response.json([{ body: 'text' }])],
@@ -248,6 +300,7 @@ describe('checkVersions', () => {
         plugin({ ...verified, constructor: ['1.0.0'] }),
       ],
       ['has no versions for a component', plugin({ renderer: ['1.4.0'], populate: ['4.7.1'] })],
+      ['verifies no version of a component', plugin({ ...verified, renderer: [] })],
     ])('when the plugin %s', async (_name, module) => {
       const network = fakeNetwork({ latest: rendererBehind });
       await expect(run(network, { plugin: module })).rejects.toThrow(/compat\.verified|component/);

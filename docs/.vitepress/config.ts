@@ -198,6 +198,10 @@ export default withMermaid(
                   text: 'Evidence and reproduction',
                   link: '/docs/plugin-smart-forms/evidence',
                 },
+                {
+                  text: 'Verifying a new release',
+                  link: '/docs/plugin-smart-forms/new-release',
+                },
               ],
             },
           ],

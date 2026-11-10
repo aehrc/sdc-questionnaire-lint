@@ -3,8 +3,9 @@
  * (CSIRO) ABN 41 687 119 230. Licensed under the Apache License, Version 2.0.
  */
 
-// Opens an issue for each Smart Forms component whose latest version on npm is not in the
-// plugin's compat.verified, unless an issue for that version exists, open or closed. Run by
+// Opens an issue when a Smart Forms component's latest version on npm is not in the plugin's
+// compat.verified, one issue per Smart Forms release (the commit npm records as the version's
+// gitHead), leaving out versions an issue already tracks, open or closed. Run by
 // .github/workflows/smart-forms-versions.yml after npm run build, from the repository root:
 //   GITHUB_TOKEN=… GITHUB_REPOSITORY=owner/repo [DRY_RUN=true] \
 //     node packages/plugin-smart-forms/scripts/check-versions.ts
@@ -37,6 +38,16 @@ interface Issue {
   body: string;
 }
 
+// A latest version no issue tracks, with the release commits of the newest verified version and
+// of the latest.
+interface Missing {
+  component: Component;
+  version: string;
+  verified: readonly string[];
+  from: string;
+  to: string;
+}
+
 interface ListedIssue {
   number: number;
   body: string;
@@ -53,6 +64,7 @@ export async function checkVersions(options: CheckOptions): Promise<void> {
     latest.set(component, await latestVersion(options, component));
   }
   const issues = await listIssues(options);
+  const missing: Missing[] = [];
   for (const component of components) {
     const versions = verified[component];
     const version = latest.get(component) ?? '';
@@ -66,13 +78,27 @@ export async function checkVersions(options: CheckOptions): Promise<void> {
       options.log(`${status} Already tracked by #${String(tracked.number)}.`);
       continue;
     }
-    const issue = issueFor(component, version, versions);
+    options.log(status);
+    missing.push({
+      component,
+      version,
+      verified: versions,
+      from: await releaseCommit(options, component, versions.at(-1) ?? ''),
+      to: await releaseCommit(options, component, version),
+    });
+  }
+  // One issue per Smart Forms release: the versions published from one commit are verified together.
+  const releases = new Map<string, Missing[]>();
+  for (const version of missing)
+    releases.set(version.to, [...(releases.get(version.to) ?? []), version]);
+  for (const release of releases.values()) {
+    const issue = issueFor(options.repository, release);
     if (options.dryRun) {
-      options.log(`${status} Dry run: would open "${issue.title}".`);
+      options.log(`Dry run: would open "${issue.title}".`);
       continue;
     }
     const created = await createIssue(options, issue);
-    options.log(`${status} Opened #${String(created.number)}: ${created.url}`);
+    options.log(`Opened #${String(created.number)} for ${versionList(release)}: ${created.url}`);
   }
 }
 
@@ -92,7 +118,11 @@ function readVerified(plugin: unknown): Record<Component, string[]> {
   }
   const versionsOf = (component: Component): string[] => {
     const versions = verified[component];
-    if (!Array.isArray(versions) || !versions.every((version) => typeof version === 'string')) {
+    if (
+      !Array.isArray(versions) ||
+      versions.length === 0 ||
+      !versions.every((version) => typeof version === 'string')
+    ) {
       throw new Error(`compat.verified.${component} is not a list of versions.`);
     }
     return versions;
@@ -135,6 +165,20 @@ async function latestVersion(options: CheckOptions, component: Component): Promi
   return body.latest;
 }
 
+// The aehrc/smart-forms commit a version was published from.
+async function releaseCommit(
+  options: CheckOptions,
+  component: Component,
+  version: string,
+): Promise<string> {
+  const name = packages[component];
+  const { body } = await request(options, `https://registry.npmjs.org/${name}/${version}`);
+  if (!isRecord(body) || typeof body.gitHead !== 'string') {
+    throw new Error(`npm has no release commit (gitHead) for ${name} ${version}.`);
+  }
+  return body.gitHead;
+}
+
 // The repository's issues, open and closed. Through the issues endpoint, not search, which can
 // miss an issue opened moments before. The endpoint lists pull requests too, which are skipped, so
 // a marker quoted in a pull request doesn't count.
@@ -165,26 +209,45 @@ function marker(component: Component, version: string): string {
   return `<!-- smart-forms-version: ${component}@${version} -->`;
 }
 
-function issueFor(component: Component, latest: string, versions: readonly string[]): Issue {
-  const name = packages[component];
-  const verifiedList = versions.join(', ');
-  const override =
-    component === 'populate' ? ' Update the `fhirclient` override first (see AGENTS.md).' : '';
+// renderer 1.5.0, populate 4.7.2 and template-extract 1.0.16
+function versionList(release: readonly Missing[]): string {
+  const names = release.map(({ component, version }) => `${component} ${version}`);
+  return names.length === 1
+    ? String(names[0])
+    : `${names.slice(0, -1).join(', ')} and ${String(names.at(-1))}`;
+}
+
+function issueFor(repository: string, release: readonly Missing[]): Issue {
+  const list = versionList(release);
+  const one = release.length === 1;
+  const guide = `https://github.com/${repository}/blob/main/docs/plugin-smart-forms/new-release.md`;
+  const rows = release.map(
+    ({ component, version, verified, from, to }) =>
+      `| ${component} | ${verified.join(', ')} | ${version} | [changes](https://github.com/aehrc/smart-forms/compare/${from}...${to}) |`,
+  );
   return {
-    title: `Smart Forms plugin: verify ${component}@${latest}`,
-    body: `${marker(component, latest)}
-The Smart Forms plugin on \`main\` verifies ${component} ${verifiedList} (\`compat.verified\`). The latest ${component} on npm is ${latest} (\`${name}\`).
+    title: `Smart Forms plugin: verify ${list}`,
+    body: `${release.map(({ component, version }) => marker(component, version)).join('\n')}
+Smart Forms has published ${list}, which the Smart Forms plugin hasn't verified.
 
-A config that names ${component} ${latest} fails with \`CONFIG_INVALID\`. So a project whose forms run on it has to pin \`compat\` to an older version, and its reports' \`run.compat\` names a version it doesn't run.
+| Component | Verified on \`main\` | New on npm | Since the newest verified version |
+| :- | :- | :- | :- |
+${rows.join('\n')}
 
-## Proposed
+## Why it matters
 
-- [ ] Run the reproduction tests (\`packages/plugin-smart-forms/test/reproduction/\`) against \`${name}\` ${latest}, bumping the plugin's dev dependency where it has one.${override}
-- [ ] Re-check the \`source-only\` ${component} facts against ${latest}. Their permalinks cite the source the plugin was researched on.
-- [ ] Add ${latest} to \`compat.verified\`, oldest to newest. Update the README's "This release verifies …" sentence and the docs, then release the plugin.
-- [ ] Decide whether ${verifiedList} stay${versions.length === 1 ? 's' : ''} verified.
+The plugin's rules rely on facts recorded for each Smart Forms version it has verified. Until it verifies ${one ? 'this version' : 'these versions'}:
 
-Opened by \`.github/workflows/smart-forms-versions.yml\`, which finds this issue by the hidden marker on the first line. Closing it, done or not, stops the job from opening another for ${component} ${latest}.
+- Projects that use the default \`compat\` are still checked against the older versions. If the release changed a behaviour a rule relies on, the plugin can miss a real problem or report one that no longer exists.
+- A project can't select ${one ? 'the new version' : 'the new versions'}: naming an unverified version in \`compat\` fails with \`CONFIG_INVALID\`.
+
+## What to do
+
+Follow [Verifying a new Smart Forms release](${guide}). In short: check whether the release changed a behaviour the facts describe, run the reproduction tests against the new packages, record the versions, and release the plugin.
+
+Close this issue once the plugin on \`main\` verifies ${one ? 'this version' : 'these versions'}. If one won't be verified, close the issue and say why: the workflow doesn't reopen closed issues or open another for the same versions.
+
+<sub>Opened by the Smart Forms versions workflow (\`.github/workflows/smart-forms-versions.yml\`).</sub>
 `,
   };
 }

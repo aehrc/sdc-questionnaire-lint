@@ -16,10 +16,7 @@ The populate tests cover languages, prerequisites, names, embeddings, sourceQuer
 
 ## Verifying a new Smart Forms version
 
-1. Pin the new package version in the plugin's dev dependencies. For populate, also update the `fhirclient` override in the root `package.json`, which names the populate version.
-2. Run the reproduction tests against it, and add tests for any behaviour that changed.
-3. Add the version to the end of its list in `compat.verified` in `src/index.ts`, and record its facts in `src/facts/`, with their evidence. A fact whose upstream issue is fixed in the new version is left out for it.
-4. Where behaviour changed, update the rules, and run `npm run corpus -- --smart-forms` to see how the findings change.
+See [Verifying a new Smart Forms release](new-release.md): what to check, how to run the reproduction tests against the new packages, and how to record the versions.
 
 ## Schema
 
