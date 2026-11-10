@@ -53,4 +53,4 @@ An npm workspace of three packages:
 ## Workflow
 
 - `Don't use` changeset before the first official release
-- Publishing: bump the package's `version`, then publish a GitHub release tagged `<package name without @aehrc/>@<version>`, such as `sdc-questionnaire-lint@0.1.0`. Its workflow in `.github/workflows/publish_*.yml` runs CI, checks the tag matches the version, and publishes with npm trusted publishing. Publish core before a plugin release that needs the new core version.
+- Publishing: bump the package's `version` and add the release to its `CHANGELOG.md`, then publish a GitHub release tagged `<package name without @aehrc/>@<version>`, such as `sdc-questionnaire-lint@0.1.0`. Its workflow in `.github/workflows/publish_*.yml` runs CI, checks the tag matches the version, and publishes with npm trusted publishing. Publish core before a plugin release that needs the new core version.
